@@ -219,6 +219,7 @@ sub writeTableau
     if (defined(${$pagedetails}{'tableau_class'})) {
         $tableau_class = ${$pagedetails}{'tableau_class'};
     }
+
     my $lastN = ${$pagedetails}{'lastN'};
     # this is the bout before this tableau.  Should be divisible by 2.
     my $preceeding_bout = ${$pagedetails}{'preceeding_bout'};
@@ -244,6 +245,8 @@ sub writeTableau
             
             # now look up the bout
             # generate the EnGarde ID            
+
+			# PRS: Need to change this - shouldn't need to call "match" any more...
             my $bout = $EGData->match($lastN, ($boutnum + $preceeding_bout)) ;
             
             if (defined($bout)) {
@@ -571,30 +574,7 @@ sub createpage {
 	my $layoutcss = "";
 	# default refresh time of 30s.  This is changed later to be a minimum of 10 seconds per tableau view or the size of the vertical list.
 	my $refreshtime = 30;
-	
-	# If there are tableaus then we need to create them
-	my $hastableau = $pagedef->{'tableau'};
-	my $tabdefs;
-	if (defined($hastableau) && $hastableau eq 'true') 
-	{ 
-		$tabdefs = createRoundTableaus($comp);
 
-		print "createpage: tabdefs = " . Dumper(\$tabdefs);
-
-		my $swaps = [ $tabdefs->{'swaps'}];
-		$pagedef->{'swaps'} = $swaps;
-		
-		# Add the tableau to the css file we need for layout
-		$layoutcss .= "tableau";
-		
-		my $mindisplaytime = @{$tabdefs->{'swaps'}} * 10;
-		if ($mindisplaytime > $refreshtime) 
-		{
-			print "Changing refresh time from $refreshtime to $mindisplaytime due to tableaus\n";
-			$refreshtime = $mindisplaytime;
-		}
-	}
-	
 	my $messagelistdef = undef();
 	# Now check for urgent messages
     if (open (EXTRAMESSAGES, "messages.txt")) 
@@ -725,6 +705,30 @@ sub createpage {
 
 	writeBlurb($page, $pagedef);
 	
+	# If there are tableaus then we need to create them
+	my $hastableau = $pagedef->{'tableau'};
+	my $tabdefs;
+	if (defined($hastableau) && $hastableau eq 'true') 
+	{ 
+		$tabdefs = createRoundTableaus($comp);
+		# PRS: At this point, tabdefs contains all the data we need to print a tableau
+
+		print "createpage: tabdefs = " . Dumper(\$tabdefs);
+
+		my $swaps = [ $tabdefs->{'swaps'}];
+		$pagedef->{'swaps'} = $swaps;
+		
+		# Add the tableau to the css file we need for layout
+		$layoutcss .= "tableau";
+		
+		my $mindisplaytime = @{$tabdefs->{'swaps'}} * 10;
+		if ($mindisplaytime > $refreshtime) 
+		{
+			print "Changing refresh time from $refreshtime to $mindisplaytime due to tableaus\n";
+			$refreshtime = $mindisplaytime;
+		}
+	}
+		
 	# Write the tableaus if appropriate
 	if (defined($hastableau) && $hastableau eq 'true') 
 	{ 
@@ -732,6 +736,7 @@ sub createpage {
 
 		foreach my $tabdef (@{$tabdefs->{'definitions'}}) 
 		{
+			print "createpage: tabdef = " . Dumper(\$tabdef);
 			writeTableau($comp, $page, $tabdef);
 		}
 	}
