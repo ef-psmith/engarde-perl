@@ -45,8 +45,18 @@ $server->register('currentScore',           // method name
     'Update live results'        			// documentation
 );
 
+$server->register('finalScore',           	// method name
+    array('result' => 'tns:Score'),         // input parameters
+    array('return' => 'xsd:int'),    		// output parameters
+    'urn:liveresult',                       // namespace
+    'urn:liveresult#return',                // soapaction
+    'rpc',                                  // style
+    'encoded',                              // use
+    'commit the final score'       			// documentation
+);
+
 // Define the method as a PHP function
-function updateScore($result) 
+function currentScore($result) 
 {
 	// update the DB
 	// return 0 (not OK) or 1 (OK)
@@ -58,10 +68,7 @@ function updateScore($result)
 	$scoreA = $result['scoreA'];
 	$scoreB = $result['scoreB'];
 
-    return array(
-                'greeting' => $greeting,
-                'winner' => $winner
-                );
+	return 1;
 }
 
 // method code (get DB result)
