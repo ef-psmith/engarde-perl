@@ -2,7 +2,7 @@
 # oliver_rps@yahoo.co.uk
 
 use strict;
-require Engarde;
+use Engarde;
 use Data::Dumper;
 
 use vars qw($pagedetails);
@@ -86,7 +86,9 @@ sub writeTableauFencer {
 sub writeBlurb {
     my $webpage = $_[0];
     local $pagedetails = $_[1];
-    
+   
+   	# PRS: Add css path variable to allow for multiple comps with common css
+	
     my $nextpage = ${$pagedetails}{'nextpage'};
     my $pagetitle = ${$pagedetails}{'pagetitle'};
     my $refresh = ${$pagedetails}{'refresh_time'};
@@ -211,18 +213,18 @@ sub writeTableau
     my $webpage = $_[1];
     local $pagedetails = $_[2];
 
-	# print "writeTableau: EGData = " . Dumper(\$EGData);
+	print "writeTableau: EGData = " . Dumper(\$EGData);
 
-    my $div_id = ${$pagedetails}{'tableau_div'};
-    my $tableau_title = ${$pagedetails}{'tableau_title'};
+    my $div_id = $pagedetails->{'tableau_div'};
+    my $tableau_title = $pagedetails->{'tableau_title'};
     my $tableau_class = 'tableau';
-    if (defined(${$pagedetails}{'tableau_class'})) {
-        $tableau_class = ${$pagedetails}{'tableau_class'};
+    if (defined($pagedetails->{'tableau_class'})) {
+        $tableau_class = $pagedetails->{'tableau_class'};
     }
 
     my $lastN = ${$pagedetails}{'lastN'};
     # this is the bout before this tableau.  Should be divisible by 2.
-    my $preceeding_bout = ${$pagedetails}{'preceeding_bout'};
+    my $preceeding_bout = $pagedetails->{'preceeding_bout'};
     
     print $webpage "<div class=\"$tableau_class\" id=\"$div_id\">\n";
     print $webpage "\t<h2 class=\"tableau_title\">$tableau_title</h2>\n";
@@ -239,7 +241,7 @@ sub writeTableau
         my $colname = "r" . $roundnum . "col";
         print $webpage "\t<div class=\"$colname\">\n";
         
-        for (my $boutnum = 1; $boutnum <= $numbouts; $boutnum++) {
+        for (my $boutnum = 1; $boutnum <= $lastN / 2; $boutnum++) {
             my $boutname = "r" . $roundnum . "bout-" . $boutnum;
             print $webpage "\t\t<div class=\"$boutname bout\">\n";
             
@@ -247,31 +249,34 @@ sub writeTableau
             # generate the EnGarde ID            
 
 			# PRS: Need to change this - shouldn't need to call "match" any more...
-            my $bout = $EGData->match($lastN, ($boutnum + $preceeding_bout)) ;
+			# my $bout = $EGData->match($lastN, ($boutnum + $preceeding_bout)) ;
+
+			my $bout;
             
-            if (defined($bout)) {
+			if (defined($EGData->{$boutnum})) {
 				print $webpage "\t\t\t<div class=\"pistecontainer\">\n\t\t\t\t<div class=\"de-element fencerA\">";
 				print $webpage ${$bout}{'time'} . "   Piste: " . ${$bout}{'piste'}  . "</div>\n\t\t\t</div>\n";
-			
+				
 				print "writeTableau: roundnum = $roundnum, result = $result\n";
-
-                writeTableauFencer($webpage, $bout, 'A',$roundnum);
-                writeTableauFencer($webpage, $bout, 'B',$roundnum);
-
-				if ($lastN == 2)
-				{
-					# Need to include the Winner!
-					# writeTableauFencer($webpage, $bout, 'Winner', $roundnum, $result);
-				}
-            } else {
-                print $webpage "\t\t\t<div class=\"de-element nofencerA\">\n\t\t\t</div>\n";
-	    		print $webpage "\t\t\t<div class=\"de-element nofencerB\">\n\t\t\t</div>\n";
-            }
-            $bout = undef();
+	
+				# PRS: change to use data we already have
+				writeTableauFencer($webpage, $bout, 'A',$roundnum);
+				writeTableauFencer($webpage, $bout, 'B',$roundnum);
+	
+				print $webpage "\t\t\t<div class=\"de-element nofencerA\">\n\t\t\t</div>\n";
+	   			print $webpage "\t\t\t<div class=\"de-element nofencerB\">\n\t\t\t</div>\n";
+			} else {
+				# $bout = undef();
             
-            #end of bout div
-            print $webpage "\t\t</div>\n"
-        }
+            	#end of bout div
+            	print $webpage "\t\t</div>\n"
+        	}
+		}
+
+		# Need to include the Winner!
+		# writeTableauFencer($webpage, $bout, 'Winner', $roundnum, $result);
+			
+
         # end of col div
         print $webpage "\t</div>\n";
         
@@ -707,13 +712,15 @@ sub createpage {
 	
 	# If there are tableaus then we need to create them
 	my $hastableau = $pagedef->{'tableau'};
+
 	my $tabdefs;
+
 	if (defined($hastableau) && $hastableau eq 'true') 
 	{ 
 		$tabdefs = createRoundTableaus($comp);
 		# PRS: At this point, tabdefs contains all the data we need to print a tableau
 
-		print "createpage: tabdefs = " . Dumper(\$tabdefs);
+		# print "createpage: tabdefs = " . Dumper(\$tabdefs);
 
 		my $swaps = [ $tabdefs->{'swaps'}];
 		$pagedef->{'swaps'} = $swaps;
@@ -737,7 +744,8 @@ sub createpage {
 		foreach my $tabdef (@{$tabdefs->{'definitions'}}) 
 		{
 			print "createpage: tabdef = " . Dumper(\$tabdef);
-			writeTableau($comp, $page, $tabdef);
+			# PRS: Need to pass tabdefs->{level} here as well or change the way writeTableau is called
+			writeTableau($tabdefs, $page, $tabdef);
 		}
 	}
 	# If we have the horizontal scrolling then add that
