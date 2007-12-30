@@ -5,6 +5,7 @@ require_once('nusoap.php');
 $server = new soap_server();
 // Initialize WSDL support
 $server->configureWSDL('liveresult', 'urn:liveresult');
+
 // Register the data structures used by the service
 $server->wsdl->addComplexType(
     'Score',
@@ -22,6 +23,7 @@ $server->wsdl->addComplexType(
     )
 );
 
+
 #$server->wsdl->addComplexType(
     #'SweepstakesGreeting',
     #'complexType',
@@ -37,19 +39,20 @@ $server->wsdl->addComplexType(
 // Register the method to expose
 $server->register('currentScore',           // method name
     array('result' => 'tns:Score'),         // input parameters
-    array('return' => 'xsd:int'),    		// output parameters
+    array('return' => 'xsd:string'),   		// output parameters
     'urn:liveresult',                       // namespace
-    'urn:liveresult#return',                // soapaction
+    'urn:liveresult#currentScore',          // soapaction
     'rpc',                                  // style
     'encoded',                              // use
     'Update live results'        			// documentation
 );
 
 $server->register('finalScore',           	// method name
-    array('result' => 'tns:Score'),         // input parameters
+    // array('result' => 'tns:Score'),      // input parameters
+    array('result' => 'xsd:string'),        // input parameters
     array('return' => 'xsd:int'),    		// output parameters
     'urn:liveresult',                       // namespace
-    'urn:liveresult#return',                // soapaction
+    'urn:liveresult#finalScore',            // soapaction
     'rpc',                                  // style
     'encoded',                              // use
     'commit the final score'       			// documentation
@@ -68,7 +71,8 @@ function currentScore($result)
 	$scoreA = $result['scoreA'];
 	$scoreB = $result['scoreB'];
 
-	return 1;
+	return "$result";
+	# return "$piste $match $fencerA $fencerB $scoreA $scoreB";
 }
 
 // method code (get DB result)
@@ -79,25 +83,25 @@ function getSystemList ($a_stInput) {
     $cvDBlink   = @mysql_connect('localhost', 'tt_ws', 'teamtrack');
 
     if (!$cvDBlink) {
-      return new soap_fault('Server 1', '', 'Connecting to mysql');
+      return new soap_fault('Server', '', 'Connecting to mysql');
 	}
 
 	$cvDBhandle = @mysql_select_db('cview', $cvDBlink);
 	   
     if (!$cvDBlink) {
-      return new soap_fault('Server 2', '', 'selecting DB');
+      return new soap_fault('Server', '', 'selecting DB');
 	}
 
 	$cvDBresult = @mysql_query('SELECT systemName, systemId FROM system LIMIT 2', $cvDBlink);
       
     // simple error checking
     if (!$cvDBresult) {
-      return new soap_fault('Server 3', '', 'Internal server error ' . mysql_error());
+      return new soap_fault('Server', '', 'Internal server error ' . mysql_error());
     }
       
     // no data avaible 
     if (!mysql_num_rows($cvDBresult)) {
-      return new soap_fault('Server 4', '', 'No matching systems');
+      return new soap_fault('Server', '', 'No matching systems');
     }
     mysql_close($cvDBlink);
       
