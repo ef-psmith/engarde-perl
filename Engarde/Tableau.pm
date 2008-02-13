@@ -11,14 +11,20 @@ use Data::Dumper;
 sub load
 {
 	my $self = shift;
+
 	my $level = $self->{level};
+
+	$level =~ s/[a-z]//;
+
+	# print "Level = $level\n";
+
+	my $max = $level / 2;
 
 	open IN, $self->{file} || die $!;
 	my $unparsed;
 
 	<IN>; # discard [nom aXX]
 	<IN>; # discard [taille XX]
-# 	<IN>; # discard [etat XXX]
 
 	my $etat = <IN>;
 
@@ -49,7 +55,7 @@ sub load
 	my $i;
 	my @eliminated;
 
-	for ($i=1;$i<=$level/2;$i++)
+	for ($i=1;$i<=$max;$i++)
 	{
 		my $item = {};
 
@@ -94,7 +100,7 @@ sub load
 			# push loser
 			my $id = $item->{'winner'} eq $item->{'fencerA'} ? $item->{'fencerB'} : $item->{'fencerA'};
 
-			my $level = $self->level;
+			$level = $self->level;
 
 			# print "level = $level, id = $id\n";
 			push @eliminated, $id unless $id eq "nobody";
@@ -104,7 +110,6 @@ sub load
 		$self->{$i} = $item;
 
 		$self->{'eliminated'} = \@eliminated;
-
 	}
 }
 
@@ -117,6 +122,8 @@ sub load
 ###########################################################
 
 # match returns a ref to an Engarde::Comptition::Match object
+#
+# Required to override the AUTOLOAD version 
 sub match
 {
 	my $self = shift;
