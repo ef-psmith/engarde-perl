@@ -6,7 +6,7 @@ package Engarde;
 #
 # Engarde - Provides an OO interface to Engarde competition files
 #
-# Copyright 2007, Peter Smith, psmith@rekar.co.uk
+# Copyright 2007-2008, Peter Smith, psmith@rekar.co.uk
 #
 
 # use Exporter;
@@ -157,29 +157,31 @@ sub new {
 
 				# As is tableauxactifs
 
-				if (/  tableauxactifs /)
-				{
-					s/  tableauxactifs \(//;
-					s/\)$//;
-					s/a//g;
-
-					my @t = split / /,$_;
-
-					my $t = {};
-
-					foreach (@t)
-					{
-						$t->{$_} = 1;
-					}
-
-					$self->{tableauxactifs} = $t;
-				}
+				# if (/  tableauxactifs /)
+				# {
+				# s/  tableauxactifs \(//;
+				# s/\)$//;
+				# # s/a//g;
+				# 
+				# my @t = split / /,$_;
+				# 
+				# my $t = {};
+				# 
+				# foreach (@t)
+				# {
+				# my $suite = substr($_,0,1);
+				# my $size = substr($_,1);
+				# 
+				# $t->{$suite}->{$size} = 1;
+				# }
+				# 
+				# $self->{tableauxactifs} = $t;
+				# }
 			}
 		}
 	}
 
 	close IN;
-
 
 	$file = "$dir/tour_de_poules.txt";
 
@@ -190,6 +192,7 @@ sub new {
 
 	while (<IN>)
 	{
+		chomp;
 		# print "NEW: $_\n";
 		if ( /nombre_poules/ )
 		{
@@ -197,6 +200,82 @@ sub new {
 			$num =~ s/.*\[nombre_poules //;
 			$num =~ s/\].*//;
 			$self->{nombre_poules} = $num;
+		}
+
+		if ( /entites_exemptees/ )
+		{
+			my $num = $_;
+			$num =~ s/.*\[entites_exemptees //;
+			$num =~ s/\].*//;
+			$self->{entites_exemptees} = $num;
+		}
+	}
+
+	close IN;
+
+
+	$file = "$dir/description_tableau.txt";
+
+	open IN, $file;
+
+	# {[classe description_tableau] [suite a] [nom a64] [nom_etendu "prelimenary tableau of 64"]
+ 	# [cle 1] [nombre_entites 64] [taille 64] [destination_vainqueurs b64] [classe_apres
+ 	# (b64 b32 b16 b8 b4 b2)] [groupe_clasmt_battus 8] [rang_premier_battu 65]}
+
+	undef $unparsed;
+	while (<IN>)
+	{
+		chomp;
+
+		# print "_ = $_\n";
+
+		if (/\[classe description_tableau/ && $unparsed)
+		{
+			# do something with $unparsed
+
+			$unparsed =~ s/^\[//;
+			$unparsed =~ s/\}$//;
+
+			# print "\n\nunparsed = $unparsed\n";
+
+			my $item = {};
+			my @elements = split /[ \]]*\[/, $unparsed;
+
+			# print "elements = @elements\n";
+
+			foreach (@elements)
+			{
+				my @keywords = qw/suite nom nom_etendu rang_premier_battu inactif taille/;
+
+				s/\]//;
+
+				# print "element = $_\n";
+
+				foreach my $key (@keywords)
+				{
+					# print "\tkey = $key _=[$_]\n";
+					if (/^$key /)
+					{
+						s/$key //;
+						s/\"//g;
+						s/\]//;
+
+						# print "\tvalue = $_\n";
+						$item->{$key} = $_;
+					}
+				}
+			}
+
+			$self->{tableauxactifs}->{$item->{nom}} = $item unless $item->{inactif};
+
+			s/.*classe description_tableau\] //;
+			$unparsed = $_;
+		}
+		else
+		{
+			s/.*classe description_tableau\] //;
+			$unparsed .= $_;
+			# print "fall through: unparsed = \n";
 		}
 	}
 
@@ -225,9 +304,10 @@ sub initialise
 
 	my $tab = $c->tableauxactifs;
 
-	foreach my $t (keys (%$tab))
+	foreach my $s (keys (%$tab))
 	{
-		$c->tableau($t);
+		# print "s = $s\n";
+		my $t = $c->tableau("$s");
 	}
 }
 
@@ -259,13 +339,16 @@ sub match
 	my $fa = $c->tireur($match->{fencerA}) if $match->{fencerA};
 	my $fb = $c->tireur($match->{fencerB}) if $match->{fencerB};
 
+	# print Dumper (\$fa);
+	# print Dumper (\$fb);
+
 	my $winner = $c->tireur($match->{winner}) if $match->{winner};
 
 	my $ca = $c->club($fa->{club1}) if $fa->{club1};
 	my $cb = $c->club($fb->{club1}) if $fb->{club1};
 
-	my $na = $c->nation($fa->{nation}) if $fa->{nation};
-	my $nb = $c->nation($fb->{nation}) if $fb->{nation};
+	my $na = $c->nation($fa->{nation1}) if $fa->{nation1};
+	my $nb = $c->nation($fb->{nation1}) if $fb->{nation1};
 
 	# print "MATCH: winner [$winner] = " . Dumper($winner);
 
@@ -281,8 +364,8 @@ sub match
 	$out->{time} = $match->{time};
 	$out->{clubA} = $ca if $ca;
 	$out->{clubB} = $cb if $cb;
-	$out->{nationA} = $na->nom if $na;
-	$out->{nationB} = $nb->nom if $nb;
+	$out->{nationA} = $na if $na;
+	$out->{nationB} = $nb if $nb;
 	$out->{idA} = $match->{fencerA} if $match->{fencerA};
 	$out->{idB} = $match->{fencerB} if $match->{fencerB};
 
@@ -484,23 +567,28 @@ sub tableau
 	my $level = shift;
 	my $decode = shift;
 
+	my $suite = substr($level,0,1);
+	my $num = substr($level,1);
+
 	my $dir = $c->dir();
 
 	my $self;
 	my $old_mtime = 0;
 
-	my $t = "tableauA$level";
-
-	if ($c->{$t})
+	if ($c->{tableau}->{$level})
 	{
-		$self = $c->{$t};
+		$self = $c->{tableau}->{$level};
 		$old_mtime = $self->mtime();
 	}
 	else
 	{
 		$self = {};
-		$self->{file} = "$dir/$t.txt";
+		$self->{file} = "$dir/tableau$level.txt";
+		$self->{nom} = $level;
 		$self->{level} = $level;
+		$self->{nom_etendu} = $c->{tableauxactifs}->{$level}->{nom_etendu};
+		$self->{rang_premier_battu} = $c->{tableauxactifs}->{$level}->{rang_premier_battu};
+		$self->{taille} = $c->{tableauxactifs}->{$level}->{taille};
 		bless $self, "Engarde::Tableau";
 	}
 
@@ -508,19 +596,18 @@ sub tableau
 
 	if ($self->{mtime} && $self->{mtime} > $old_mtime)
 	{
-		# print "Loading $t data...\n";
-
+		# print "Loading $level data...\n";
 		$self->load($level);
-		$c->{$t} = $self;
+		$c->{tableau}->{$level} = $self;
 	}
 	else
 	{
-		# print "Not loading $t data...\n";
+		# print "Not loading $level data...\n";
 	}
 
-	return $self unless $decode;
+	return undef unless $self->etat();
 
-	my $decoded = {};
+	return $self unless $decode;
 
 	foreach my $m (keys %$self)
 	{
@@ -532,15 +619,11 @@ sub tableau
 			# print "old match = " . Dumper(\$self->{$m});
 			# print "new match = " . Dumper(\$match);
 
-			$decoded->{$m} = $match;
-		}
-		elsif ($m =~ /etat/)
-		{
-			$decoded->{etat} = $self->{etat};
+			$self->{$m} = $match;
 		}
 	}
 
-	return $decoded;
+	return $self;
 }
 
 
@@ -579,7 +662,7 @@ sub poule
 	}
 	else
 	{
-		# print "Not loading $t data...\n";
+		# print "Not loading $level data...\n";
 	}
 
 	return $self;
@@ -594,15 +677,13 @@ sub ranking
 	# o = overall, p = after pools
 	my $type = shift || "o";
 
-	# print "RANKING: type = $type\n";
+	my $exempt = $c->entites_exemptees || 0;
 
 	my $seeds = {};
 
 	my $dir = $c->dir;
 
 	my $file = "$dir/claspou_fin_1.txt";
-
-	# my $file = $type eq "p" ? "$dir/claspou_fin_1.txt" : "$dir/clastab_initial.txt";
 
 	open RANKING, $file || return undef;
 
@@ -612,8 +693,6 @@ sub ranking
 		# q;1;160;6;6;30;8;
 		
 		chomp;
-
-		# print "$_\n";
 
 		my @result = split /;/, $_;
 
@@ -631,7 +710,7 @@ sub ranking
 	
 			$seeds->{$result[2]} = { group=>$result[0], nom=>$name, club=>$club, nation=>$nation, 
 								 	 v=>$result[4], m=>$result[3], hs=>$result[5], hr=>$result[6], 
-									 ind=>$ind, seed=>$result[1], serie=>$serie };
+									 ind=>$ind, seed=>$result[1]+$exempt, serie=>$serie };
 		}
 		else
 		{
@@ -649,7 +728,7 @@ sub ranking
 
 	if ($type eq "o")
 	{
-		my $tab = $c->tableauxactifs;
+		my @tab = $c->tableaux;
 
 		# for each complete round
 		# 	find eliminated fencers
@@ -657,78 +736,69 @@ sub ranking
 		# 	rank according to sort order
 		# end
 
-		foreach my $t (sort { $b <=> $a } keys (%$tab))
+		foreach my $t (@tab)
 		{
 			my $round = $c->tableau($t);
-			my $etat = $round->etat;
+			my $taille = $round->taille;
 
-			# print "round = $t, etat = $etat\n";
-
-			if ($etat eq "termine")
+			unless ($taille == 2)
 			{
-				unless ($t == 2)
+				my $eliminated = $round->eliminated;
+
+				# print "RANKING: round = $t, " . Dumper ($eliminated);
+
+				my $next_rang = $round->rang_premier_battu;
+
+				my $elim = {};	# eliminated this round
+
+				foreach my $e (@$eliminated)
 				{
-					my $eliminated = $round->eliminated;
-					# print "round = $t, " . Dumper ($eliminated);
-					my $next_rang = ($t / 2);
-					$next_rang++; 
-	
-					my $elim = {};	# eliminated this round
-	
-					foreach my $e (@$eliminated)
-					{
-						my $t = $c->tireur($e);
-						my $rang = $t->rangpou;
-						my $nom = $t->nom;
-						my $clubid = $t->club;
-						my $club = $clubid ? $c->club($clubid) : "";
-						my $nationid = $t->nation;
-						my $nation = $nationid ? $c->nation($nationid) : "";
+					my $t = $c->tireur($e);
+					my $rang = $t->rangpou;
+					my $nom = $t->nom;
+					my $clubid = $t->club;
+					my $club = $clubid ? $c->club($clubid) : "";
+					my $nationid = $t->nation;
+					my $nation = $nationid ? $c->nation($nationid) : "";
 
-						# print "e = $e, rangpou = $rang\n";
+					$elim->{$e} = {nom=>$nom, nation=>$nation, club=>$club, rangpou=>$rang}; 
+				}
 
-						$elim->{$e} = {nom=>$nom, nation=>$nation, club=>$club, rangpou=>$rang}; 
-					}
+				my $current_rang = $next_rang-1;
+				my $last_rang = 0;
 
-					my $current_rang = $next_rang-1;
-					my $last_rang = 0;
+				foreach my $e (sort { $elim->{$a}->{rangpou} <=> $elim->{$b}->{rangpou}} keys(%$elim))
+				{
+					my $rangpou = $elim->{$e}->{rangpou};
 
-					foreach my $e (sort { $elim->{$a}->{rangpou} <=> $elim->{$b}->{rangpou}} keys(%$elim))
-					{
-						my $rangpou = $elim->{$e}->{rangpou};
-	
-						$current_rang = $next_rang if $rangpou > $last_rang;
-						$next_rang++;
-						$last_rang = $rangpou;
-	
-						$seeds->{$e} = $elim->{$e};
-						$seeds->{$e}->{seed} = $current_rang;
+					$current_rang = $next_rang if $rangpou > $last_rang;
+					$next_rang++;
+					$last_rang = $rangpou;
 
-						# print "e = $e, ranking = $current_rang, next = $next_rang\n";
-					}
+					$seeds->{$e} = $elim->{$e};
+					$seeds->{$e}->{seed} = $current_rang;
+				}
+			}
+			else
+			{
+				my $final = $c->match(2,1);
+				# print "final = " . Dumper($final);
+
+				if ($final->{winner} eq $final->{fencerA})
+				{
+					$seeds->{$final->{idA}} = {nom=>$final->{fencerA}, nation=>$final->{nationA}, club=>$final->{clubA}, seed=>1}; 
+					$seeds->{$final->{idB}} = {nom=>$final->{fencerB}, nation=>$final->{nationB}, club=>$final->{clubB}, seed=>2}; 
 				}
 				else
 				{
-					my $final = $c->match(2,1);
-					# print "final = " . Dumper($final);
-
-					if ($final->{winner} eq $final->{fencerA})
-					{
-						$seeds->{$final->{idA}} = {nom=>$final->{fencerA}, nation=>$final->{nationA}, club=>$final->{clubA}, seed=>1}; 
-						$seeds->{$final->{idB}} = {nom=>$final->{fencerB}, nation=>$final->{nationB}, club=>$final->{clubB}, seed=>2}; 
-					}
-					else
-					{
-						$seeds->{$final->{idA}} = {nom=>$final->{fencerA}, nation=>$final->{nationA}, club=>$final->{clubA}, seed=>2}; 
-						$seeds->{$final->{idB}} = {nom=>$final->{fencerB}, nation=>$final->{nationB}, club=>$final->{clubB}, seed=>1}; 
-					}
-
+					$seeds->{$final->{idA}} = {nom=>$final->{fencerA}, nation=>$final->{nationA}, club=>$final->{clubA}, seed=>2}; 
+					$seeds->{$final->{idB}} = {nom=>$final->{fencerB}, nation=>$final->{nationB}, club=>$final->{clubB}, seed=>1}; 
 				}
+
 			}
 		}
 	}
 
-	# print Dumper ($ranking);
 	return $seeds;
 }
 
@@ -741,15 +811,12 @@ sub fpp
 
 	my $num = $c->nombre_poules;
 
-	# print "FPP: nombre_poules = $num\n";
-
 	my $i = 1;
 
 	while ($i<=$num)
 	{
 		# assume only one round of poules for now
 		my $p = $c->poule(1, $i);
-		# print Dumper($p);
 
 		my $tir = $p->les_tir_cons;
 
@@ -1008,6 +1075,30 @@ sub sexe
 	return $self->{sexe} eq "masculin" ? "m" : "f";
 }
 
+sub tableaux
+{
+	# print "TABLEAUX: starting\n";
+
+	# returns a list of complete tableaux sorted into ranking order (lowest first)
+	my $self = shift;
+	my $ta = $self->tableauxactifs;
+
+	my @tableaux;
+
+	foreach my $key (keys %$ta)
+	{
+		my $tab = $self->tableau($key);
+		my $etat = $tab->etat;
+	
+		push @tableaux, $key if $etat eq "termine";
+	}
+
+	# print "TABLEAUX: returning @tableaux\n";
+
+	my @result = sort {$ta->{$a}->{rang_premier_battu} <=> $ta->{$b}->{rang_premier_battu} } @tableaux;
+
+	return reverse @result;
+}
 
 1;
 
