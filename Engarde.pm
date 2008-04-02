@@ -88,27 +88,17 @@ sub new {
 	my $dir = dirname($file);
 	$self->{dir} = $dir;
 
-	# print "NEW: dir = $self->{dir}\n";
-	
 	open IN, "$file" || die $!;
 
 	my $unparsed;
 	my $inside;
 
-	# keywords1 have quoted values
-	my @keywords1 = qw(titre_reduit titre_ligne organisateur championnat annee titre1 titre2 titre3 titre4);
-
-	# keywords2 have unquoted values
-	my @keywords2 = qw(arme categorie sexe);
-
 	while (<IN>)
 	{
 		chomp;
 
-		if (/^\(def ma_competition/ || $inside)
+		if ((/^\(def ma_competition/ || /^\(def ma_formule/ || $inside))
 		{
-			# print "NEW: inside, _ = $_\n";
-
 			if (/^\)$/)
 			{
 				undef $inside;
@@ -118,35 +108,6 @@ sub new {
 			{
 				$inside = 1;
 
-				foreach my $key (@keywords1)
-				{
-					# print "key 1 = $key\n";
-
-					if (/  $key /)
-					{
-						s/  $key \"//;
-						s/\"$//;
-
-						$self->{$key} = $_;
-						last;
-					}
-				}
-
-				foreach my $key (@keywords2)
-				{
-					# print "key 2 = $key\n";
-
-					if (/  $key /)
-					{
-						s/  $key //;
-
-						$self->{$key} = $_;
-						last;
-					}
-				}
-
-				# Date is a special case
-
 				if (/  date /)
 				{
 					s/  date \"~//;
@@ -154,29 +115,17 @@ sub new {
 
 					$self->{date} = $_;
 				}
+				else
+				{
+					next if /  classe /;
+					next if /  tableauxactifs /;
+					next if /  contexte /;
 
-				# As is tableauxactifs
-
-				# if (/  tableauxactifs /)
-				# {
-				# s/  tableauxactifs \(//;
-				# s/\)$//;
-				# # s/a//g;
-				# 
-				# my @t = split / /,$_;
-				# 
-				# my $t = {};
-				# 
-				# foreach (@t)
-				# {
-				# my $suite = substr($_,0,1);
-				# my $size = substr($_,1);
-				# 
-				# $t->{$suite}->{$size} = 1;
-				# }
-				# 
-				# $self->{tableauxactifs} = $t;
-				# }
+					my ($key, $value) = m/  (.*?) (.*)/;
+					$value =~ s/[\"\(\)]*//g if $value;
+					next unless $value;
+					$self->{$key} = $value;
+				}
 			}
 		}
 	}
@@ -236,8 +185,6 @@ sub new {
 			$unparsed =~ s/^\[//;
 			$unparsed =~ s/\}$//;
 
-			# print "\n\nunparsed = $unparsed\n";
-
 			my $item = {};
 			my @elements = split /[ \]]*\[/, $unparsed;
 
@@ -288,7 +235,7 @@ sub new {
 
 #########################################################
 #
-# initialise all competition info
+# initialise basic competition info
 #
 #########################################################
 
@@ -302,13 +249,15 @@ sub initialise
 	$c->nation;
 	$c->club;
 
-	my $tab = $c->tableauxactifs;
+	# my $tab = $c->tableauxactifs;
 
-	foreach my $s (keys (%$tab))
-	{
-		# print "s = $s\n";
-		my $t = $c->tableau("$s");
-	}
+	# print Dumper(\$tab);
+
+	# foreach my $s (keys (%$tab))
+	# {
+		#my $t = $c->tableau($s);
+		# $c->tableau($s);
+		# }
 }
 
 
@@ -430,7 +379,6 @@ sub tireur
 		# print "Loading tireur data...\n";
 
 		$self->load();
-		$self->{rangpou} = 0;
 		# print Dumper (\$self);
 		$c->{tireur} = $self;
 	}
@@ -671,7 +619,10 @@ sub poule
 
 sub ranking
 {
-	# load clas_fin_poules.txt or clastab_initial.txt
+	# need to load clastab_initial.txt since it includes fencers with byes
+	# and claspou_fin_1.txt for e and a types
+
+	print "RANKING: starting\n";
 	
 	my $c = shift;
 	# o = overall, p = after pools
@@ -696,10 +647,11 @@ sub ranking
 
 		my @result = split /;/, $_;
 
-		my $t = $c->tireur($result[2]);
-
-		if (($result[0] ne "q" && $type eq "o") || $type eq "p")
+		if ($result[0] eq "e" || $result[0] eq "a" || $type eq "p")
 		{
+			# either fencer is eliminated, abandoned or we just need a ranking after the poules
+			my $t = $c->tireur($result[2]);
+
 			my $ind = $result[5] - $result[6];
 			my $name = $t->nom;
 			my $cid = $t->club;
@@ -709,25 +661,42 @@ sub ranking
 			my $serie = $t->serie;
 	
 			$seeds->{$result[2]} = { group=>$result[0], nom=>$name, club=>$club, nation=>$nation, 
-								 	 v=>$result[4], m=>$result[3], hs=>$result[5], hr=>$result[6], 
-									 ind=>$ind, seed=>$result[1]+$exempt, serie=>$serie };
-		}
-		else
-		{
-			# if this is a ranking after the pools or an eliminated fencer,
-			# we just use the ranking after the pools value
-			$t->rangpou($result[1]);
+							 	 	v=>$result[4], m=>$result[3], hs=>$result[5], hr=>$result[6], 
+								 	ind=>$ind, seed=>$result[1]+$exempt, serie=>$serie };
+
 		}
 	}
 
-	# print Dumper($seeds);
-
 	close RANKING;
-
-	my $ranking = {};
 
 	if ($type eq "o")
 	{
+		$file = "$dir/clastab_initial.txt";
+
+		open RANKING, $file || return undef;
+
+		while (<RANKING>)
+		{
+			# group ; rank ; id ; v ; m ; hs ; hr
+			# q;1;160;6;6;30;8;
+			
+			chomp;
+	
+			my @result = split /;/, $_;
+	
+			if ($result[0] eq "q" || $result[0] eq "x")
+			{
+				my $t = $c->tireur($result[2]);
+				$t->rangpou($result[1]);
+			}
+		}
+
+		# print Dumper($seeds);
+	
+		close RANKING;
+
+		my $ranking = {};
+
 		my @tab = $c->tableaux;
 
 		# for each complete round
@@ -761,6 +730,8 @@ sub ranking
 					my $nationid = $t->nation;
 					my $nation = $nationid ? $c->nation($nationid) : "";
 
+					# do something unless $rang for those with byes...
+
 					$elim->{$e} = {nom=>$nom, nation=>$nation, club=>$club, rangpou=>$rang}; 
 				}
 
@@ -769,6 +740,8 @@ sub ranking
 
 				foreach my $e (sort { $elim->{$a}->{rangpou} <=> $elim->{$b}->{rangpou}} keys(%$elim))
 				{
+					# print "e = " . Dumper(\$e);
+
 					my $rangpou = $elim->{$e}->{rangpou};
 
 					$current_rang = $next_rang if $rangpou > $last_rang;
@@ -781,7 +754,8 @@ sub ranking
 			}
 			else
 			{
-				my $final = $c->match(2,1);
+				print "RANKING: getting final\n";
+				my $final = $c->match($t,1);
 				# print "final = " . Dumper($final);
 
 				if ($final->{winner} eq $final->{fencerA})
@@ -896,14 +870,14 @@ sub html
 
 
 	my %order = ( 
-				128 => [undef, 	1, 128, 64, 65, 33, 96, 32, 97, 17, 128, 48, 128, 49, 128, 16, 128, 
-								9, 128, 56, 128, 41, 128, 24, 128, 25, 128, 40, 128, 57, 128, 8, 128, 
-							   	5, 128, 60, 128, 37, 128, 28, 128, 21, 128, 44, 128, 53, 128, 12, 128, 
-								13, 128, 52, 128, 45, 128, 20, 128, 29, 128, 36, 128, 61, 128, 4, 128, 
-								3, 128, 62, 128, 35, 128, 30, 128, 19, 128, 46, 128, 51, 128, 14, 128, 
-								11, 128, 54, 128, 43, 128, 22, 128, 27, 128, 38, 128, 59, 128, 6, 128, 
-								7, 128, 58, 128, 39, 128, 26, 128, 23, 128, 42, 128, 55, 128, 10, 128, 
-								15, 128, 50, 128, 47, 128, 18, 128, 31, 128, 34, 128, 63, 128, 2],
+				128 => [undef, 	1, 128, 65, 64, 33, 96, 97, 32, 17, 112, 81, 48, 49, 80, 113, 16, 
+								9, 120, 73, 56, 41, 88, 105, 24, 25, 104, 89, 40, 57, 72, 121, 8, 
+							   	5, 124, 69, 60, 37, 92, 101, 28, 21, 108, 85, 44, 53, 76, 117, 12,
+								13, 116, 77, 52, 45, 84, 109, 20, 29, 100, 93, 36, 61, 68, 125, 4,
+								3, 126, 67, 62, 35, 94, 99, 30, 19, 110, 83, 46, 51, 78, 115, 14,
+								11, 118, 75, 54, 43, 86, 107, 22, 27, 102, 91, 38, 59, 70, 123, 6,
+								7, 122, 71, 58, 39, 90, 103, 26, 23, 106, 87, 42, 55, 74, 119, 10,
+								15, 114, 79, 50, 47, 82, 111, 18, 31, 98, 95, 34, 63, 66, 127, 2],
 				64 => [undef, 	1, 64, 33, 32, 17, 48, 49, 16, 
 								9, 56, 41, 24, 25, 40, 57, 8, 
 								5, 60, 37, 28, 21, 44, 53, 12, 
@@ -1077,10 +1051,12 @@ sub sexe
 
 sub tableaux
 {
-	# print "TABLEAUX: starting\n";
-
 	# returns a list of complete tableaux sorted into ranking order (lowest first)
 	my $self = shift;
+
+	# if set to 1 to returns just the current stage
+	my $current = shift || 0;
+
 	my $ta = $self->tableauxactifs;
 
 	my @tableaux;
@@ -1089,19 +1065,69 @@ sub tableaux
 	{
 		my $tab = $self->tableau($key);
 		my $etat = $tab->etat;
-	
-		push @tableaux, $key if $etat eq "termine";
+
+		push @tableaux, $key if ($etat eq "en_cours" && $current);
+		push @tableaux, $key if ($etat eq "termine" &&  not $current);
 	}
 
 	# print "TABLEAUX: returning @tableaux\n";
 
 	my @result = sort {$ta->{$a}->{rang_premier_battu} <=> $ta->{$b}->{rang_premier_battu} } @tableaux;
 
-	return reverse @result;
+	return reverse @result unless $current;
+	return @result if $current;
 }
 
-1;
 
+sub whereami
+{
+	# determine the current stage of the competition
+	
+	my $self = shift;
+
+	my $result = "unknown";
+	my $etat = $self->etat;
+	my $etattour = $self->etattour;
+
+	print "etat = $etat\n";
+	print "etattour = $etattour\n";
+
+	if ($etat eq "tableaux")
+	{
+		# poules are finished, so we are in the DE now need to find out where
+
+		if ($etattour eq "constitution")
+		{
+			# All poules are entered and final ranking produced but tableaux not yet drawn
+			$result = "poules finished";
+		}
+		else
+		{
+			my @tab = $self->tableaux(1);
+			# print "current tab = $tab[0]\n";
+
+			$result = "tableau $tab[0]";
+		}
+	}
+	else
+	{
+		# in rounds of poules
+		# print "in poules\n";
+	
+		# nutour is the current round
+		# etattour is either en_cours or constitution
+		my $nutour = $self->nutour;	
+
+		my $waiting = $self->poules_a_saisir || "";
+
+		# print "poules to complete = $waiting\n";
+
+		$result = "poules $nutour $waiting";
+	}
+
+	return $result; 
+}
+1;
 
 __END__
 
