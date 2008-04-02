@@ -213,12 +213,14 @@ sub writeTableau
     my $webpage = $_[1];
     local $pagedetails = $_[2];
 
-	print "writeTableau: EGData = " . Dumper(\$EGData);
+    # print "writeTableau: EGData = " . Dumper(\$EGData);
 
     my $div_id = $pagedetails->{'tableau_div'};
     my $tableau_title = $pagedetails->{'tableau_title'};
     my $tableau_class = 'tableau';
-    if (defined($pagedetails->{'tableau_class'})) {
+
+    if (defined($pagedetails->{'tableau_class'})) 
+	{
         $tableau_class = $pagedetails->{'tableau_class'};
     }
 
@@ -232,16 +234,18 @@ sub writeTableau
     # Going to loop through the different rounds building the bouts going to 
 	# do the three rounds first and the member of the fourth round later
     my $numbouts = 4;
-    if ($lastN <= 4) {
-        $numbouts = 2;
-    }
+
+	$numbouts = 4 if $lastN <= 4;
+
 	my $result = "bout-started";
-    for (my $roundnum = 1; $roundnum <= 2; $roundnum++) {
-    
+
+    for (my $roundnum = 1; $roundnum <= 2; $roundnum++) 
+	{
         my $colname = "r" . $roundnum . "col";
         print $webpage "\t<div class=\"$colname\">\n";
-        
+
         for (my $boutnum = 1; $boutnum <= $lastN / 2; $boutnum++) {
+	   		print "round = $roundnum, numbouts = $numbouts, boutnum=$boutnum\n";
             my $boutname = "r" . $roundnum . "bout-" . $boutnum;
             print $webpage "\t\t<div class=\"$boutname bout\">\n";
             
@@ -252,6 +256,8 @@ sub writeTableau
 			# my $bout = $EGData->match($lastN, ($boutnum + $preceeding_bout)) ;
 
 			my $bout;
+
+			print "XXX: boutnum = $boutnum\n";
             
 			if (defined($EGData->{$boutnum})) {
 				print $webpage "\t\t\t<div class=\"pistecontainer\">\n\t\t\t\t<div class=\"de-element fencerA\">";
@@ -275,7 +281,6 @@ sub writeTableau
 
 		# Need to include the Winner!
 		# writeTableauFencer($webpage, $bout, 'Winner', $roundnum, $result);
-			
 
         # end of col div
         print $webpage "\t</div>\n";
@@ -425,18 +430,19 @@ sub writeMessageList {
 # create an array of definitions for a set of pages describing a complete round of a tableau
 # the first will be visible the later ones not
 sub createRoundTableaus {
-    my $competition = $_[0];
+    my $competition = shift;
     my $compname = $competition->titre_reduit();
-    print "Compname: $compname\n";
+	# print "Compname: $compname\n";
     
-   	my %retval;
+  	my %retval;
+	my $suite = "b";
     my $rounditer = 2;
     
     my $roundsize; #  = undef;
     while (!defined($roundsize)) {
 		# PRS - modified to use fully decoded version of tableau ()
 		print "createRoundTableaus: getting tableau data for round $rounditer\n";
-		my $tab = $competition->tableau($rounditer, 1);
+		my $tab = $competition->tableau("$suite$rounditer", 1);
 		$retval{$rounditer} = $tab;
 		if (defined($tab)) {
 			my $tabstate = $tab->{etat};
@@ -452,7 +458,7 @@ sub createRoundTableaus {
     }
     if ($roundsize < 4) {
     	$roundsize = 4;
-		$retval{4} = $competition->tableau(4,1);
+		$retval{4} = $competition->tableau("${suite}4",1);
     }
     print "Round used: $roundsize\n";
     
@@ -526,15 +532,19 @@ sub readpagedefs {
 				#print "NV pair: $name => $value\n";
 			}
         }
-		if ($_ =~ m!^\[/PAGE\]$!) {
+		if ($_ =~ m!^\[/PAGE\]$!) 
+		{
 			# End of a page so check whether we want this or not
 			my $enabled = $currentpage{'enabled'};
-			if (defined($enabled) && $enabled eq 'true') {
+
+			if (defined($enabled) && $enabled eq 'true') 
+			{
 				# Need to make a local copy so that the correct reference is stored.  Otherwise we overwrite
 				my %localpage = %currentpage;
 				$pagedefs[@pagedefs] = \%localpage;
 				my $pagenum = @pagedefs;
 			}
+
 			$inpage = 0;
 		}
 
@@ -719,7 +729,6 @@ sub createpage {
 	{ 
 		$tabdefs = createRoundTableaus($comp);
 		# PRS: At this point, tabdefs contains all the data we need to print a tableau
-
 		# print "createpage: tabdefs = " . Dumper(\$tabdefs);
 
 		my $swaps = [ $tabdefs->{'swaps'}];
@@ -743,7 +752,7 @@ sub createpage {
 
 		foreach my $tabdef (@{$tabdefs->{'definitions'}}) 
 		{
-			print "createpage: tabdef = " . Dumper(\$tabdef);
+			print "createpage: tabdef = " . Dumper(\$tabdefs);
 			# PRS: Need to pass tabdefs->{level} here as well or change the way writeTableau is called
 			writeTableau($tabdefs, $page, $tabdef);
 		}
@@ -779,16 +788,15 @@ sub ranksort
 ##################################################################################
 # Main starts here (I think)
 ##################################################################################
-my $pagedeffile = "pagedefinitions.ini";			
-if (0 < @ARGV) {
-	$pagedeffile = $ARGV[0];
-}
+my $pagedeffile = shift || "pagedefinitions.ini";
 
 # read the page definitions
 my $pages = readpagedefs ($pagedeffile);
 my $numpages = @{$pages};
 print "number of pages: $numpages\n"; 
 foreach my $pagedef (@{$pages}) {
+	print "calling createpage for: " . Dumper(\$pagedef);
+
 	createpage ($pagedef);
 }
 			
