@@ -16,6 +16,10 @@ sub cleanDatabase {
 	my $ compKey = $_[1];
 	
 	
+	# Get rid of the old results
+	print "Deleting results for competition\n";
+	$dbh->do("DELETE FROM results WHERE compkey=$compKey");
+
 	# Get rid of the old matches
 	print "Deleting matches for competition\n";
 	$dbh->do("DELETE FROM matches WHERE compkey=$compKey");
@@ -294,7 +298,7 @@ sub matchesTable {
 		for (my $matchIter = 1; $matchIter <= $roundNumber / 2; $matchIter++) {
 			my $match = ${$round}{$matchIter};
 			print Dumper($match);
-			$sth->execute(${$match}{'idA'}, ${$match}{'idB'}, ${$match}{'scoreA'}, ${$match}{'scoreB'},0,${$match}{'piste'}, $matchIter, $suite);
+			#$sth->execute(${$match}{'idA'}, ${$match}{'idB'}, ${$match}{'scoreA'}, ${$match}{'scoreB'},0,${$match}{'piste'}, $matchIter, $suite);
 		}
 		# There should be
 		#print Dumper($round);
@@ -338,6 +342,41 @@ sub matchesTable {
 #COMMENT ON COLUMN matches.tableau IS 'The prefix for the tableau';
 }
 
+
+
+##################################################################################
+# resultsTable
+##################################################################################
+sub resultsTable {
+
+	my $dbh = $_[0];
+	my $compKey = $_[1];
+	my $comp = $_[2];
+
+	my $fencers = $comp->ranking();
+
+	foreach my $fencer (keys (%{$fencers})) {
+		print "final result " . Dumper(${$fencers}{$fencer});
+	}
+
+#CREATE TABLE results
+#(
+#   "position" integer NOT NULL, 
+#   fencerkey integer NOT NULL, 
+#   compkey integer NOT NULL, 
+#   CONSTRAINT resultkey PRIMARY KEY ("position", fencerkey, compkey), 
+#   CONSTRAINT fencerkey FOREIGN KEY (fencerkey) REFERENCES fencers ("key")    ON UPDATE NO ACTION ON DELETE NO ACTION, 
+#   CONSTRAINT compkey FOREIGN KEY (compkey) REFERENCES competitions ("key")    ON UPDATE NO ACTION ON DELETE NO ACTION
+#) WITH (OIDS=FALSE)
+#;
+#COMMENT ON COLUMN results."position" IS 'The final place.';
+#COMMENT ON COLUMN results.fencerkey IS 'The fencer';
+#COMMENT ON COLUMN results.compkey IS 'The competition index';
+
+}
+
+
+
 ##################################################################################
 # Main starts here
 ##################################################################################
@@ -358,8 +397,8 @@ sub matchesTable {
 	$comp->initialise;
 
 	# Connect to the database.
-	my $dbh = DBI->connect("DBI:PgPP:database=live-fencing;host=localhost",
-                             "postgres", "admin",
+	my $dbh = DBI->connect("DBI:PgPP:database=livefencing;host=localhost",
+                             "postgres", "root",
                            {'RaiseError' => 1});
                          
     cleanDatabase($dbh, $compKey);  
@@ -368,6 +407,7 @@ sub matchesTable {
     fencersTable($dbh,  $compKey, $comp);
     seedingTable($dbh,  $compKey, $comp);
     matchesTable($dbh,  $compKey, $comp);
+    resultsTable($dbh,  $compKey, $comp);
 
 }
 			
