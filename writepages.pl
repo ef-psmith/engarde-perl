@@ -27,7 +27,7 @@ sub writeTableauFencer {
     my $clubKey = 'club'.$postfix;
     my $scoreKey = 'score'.$postfix;
   
-  	print "writeTableauFencer: bout = " . Dumper(\$boutref);
+	#	print "writeTableauFencer: bout = " . Dumper(\$boutref);
     
     if (defined($boutref)) {
 		# There is a bout to be done.
@@ -209,15 +209,17 @@ sub writeBlurb {
 # Write out a tableau, writeTableau(data, pagehandle, pagedetails)
 sub writeTableau 
 {
-    my $EGData = $_[0];
-    my $webpage = $_[1];
-    local $pagedetails = $_[2];
+    my $EGData = shift;
+    my $webpage = shift;
+    local $pagedetails = shift;
 
-    # print "writeTableau: EGData = " . Dumper(\$EGData);
+	# print "writeTableau: EGData = " . Dumper(\$EGData);
+	print "writeTableau: pagedetails = " . Dumper(\$pagedetails);
 
     my $div_id = $pagedetails->{'tableau_div'};
     my $tableau_title = $pagedetails->{'tableau_title'};
     my $tableau_class = 'tableau';
+	my $where = $pagedetails->{'where'};
 
     if (defined($pagedetails->{'tableau_class'})) 
 	{
@@ -249,17 +251,12 @@ sub writeTableau
             my $boutname = "r" . $roundnum . "bout-" . $boutnum;
             print $webpage "\t\t<div class=\"$boutname bout\">\n";
             
-            # now look up the bout
-            # generate the EnGarde ID            
+			my $bout = $EGData->{$where}->{$boutnum};
 
-			# PRS: Need to change this - shouldn't need to call "match" any more...
-			# my $bout = $EGData->match($lastN, ($boutnum + $preceeding_bout)) ;
-
-			my $bout;
-
-			print "XXX: boutnum = $boutnum\n";
+			# print "XXX: boutnum = $boutnum\n";
+			# print "bout = " . Dumper(\$bout);
             
-			if (defined($EGData->{$boutnum})) {
+			if (defined($bout)) {
 				print $webpage "\t\t\t<div class=\"pistecontainer\">\n\t\t\t\t<div class=\"de-element fencerA\">";
 				print $webpage ${$bout}{'time'} . "   Piste: " . ${$bout}{'piste'}  . "</div>\n\t\t\t</div>\n";
 				
@@ -435,31 +432,53 @@ sub createRoundTableaus {
 	# print "Compname: $compname\n";
     
   	my %retval;
-	my $suite = "b";
-    my $rounditer = 2;
-    
-    my $roundsize; #  = undef;
-    while (!defined($roundsize)) {
-		# PRS - modified to use fully decoded version of tableau ()
-		print "createRoundTableaus: getting tableau data for round $rounditer\n";
-		my $tab = $competition->tableau("$suite$rounditer", 1);
-		$retval{$rounditer} = $tab;
-		if (defined($tab)) {
-			my $tabstate = $tab->{etat};
-			print "Tableau $rounditer state: $tabstate\n";
-			if (!defined($tabstate) || $tabstate =~ /termine/) {
-				$roundsize = $rounditer/2;
-			}			
+	
+	my $tab;
+	my $roundsize;
+  
+	# my @tx = $competition->tableaux;
+
+	# print "tx = " . Dumper(\@tx);
+
+   	my $where = $competition->whereami;
+
+	print "where = $where\n";
+
+ 	if ($where =~ /tableau/ || $where eq "termine")
+	{
+		if ($where =~ /tableau/)
+		{
+			$where =~ s/tableau //;
 		}
-		else {
-			$roundsize = $rounditer/2;
+		else
+		{
+			my @tableaux = $competition->tableaux();
+			$where = $tableaux[$#tableaux];
+
+			print "termine: where = $where\n";
 		}
-		$rounditer *= 2;
-    }
-    if ($roundsize < 4) {
-    	$roundsize = 4;
-		$retval{4} = $competition->tableau("${suite}4",1);
-    }
+
+		$tab = $competition->tableau($where,1);
+
+		$roundsize = $tab->taille;
+
+		print "roundsize = [$roundsize]\n";
+
+		$retval{$where} = $tab;
+
+		if ($roundsize == 2)	# assume it's the final
+		{
+			# do it this way since we can't be certain that the tableau letter is "a" - e.g. A grade formula would be "bf"
+			# after the preliminary tableau
+			$where =~ s/2/4/;
+			my $t4 = $competition->tableau($where,1);
+
+			$retval{$where} = $t4;
+
+			$roundsize = 4;
+		}
+	}	
+
     print "Round used: $roundsize\n";
     
     my @localswaps;
@@ -470,7 +489,9 @@ sub createRoundTableaus {
     my $preceedingbout = 0;
     while ($preceedingbout < $roundsize / 2) {
 		my %def;
-	
+
+		$def{'where'} = $where;
+
 		my $divname = "R".$roundsize . "-" . $defindex;
 	
 		$localswaps[$defindex] = $divname;
@@ -748,11 +769,12 @@ sub createpage {
 	# Write the tableaus if appropriate
 	if (defined($hastableau) && $hastableau eq 'true') 
 	{ 
-		print "createpage: writing tableau. definitions = " . Dumper($tabdefs->{'definitions'});
+		# print "createpage: writing tableau. definitions = " . Dumper($tabdefs->{'definitions'});
 
 		foreach my $tabdef (@{$tabdefs->{'definitions'}}) 
 		{
-			print "createpage: tabdef = " . Dumper(\$tabdefs);
+			print "createpage: calling writeTableau\n";
+			# print "createpage: tabdef = " . Dumper(\$tabdef);
 			# PRS: Need to pass tabdefs->{level} here as well or change the way writeTableau is called
 			writeTableau($tabdefs, $page, $tabdef);
 		}
