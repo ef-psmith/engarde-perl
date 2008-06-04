@@ -12,19 +12,27 @@ sub load
 {
 	my $self = shift;
 
-	my $level = $self->{level};
+	# my $level = $self->{level};
 
-	$level =~ s/[a-z]//;
+	# $level =~ s/[a-z]//;
 
 	# print "Level = $level\n";
 
-	my $max = $level / 2;
 
 	open IN, $self->{file} || die $!;
 	my $unparsed;
 
 	<IN>; # discard [nom aXX]
-	<IN>; # discard [taille XX]
+
+	my $taille = <IN>;
+
+	chomp $taille;
+	$taille =~ s/\]//;
+	$taille =~ s/\[taille[ \t]*//;
+
+	$self->{taille} = substr($taille,1);
+
+	my $max = $taille / 2;
 
 	my $etat = <IN>;
 
@@ -100,7 +108,7 @@ sub load
 			# push loser
 			my $id = $item->{'winner'} eq $item->{'fencerA'} ? $item->{'fencerB'} : $item->{'fencerA'};
 
-			$level = $self->level;
+			# $level = $self->level;
 
 			# print "level = $level, id = $id\n";
 			push @eliminated, $id unless $id eq "nobody";
