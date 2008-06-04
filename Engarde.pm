@@ -750,6 +750,7 @@ sub ranking
 
 					$seeds->{$e} = $elim->{$e};
 					$seeds->{$e}->{seed} = $current_rang;
+					$seeds->{$e}->{seed} = 3 if $current_rang == 4;
 				}
 			}
 			else
@@ -1063,8 +1064,12 @@ sub tableaux
 
 	foreach my $key (keys %$ta)
 	{
+		# print "tableaux: key = $key\n";
+
 		my $tab = $self->tableau($key);
 		my $etat = $tab->etat;
+
+		# print "tableaux: etat = $etat\n";
 
 		push @tableaux, $key if ($etat eq "en_cours" && $current);
 		push @tableaux, $key if ($etat eq "termine" &&  not $current);
@@ -1089,10 +1094,14 @@ sub whereami
 	my $etat = $self->etat;
 	my $etattour = $self->etattour;
 
-	print "etat = $etat\n";
-	print "etattour = $etattour\n";
+	# print "whereami: etat = $etat\n";
+	# print "whereami: etattour = $etattour\n";
 
-	if ($etat eq "tableaux")
+	if ($etat eq "termine")
+	{
+		$result = "termine";
+	}
+	elsif ($etat eq "tableaux")
 	{
 		# poules are finished, so we are in the DE now need to find out where
 
