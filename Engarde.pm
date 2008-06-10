@@ -604,7 +604,7 @@ sub poule
 
 	if ($self->{mtime} && $self->{mtime} > $old_mtime)
 	{
-		print "Loading $round, $poule data...\n";
+		# print "Loading $round, $poule data...\n";
 		$self->load;
 		$c->{$p} = $self;
 	}
@@ -622,7 +622,7 @@ sub ranking
 	# need to load clastab_initial.txt since it includes fencers with byes
 	# and claspou_fin_1.txt for e and a types
 
-	print "RANKING: starting\n";
+	# print "RANKING: starting\n";
 	
 	my $c = shift;
 	# o = overall, p = after pools
@@ -755,7 +755,7 @@ sub ranking
 			}
 			else
 			{
-				print "RANKING: getting final\n";
+				# print "RANKING: getting final\n";
 				my $final = $c->match($t,1);
 				# print "final = " . Dumper($final);
 
