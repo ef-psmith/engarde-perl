@@ -17,27 +17,27 @@ sub cleanDatabase {
 	
 	
 	# Get rid of the old results
-	print "Deleting results for competition\n";
+	#print "Deleting results for competition\n";
 	$dbh->do("DELETE FROM results WHERE compkey=$compKey");
 
 	# Get rid of the old matches
-	print "Deleting matches for competition\n";
+	#print "Deleting matches for competition\n";
 	$dbh->do("DELETE FROM matches WHERE compkey=$compKey");
 	
 	# Get rid of the old tableaus
-	print "Deleting tableaus for competition\n";
+	#print "Deleting tableaus for competition\n";
 	$dbh->do("DELETE FROM tableaus WHERE compkey=$compKey");
 	
 	# Get rid of the old poule rankings
-	print "Deleting poule results for competition\n";
+	#print "Deleting poule results for competition\n";
 	$dbh->do("DELETE FROM seeding WHERE compkey=$compKey");
 	
 	# Get rid of the old Fencers
-	print "Deleting Fencers for competition\n";
+	#print "Deleting Fencers for competition\n";
 	$dbh->do("DELETE FROM fencers WHERE compkey=$compKey");
 	
 	# Get rid of the old competition
-	print "Deleting Competition\n";
+	#print "Deleting Competition\n";
 	$dbh->do("DELETE FROM competitions WHERE key=$compKey");
 }
 
@@ -53,7 +53,7 @@ sub competitionsTable {
 	my $comp = $_[3];
 	
 	
-	print "Adding Competition\n";
+	print "<Competition file=\"$engardeFile\" key=\"$compKey\" name=\"".$comp->titre_ligne()."\" shortname=\"".$comp->titre_reduit()."\">";
 	# Now insert a new one
 	my $insertQuery = "INSERT INTO Competitions VALUES (?,?,?,?)";
 	my $sth = $dbh->prepare($insertQuery);
@@ -87,22 +87,23 @@ sub fencersTable {
 	my $compKey = $_[1];
 	my $comp = $_[2];
 		
-	print "Adding Fencers\n";
+	#print "Adding Fencers\n";
 	# Now insert a new one
 	my $insertQuery = "INSERT INTO fencers VALUES (?,?,?,?,?,?,$compKey)";
 	my $sth = $dbh->prepare($insertQuery);
 	
 	my $entrylist = $comp->fpp();
 	#print Dumper(%$entrylist);
-	my $count = 0;
-	
+	#my $count = 0;
+	print "<Fencers>\n";
 	foreach my $fencerkey (keys %$entrylist) {
-		
-		$count++;
+		#$count++;
 		my $fencer = ${$entrylist}{$fencerkey};
+		print "\t<Fencer club=\"${$fencer}{'club'}\" initseed=\"${$fencer}{'serie'}\" poule=\"${$fencer}{'poule'}\" piste=\"${$fencer}{'piste_no'}\" id=\"$fencerkey\" comp=\"$compKey\">${$fencer}{'nom'}</Fencer>\n";
 		#print "Fencer ($count:$fencerkey) = ${$fencer}{'nom'}\n";
 		$sth->execute(${$fencer}{'nom'}, ${$fencer}{'club'}, ${$fencer}{'serie'}, ${$fencer}{'poule'}, ${$fencer}{'piste_no'}, $fencerkey);
 	}
+	print "</Fencers>\n";
 						
 #CREATE TABLE "fencers"
 #(
@@ -135,31 +136,34 @@ sub fencersTable {
 ##################################################################################
 sub seedingTable {
 
-	my $dbh = $_[0];
-	my $compKey = $_[1];
-	my $comp = $_[2];
-	
-	# We are going to do all the rounds of poules here.  At the moment only one.
-	
-	my $seedings = $comp->ranking("p");
-	
-	
-	print "Adding Seedings\n";
-	# Now insert a new one
-	my $insertQuery = "INSERT INTO seeding VALUES (?,?,?,?,?,?,$compKey)";
-	my $sth = $dbh->prepare($insertQuery);
-	
-	#print Dumper(%$seedings);
-	my $count = 0;
-	
-	foreach my $fencerkey (keys %$seedings) {
-		
-		$count++;
-		my $fencer = ${$seedings}{$fencerkey};
-		#print "Seeding ($count:$fencerkey) = ${$fencer}{'seed'} ${$fencer}{'nom'}\n" . Dumper($fencer);
-		my $voverm = "${$fencer}{'v'} / ${$fencer}{'m'}";
-		$sth->execute(${$fencer}{'seed'}, $voverm, ${$fencer}{'ind'}, ${$fencer}{'hs'}, 'A', $fencerkey);
-	}
+    my $dbh = $_[0];
+    my $compKey = $_[1];
+    my $comp = $_[2];
+
+    # We are going to do all the rounds of poules here.  At the moment only one.
+
+    my $seedings = $comp->ranking("p");
+
+
+    #print "Adding Seedings\n";
+    # Now insert a new one
+    my $insertQuery = "INSERT INTO seeding VALUES (?,?,?,?,?,?,$compKey)";
+    my $sth = $dbh->prepare($insertQuery);
+
+    #print Dumper(%$seedings);
+    my $count = 0;
+    print "<Seedings>\n";
+    foreach my $fencerkey (keys %$seedings) {
+
+        $count++;
+        my $fencer = ${$seedings}{$fencerkey};
+        #print "Seeding ($count:$fencerkey) = ${$fencer}{'seed'} ${$fencer}{'nom'}\n" . Dumper($fencer);
+        my $voverm = "${$fencer}{'v'}/${$fencer}{'m'}";
+        $sth->execute(${$fencer}{'seed'}, $voverm, ${$fencer}{'ind'}, ${$fencer}{'hs'}, 'A', $fencerkey);
+
+        print "\t<Seeding fencer=\"$fencerkey\" seed=\"${$fencer}{'seed'}\" voverm=\"$voverm\" ind=\"${$fencer}{'ind'}\" hs=\"${$fencer}{'hs'}\" />\n"
+    }
+    print "</Seedings>\n";
 	
 #CREATE TABLE seeding
 #(
@@ -200,42 +204,7 @@ sub matchesTable {
 	my $compKey = $_[1];
 	my $comp = $_[2];
 	
-	# TODO - Work out which tableaus are active
 	
-  
-	my $tableaukey = 'a';
-	
-	# Now work out which rounds are active
-    my $rounditer = 2;
-    
-    
-    my $roundsize; #  = undef;
-	while (!defined($roundsize)) {
-		# PRS - modified to use fully decoded version of tableau ()
-		print "createRoundTableaus: getting tableau data for round $rounditer\n";
-		my $tab = $comp->tableau($tableaukey.$rounditer, 1);
-		
-		if (defined($tab)) {
-			my $tabstate = $tab->{etat};
-			print "Tableau $rounditer state: $tabstate\n";
-			if (!defined($tabstate) || $tabstate =~ /termine/) {
-				$roundsize = $rounditer/2;
-			}			
-		}
-		else {
-			$roundsize = $rounditer/2;
-		}
-		$rounditer *= 2;
-	}
-	my $displayround = $roundsize;
-	if ($roundsize < 4) {
-    	$displayround = 4;
-	}
-	print "Round used: $roundsize ($displayround)\n";
-	
-	print "INSERT INTO tableaus VALUES ($roundsize,$displayround, \"$tableaukey\", $compKey)\n";
-	
-	$dbh->do("INSERT INTO tableaus VALUES ($roundsize,$displayround,'$tableaukey', $compKey)");
 	
 #	CREATE TABLE tableaus
 #(
@@ -255,55 +224,73 @@ sub matchesTable {
 #COMMENT ON COLUMN tableaus.tableauprefix IS 'The prefix for Engarde for this tableau';
 #COMMENT ON COLUMN tableaus.compkey IS 'The key for the competition';
 	
-	
-	#Now the matches
-	my $firstround = $comp->tableau($tableaukey.$displayround, 1);
-	#print Dumper($firstround);
-	
-	# Now insert a new one
-	my $insertQuery = "INSERT INTO matches VALUES (?,?,?,?,?,?,$compKey,?,?)";
+	# Now insert a new one (TODO change the state to be correct)
+	my $insertQuery = "INSERT INTO matches VALUES (?,?,?,?,0, NULL,?,$compKey,?,?,?,3)";
 	my $sth = $dbh->prepare($insertQuery);
 	
 	my %lastFinished;
 	my %firstActive;
+        my %lastActive;
 	
 	my %activeRounds = %{$comp->tableauxactifs};
 	
 	# Go through all the active rounds extracting the state, suite and size.  
 	# We are storing the earliest we find against the suite and the latest with the state "termine"
+        print "<Rounds>\n";
 	foreach my $roundkey (keys %activeRounds) {
-		#print "Round: $roundkey\n";
-		# First sort out whether this is the earliest round or latest completed round
-		my $thisRoundDef = $activeRounds{$roundkey};
-		
-		my $roundNumber = ${$thisRoundDef}{'taille'};
-		my $suite = ${$thisRoundDef}{'suite'};
-		
-		# Is this the earliest round for this suite (the highest number of competitors)?
-		if ($firstActive{$suite} < $roundNumber) {
-			$firstActive{$suite} = $roundNumber;
-		}
-		
-		my $round = $comp->tableau($roundkey, 1);
-		
-		print "Round Number: $roundNumber ,State: ${$round}{'etat'}\n";
-		if (${$round}{'etat'} =~ /termine/) {
-			# This round has finished so update the last finished round
-			if ($lastFinished{$suite} > $roundNumber) {
-				$lastFinished{$suite} = $roundNumber;
-			}
-		}
-		print Dumper($round);
-		
-		for (my $matchIter = 1; $matchIter <= $roundNumber / 2; $matchIter++) {
-			my $match = ${$round}{$matchIter};
-			print Dumper($match);
-			#$sth->execute(${$match}{'idA'}, ${$match}{'idB'}, ${$match}{'scoreA'}, ${$match}{'scoreB'},0,${$match}{'piste'}, $matchIter, $suite);
-		}
-		# There should be
-		#print Dumper($round);
-		#if ($
+            #print "Round: $roundkey\n";
+            # First sort out whether this is the earliest round or latest completed round
+            my $thisRoundDef = $activeRounds{$roundkey};
+
+            my $roundNumber = ${$thisRoundDef}{'taille'};
+            my $suite = ${$thisRoundDef}{'suite'};
+
+            # Is this the earliest round for this suite (the highest number of competitors)?
+            if ($firstActive{$suite} < $roundNumber || !defined($firstActive{$suite})) {
+                    $firstActive{$suite} = $roundNumber;
+            }
+            # Is this the last round for this suite (the lowest number of competitors)?
+            if ($lastActive{$suite} > $roundNumber || !defined($lastActive{$suite})) {
+                    $lastActive{$suite} = $roundNumber;
+            }
+
+            my $round = $comp->tableau($roundkey, 1);
+            if (!defined($lastFinished{$suite}))
+            {
+                $lastFinished{$suite} = 0;
+            }
+
+            #print "Round Number: $roundNumber ,State: ${$round}{'etat'}\n";
+            if (${$round}{'etat'} =~ /termine/) {
+                    # This round has finished so update the last finished round
+                    if ($lastFinished{$suite} > $roundNumber || 0 == $lastFinished{$suite}) {
+                            $lastFinished{$suite} = $roundNumber;
+                    }
+            }
+            #print Dumper($round);
+            print "\t<Round round=\"$roundNumber\" tableau=\"$suite\">\n";
+            # Go through the matches in the round
+            for (my $matchIter = 1; $matchIter <= $roundNumber / 2; $matchIter++) {
+                my $match = ${$round}{$matchIter};
+                #print Dumper($match);
+                if (${$match}{'idA'} =~ /\d+/ && ${$match}{'idB'} =~ /\d+/)
+                {
+                    if (! ${$match}{'piste'} =~ /\d+/) { ${$match}{'piste'} = 0;}
+                    print "\t\t<Bout ida=\"${$match}{'idA'}\" idb=\"${$match}{'idB'}\" scorea=\"${$match}{'scoreA'}\" scoreb=\"${$match}{'scoreB'}\" piste=\"${$match}{'piste'}\" round=\"$roundNumber\" matchnum=\"$matchIter\" tableau=\"$suite\" />\n";
+                    #print "FencerA ID: " .${$match}{'idA'} ." FencerB ID: ". ${$match}{'idB'}." ScoreA: ". ${$match}{'scoreA'}." ScoreB: ". ${$match}{'scoreB'}." Piste: ".${$match}{'piste'}." Round: " . $roundNumber ." Match: ". $matchIter." Suite: ". $suite. "\n";
+                    $sth->execute(${$match}{'idA'}, ${$match}{'idB'}, ${$match}{'scoreA'}, ${$match}{'scoreB'},${$match}{'piste'}, $roundNumber, $matchIter, $suite);
+                }
+            }
+            print "\t</Round>\n";
 	}
+        print "</Rounds>\n<Tableaux>\n";
+	foreach my $thistableau (keys %lastFinished)
+        {
+            #print "INSERT INTO tableaus VALUES ($lastFinished{$thistableau},$firstActive{$thistableau}, $lastActive{$thistableau}, \"$thistableau\", $compKey)\n";
+            print "\t<Tableau lastfin=\"$lastFinished{$thistableau}\" first=\"$firstActive{$thistableau}\" last=\"$lastActive{$thistableau}\" comp=\"$compKey\">$thistableau</Tableau>\n";
+            $dbh->do("INSERT INTO tableaus VALUES ($lastFinished{$thistableau},$firstActive{$thistableau}, $lastActive{$thistableau},'$thistableau', $compKey)");
+        }
+        print "</Tableaux>\n";
 	
 #	CREATE TABLE matches
 #(
@@ -354,10 +341,18 @@ sub resultsTable {
 	my $comp = $_[2];
 
 	my $fencers = $comp->ranking();
-
+        my $insertQuery = "INSERT INTO results VALUES (?,?,$compKey)";
+	my $sth = $dbh->prepare($insertQuery);
+        print "<Results>\n";
 	foreach my $fencer (keys (%{$fencers})) {
-		print "final result " . Dumper(${$fencers}{$fencer});
+            if ($fencer =~ /\d+/) {
+		#print "final result for $fencer " . Dumper(${$fencers}{$fencer});
+                my $result = ${$fencers}{$fencer};
+                $sth->execute( ${$result}{'seed'}, $fencer);
+                print "\t<Result fencer=\"$fencer\">${$result}{'seed'}</Result>\n";
+            }
 	}
+        print "</Results>\n";
 
 #CREATE TABLE results
 #(
@@ -389,7 +384,7 @@ sub resultsTable {
 		$compKey = $ARGV[1];
 	} else {die "Need an EngardeFile and competition Key."}
 	
-	print "$engardeFile $compKey\n";
+	#print "$engardeFile $compKey\n";
 
 	my $comp = Engarde->new($engardeFile);
 	
@@ -408,6 +403,8 @@ sub resultsTable {
     seedingTable($dbh,  $compKey, $comp);
     matchesTable($dbh,  $compKey, $comp);
     resultsTable($dbh,  $compKey, $comp);
+
+    print "</Competition>\n";
 
 }
 			
