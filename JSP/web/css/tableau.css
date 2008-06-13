@@ -1,0 +1,8 @@
+
+div.tableau
+{
+overflow: hidden;
+position: absolute;
+height:  40em;
+width: 	100%;
+}

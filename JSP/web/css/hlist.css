@@ -1,0 +1,9 @@
+div.hori_list_container
+{
+overflow: hidden;
+position: absolute;
+top:  15em;
+width: 100%;
+right: 0px;
+height: 7.5em;
+}

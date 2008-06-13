@@ -1,0 +1,189 @@
+div.hidden
+{
+visibility: hidden;
+}
+
+h2.tableau_title
+{
+position: absolute;
+top: 0em;
+right: 0em;
+width: 40%;
+}
+
+div.de-element
+{
+position: absolute;
+height: 1.3em;
+right: 0.5ex;
+width: 100%;
+}
+
+div.seed
+{
+position: absolute;
+width: 1.2em;
+float: left;
+height: 1.3em;
+text-align: right;
+padding-right: 0.1em;
+top: 0px;
+}
+
+div.country
+{
+position: absolute;
+width: 2.5em;
+right: 0px;
+text-align: right;
+top: 0px;
+}
+
+div.fencer
+{
+position: absolute;
+right: 0em;
+text-align: left;
+left: 1.2em;
+white-space: nowrap;
+overflow: hidden;
+top: 0px;
+}
+div.fenceronly
+{
+position: absolute;
+right: 0em;
+text-align: left;
+left: 0em;
+white-space: nowrap;
+overflow: hidden;
+top: 0px;
+}
+div.score
+{
+position: absolute;
+right: -2em;
+height: 1.3em;
+text-align: right;
+}
+div.victory
+{
+font-weight: bold;
+}
+div.r1col
+{
+position: absolute;
+width: 50%;
+left: 0.5ex;
+height: 100%;
+}
+div.r2col
+{
+position: absolute;
+width: 45%;
+left: 51%;
+height: 100%;
+}
+div.winner
+{
+background-color: lime;
+}
+div.loser
+{
+background-color: #adff2f;
+}
+
+div.bout-started
+{
+background-color: #f0f8ff;
+}
+div.bout-pending
+{
+background-color: yellow;
+}
+
+div.fencerA
+{
+position: absolute;
+top: -0.65em;
+}
+
+div.fencerB
+{
+position: absolute;
+bottom: -0.65em;
+}
+
+div.pistecontainer
+{
+position:absolute;
+top: 50%;
+width: 90%;
+text-align: right;
+margin-right: 2ex;
+}
+
+div.nofencerA
+{
+border-bottom: thin solid black;
+position: absolute;
+top: -1.3em;
+}
+
+div.nofencerB
+{
+border-bottom: thin solid black;
+position: absolute;
+bottom: 0em;
+}
+
+
+div.bout
+{
+border-right: thin solid black;
+position: absolute;
+padding-left:0.5ex;
+padding-right: 0.5ex;
+width: 90%;
+}
+
+div.r1bout-1
+{
+position: absolute;
+top: 15%;
+height: 10%;
+}
+
+div.r1bout-2
+{
+position: absolute;
+top: 37%;
+height: 10%;
+}
+
+div.r1bout-3
+{
+position: absolute;
+top: 63%;
+height: 10%;
+}
+
+div.r1bout-4
+{
+position: absolute;
+top: 85%;
+height: 10%;
+}
+
+div.r2bout-1
+{
+position: absolute;
+top: 20%;
+height: 22%;
+}
+div.r2bout-2
+{
+position: absolute;
+top: 68%;
+height: 22%;
+}

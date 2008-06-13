@@ -1,0 +1,8 @@
+div.vert_list_container
+{
+overflow: hidden;
+position: absolute;
+height:  40em;
+right: 0px;
+width: 100%;
+}
