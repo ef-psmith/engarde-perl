@@ -83,10 +83,18 @@ public class Tournament {
     }
     
     public static boolean removeCompetition(Tournament tourn, Competition comp) {
+        
         return tourn.removeCompetition(comp);
     }
     
     boolean removeCompetition(Competition comp) {
+        // Now we need to go through and add extra elements to the display lists
+        for (int i = 0;i < displaySeries_.size();++i) {
+            DisplaySeries disp = (DisplaySeries)displaySeries_.get(i);
+            if (null != disp){
+                disp.removeCompetition(comp);
+            }
+        }
         return competitions_.remove(comp);
     }
     

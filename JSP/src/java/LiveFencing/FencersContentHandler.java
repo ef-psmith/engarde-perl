@@ -59,7 +59,12 @@ public class FencersContentHandler  extends DefaultHandler {
           current_id_ = Integer.parseInt(attr.getValue("id"));
           current_piste_ = Integer.parseInt(attr.getValue("piste"));
           current_poule_ = Integer.parseInt(attr.getValue("poule"));
-          current_initseed_ = Integer.parseInt(attr.getValue("initseed"));
+          String initseed = attr.getValue("initseed");
+          if (initseed.isEmpty()) {
+              current_initseed_ = 999;
+          } else {
+            current_initseed_ = Integer.parseInt(initseed);
+          }
           current_club_ = attr.getValue("club");
         }
     }

@@ -71,7 +71,10 @@ public class CompetitionView {
             int round = displayround_;
             if (0 == displayround_) {
                 // Need to calculate the round
-                if (tab.getLastCompleteRound() < 8) {
+                if (0 == tab.getLastCompleteRound()) {
+                    // No rounds yet complete
+                    round = tab.getFirstRound();
+                } else if (tab.getLastCompleteRound() < 8) {
                     // We can't easily display the semis as we don't have the css at this point
                     round = 8;
                 } else {
@@ -83,6 +86,7 @@ public class CompetitionView {
                 round = tab.getFirstRound();
             }
             
+            // There are 8 fencers per segment of the tableau
             int numparts = round / 8;
             
             java.util.ArrayList<java.util.ArrayList<Bout> > bouts = tab.getBouts();
@@ -102,7 +106,8 @@ public class CompetitionView {
             int roundcounter = 0;
             // This is a odd way of only doing two rounds, but it does allow us to extend it later.
             while (rounditer >= round /2) {
-                int modulus = rounditer / numparts;
+                // The modulus relates to bouts not fencers so needs an extra factor of 2
+                int modulus = rounditer / (2* numparts);
                 for (int i = 0; i < bouts.get(firstroundindex).size();++i) {
                     int partindex = i / modulus;
                     int boutindex = i % modulus;

@@ -64,4 +64,13 @@ public class DisplaySeries {
             
         views.add(newCompView);
     }
+    public void removeCompetition(Competition comp){
+        for (int i = 0;i < views.size(); ++i) {
+            CompetitionView view = views.get(i);
+            if (null != view && view.getCompetition().equals(comp)) {
+                views.remove(view);
+                break;
+            }
+        }
+    }
 }
