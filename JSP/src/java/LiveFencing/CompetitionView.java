@@ -15,7 +15,6 @@ public class CompetitionView {
     private String viewType;
     private boolean enabled;
     private String tableau_;
-    private java.util.ArrayList<Seed> seeds_;
     private int displayround_;
     
     protected CompetitionView (Competition comp) {
@@ -51,32 +50,10 @@ public class CompetitionView {
     public String getTableau(){
         return tableau_;
     }
-    public void ClearCache() {
-        // Just need to get rid of our cached seeds.
-        seeds_ = null;
-    }
     
     public Seed[] getSeeding() {
-        // Assume a single round of poules
-        synchronized( competition_) {
-            competition_.check_for_file_changes();
-            if (null == seeds_) {
-                seeds_ = new java.util.ArrayList<Seed>();
-                try {
-                    java.sql.Connection conn = competition_.getTournament().getDBConn();
-                    java.sql.Statement stmt = conn.createStatement();
-                    java.sql.ResultSet resSet = stmt.executeQuery("SELECT seed, name,club,\"v-over-m\",ind,hs  FROM seeding, fencers WHERE fencers.key = seeding.fencerkey ORDER By seeding.seed");
-
-                    while (resSet.next()) {
-                        seeds_.add(new Seed(resSet.getInt(1), resSet.getString(2),resSet.getString(3), resSet.getString(4), resSet.getInt(5), resSet.getInt(6)));
-                    }
-                } catch (java.sql.SQLException e) {
-                    String mess = e.getMessage();
-                }
-            }
-        
-            return seeds_.toArray(new Seed[0]);
-        }
+        // Assume a single round of poules of index 0
+        return competition_.getSeeds(0);
     }
     
     public TableauPart[] getTableauParts() {

@@ -54,13 +54,24 @@ public class FencersContentHandler  extends DefaultHandler {
               Attributes attr ) throws SAXException {
         contents_.reset();
 
-        if (localName.equals("Result")) {
+        if (localName.equals("Fencer")) {
           // Got a result to process.  
           current_id_ = Integer.parseInt(attr.getValue("id"));
           current_piste_ = Integer.parseInt(attr.getValue("piste"));
           current_poule_ = Integer.parseInt(attr.getValue("poule"));
           current_initseed_ = Integer.parseInt(attr.getValue("initseed"));
           current_club_ = attr.getValue("club");
+        }
+    }
+    
+    
+    public class FencerComparator implements java.util.Comparator {
+        public int compare(Object l, Object r) {
+            Entry lhs = (Entry)l;
+            Entry rhs = (Entry)r;
+            
+            // Sort by matchnumber            
+            return lhs.getName().compareTo(rhs.getName());
         }
     }
     public void endElement( String namespaceURI,
@@ -79,6 +90,8 @@ public class FencersContentHandler  extends DefaultHandler {
             current_club_ = "";  
         }
         if ( localName.equals( "Fencers" ) ) {
+            // Now sort our list
+            java.util.Collections.sort(fencers_, new FencerComparator());
             // end of our parsing so set things back
             parser_.setContentHandler( parent_ );
             

@@ -30,6 +30,7 @@ public class BoutsContentHandler extends DefaultHandler {
     private int current_scorea_ = 0;
     private int current_idb_ = -1;
     private int current_ida_ = -1;
+    // States are: 0 - not ready, 1 - ready, 2 - started at Piste, 3 - finished at piste, 4 - complete in Engarde
     private int current_state_ = 0;
     private Bout.Winner current_winner = Bout.Winner.W_NONE;
     
@@ -56,7 +57,9 @@ public class BoutsContentHandler extends DefaultHandler {
                 }
             }
 
-            return new RoundPlaceHolder(round);
+            RoundPlaceHolder roundHolder = new RoundPlaceHolder(round);
+            rounds_.add(roundHolder);
+            return roundHolder;
             
         }
     }
@@ -83,8 +86,7 @@ public class BoutsContentHandler extends DefaultHandler {
         }
     }
     
-    protected BoutsContentHandler() {
-    
+    protected BoutsContentHandler() {   
     }
         
     protected void processRounds(CompetitionContentHandler parent, XMLReader parser) {
@@ -98,9 +100,10 @@ public class BoutsContentHandler extends DefaultHandler {
             if (name.equals(tableauPlaceHolders_.get(i).name_)) {
                 return tableauPlaceHolders_.get(i);
             }
-        }
-        
-        return new TableauPlaceHolder(name);
+        }      
+        TableauPlaceHolder tabHolder = new TableauPlaceHolder(name);
+        tableauPlaceHolders_.add(tabHolder);
+        return tabHolder;
     }
     // Override methods of the DefaultHandler class
     // to gain notification of SAX Events.
@@ -122,13 +125,42 @@ public class BoutsContentHandler extends DefaultHandler {
           // Got a result to process.  
             current_matchnum_ = Integer.parseInt(attr.getValue("matchnum"));  
             current_piste_ = Integer.parseInt(attr.getValue("piste"));
-            current_scoreb_ = Integer.parseInt(attr.getValue("scoreb"));
-            current_scorea_ = Integer.parseInt(attr.getValue("scorea"));
-            current_idb_ = Integer.parseInt(attr.getValue("idb"));
-            current_ida_ = Integer.parseInt(attr.getValue("ida"));
-            current_state_ = Integer.parseInt(attr.getValue("match"));
+            String scoreb = attr.getValue("scoreb");
+            if (!scoreb.isEmpty()) {
+                current_scoreb_ = Integer.parseInt(scoreb);
+            }
+            String scorea = attr.getValue("scorea");
+            if (!scorea.isEmpty()) {
+                current_scorea_ = Integer.parseInt(scorea);
+            }
+            String idb = attr.getValue("idb");
+            if (!idb.isEmpty()) {
+                current_idb_ = Integer.parseInt(idb);
+            }
+            String ida = attr.getValue("ida");
+            if (!ida.isEmpty()) {
+                current_ida_ = Integer.parseInt(ida);
+            }
+            current_state_ = Integer.parseInt(attr.getValue("state"));
         }
     }
+    
+    public class BoutComparator implements java.util.Comparator {
+        public int compare(Object l, Object r) {
+            Bout lhs = (Bout)l;
+            Bout rhs = (Bout)r;
+            
+            // Sort by matchnumber            
+            if (lhs.getMatch() > rhs.getMatch()) {
+                return 1;
+            }
+            if (lhs.getMatch() < rhs.getMatch()) {
+                return -1;
+            }
+            return 0;
+        }
+    }
+    
     public void endElement( String namespaceURI,
                String localName,
               String qName ) throws SAXException {
@@ -177,15 +209,13 @@ public class BoutsContentHandler extends DefaultHandler {
             current_winner = Bout.Winner.W_NONE;
         }
         if ( localName.equals( "Round" ) ) {
-            
+            java.util.Collections.sort(current_round_.bouts_, new BoutComparator());
             current_round_ = null;
             current_tableau_ = null;
-            
         }
         if ( localName.equals( "Rounds" ) ) {
             // end of our parsing so set things back
-            parser_.setContentHandler( parent_ );
-            
+            parser_.setContentHandler( parent_ );            
         }
     }
     public void characters( char[] ch, int start, int length )

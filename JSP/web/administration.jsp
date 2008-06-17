@@ -5,6 +5,7 @@
 --%>
 
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
+
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="lfo" uri="/WEB-INF/tlds/LiveFencingObjects" %>
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
@@ -43,7 +44,7 @@
                                         <td>Colour:</td>
                                         <td><input type="text" name="colour" value="${comp.colour}" /></td>
                                     </tr>
-                                    <tr><td colspan="2"><input type="submit" value="Update" /></td></tr>
+                                    <tr><td><input type="submit" name="update" value="Update" /><td><input type="submit" name="remove" value="Remove" /></td></tr>
                                 </table>
                             </form>
                         </td>
@@ -143,6 +144,18 @@
                 </td>
             </tr>
         </table>
-    
-    </body>
+    <br/>
+    <hr/>
+    <br/>
+    <c:url value="changesettings.jsp" var="changeSettingsURL" scope="page"/>
+    <form action="${changeSettingsURL}" method="post">
+    <table>
+        <tr>
+        <td>Path to Perl exe</td><td><input type="text" name="perlExePath" value="${tourn.perlExePath}" /></td>
+        </tr><tr>
+        <td>Path to writetoxml.pl file</td><td><input type="text" name="perlFilePath" value="${tourn.perlFilePath}" /></td>
+        <tr><td colspan="2"<input type="submit" value="Update Path Settings" /></td></tr>
+    </table>
+    </form>
+</body>
 </html>

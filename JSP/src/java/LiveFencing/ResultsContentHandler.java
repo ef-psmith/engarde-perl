@@ -54,6 +54,23 @@ public class ResultsContentHandler extends DefaultHandler {
           currentid_ = Integer.parseInt(attr.getValue("fencer"));
         }
     }
+    public class ResultComparator implements java.util.Comparator {
+        public int compare(Object l, Object r) {
+            Result lhs = (Result)l;
+            Result rhs = (Result)r;
+            
+            
+            // Sort by result            
+            if (lhs.getPosition() > rhs.getPosition()) {
+                return 1;
+            }
+            if (lhs.getPosition() < rhs.getPosition()) {
+                return -1;
+            }
+                
+            return 0;
+        }
+    }
     public void endElement( String namespaceURI,
                String localName,
               String qName ) throws SAXException {
@@ -67,6 +84,8 @@ public class ResultsContentHandler extends DefaultHandler {
             contents_.reset();   
         }
         if ( localName.equals( "Results" ) ) {
+            // Now sort our list
+            java.util.Collections.sort(results_, new ResultComparator());
             // end of our parsing so set things back
             parser_.setContentHandler( parent_ );
             

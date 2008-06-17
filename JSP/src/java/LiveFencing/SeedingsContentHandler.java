@@ -63,6 +63,21 @@ public class SeedingsContentHandler extends DefaultHandler {
             current_fencer_ = Integer.parseInt(attr.getValue("fencer"));
         }
     }
+    public class SeedComparator implements java.util.Comparator {
+        public int compare(Object l, Object r) {
+            Seed lhs = (Seed)l;
+            Seed rhs = (Seed)r;
+            
+            // Sort by Seeding            
+            if (lhs.getSeed() > rhs.getSeed()) {
+                return 1;
+            }
+            if (lhs.getSeed() < rhs.getSeed()) {
+                return -1;
+            }
+            return 0;
+        }
+    }
     public void endElement( String namespaceURI,
                String localName,
               String qName ) throws SAXException {
@@ -81,6 +96,8 @@ public class SeedingsContentHandler extends DefaultHandler {
             contents_.reset();   
         }
         if ( localName.equals( "Seedings" ) ) {
+            // Now sort our list
+            java.util.Collections.sort(seeds_, new SeedComparator());
             // end of our parsing so set things back
             parser_.setContentHandler( parent_ );
             

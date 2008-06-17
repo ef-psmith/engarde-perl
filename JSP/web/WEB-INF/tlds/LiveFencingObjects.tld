@@ -12,6 +12,12 @@
     <function-signature>void setTournament(LiveFencing.Competition, LiveFencing.Tournament ) </function-signature>
   </function>
   <function>
+    <description>Remove a Competition bean from a Tournament bean</description>
+    <name>removeComp</name>
+    <function-class>LiveFencing.Tournament</function-class>
+    <function-signature>void removeCompetition(LiveFencing.Tournament, LiveFencing.Competition ) </function-signature>
+  </function>
+  <function>
     <description>Add a DisplaySeries bean to a Tournament bean</description>
     <name>setTournOnDispSeries</name>
     <function-class>LiveFencing.DisplaySeries</function-class>

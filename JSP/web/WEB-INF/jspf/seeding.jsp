@@ -21,7 +21,7 @@
 		<table class="list_table" id="vert_list_id">
                      <c:set var="listIter" value="0" />
                      <c:forEach items="${dispIter.currentView.seeding}" var="entry">
-                         <tr id="list_row_${listIter}">
+                         <tr id="list_row_${listIter}"<c:if test="${0 == listIter % 2}" > style="background-color: ${dispIter.currentView.competition.colour}" </c:if> >
 				<td class="seed">${entry.seed}</td>
 				<td class="fencer_name">${entry.name}</td>
 				<td class="fencer_club">${entry.club}</td>

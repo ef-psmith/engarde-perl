@@ -14,7 +14,6 @@ public class Result {
     private int position_;
     private String name_;
     private String club_;
-    private int fencerid_;
    
     public Result(int position, String nom, String club){
         position_ = position;

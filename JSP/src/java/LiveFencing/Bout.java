@@ -89,6 +89,9 @@ public class Bout {
     public int getState() {
         return state_;
     }
+    public void setState(int newstate) {
+        state_ = newstate;
+    }
     public Winner getWinner() {
         return winner_;
     }

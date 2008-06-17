@@ -71,7 +71,7 @@ public class TableauxContentHandler   extends DefaultHandler {
               current_last_ = -1;
               current_lastfinished_ = -1;
         }
-        if ( localName.equals( "Fencers" ) ) {
+        if ( localName.equals( "Tableaux" ) ) {
             // end of our parsing so set things back
             parser_.setContentHandler( parent_ );
             

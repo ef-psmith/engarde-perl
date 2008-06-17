@@ -50,6 +50,20 @@ public class Tableau {
         return matches_.get(index).get(match-1);
     }
     
+    protected java.util.ArrayList<Bout> getBoutsAtPiste(int piste, int state) {
+        java.util.ArrayList<Bout> bouts = new java.util.ArrayList<Bout>();
+        for (int i = 0; i < matches_.size(); ++i) {
+            java.util.ArrayList<Bout> round = matches_.get(i);
+            for (int j = 0; j < round.size(); ++j) {
+                Bout bout = round.get(j);
+                if (piste == bout.getPiste() && state == bout.getState()) {
+                    bouts.add(bout);
+                }
+            }
+        }
+        return bouts;     
+    }
+    
     public String getName() {
         return name_;
     }
