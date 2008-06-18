@@ -28,10 +28,12 @@
         swaps[${partcounter}] = "swap-${partcounter}";
         <c:set var="partcounter" value="${partcounter + 1}" scope="page" />
     </c:forEach>
+        var tableau_finished = false;
 	var swapindex = 0;
 	function onSwapTimer() {
             if (swapindex == swaps.length - 1) {
-                window.location.reload();
+			tableau_finished = true;
+			checkFinished();
             } else {
                 var t = setTimeout("onSwapTimer()",15000);
                 document.getElementById(swaps[swapindex]).style.visibility = "hidden";
@@ -43,6 +45,11 @@
 	function startSwapTimers() {
 		var t = setTimeout("onSwapTimer()",15000);
 	}
+        function checkFinished() {
+            if (tableau_finished) {
+                window.location.reload();
+            }
+        }
 
 </script>
 
