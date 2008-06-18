@@ -4,7 +4,7 @@ div.tableau
 overflow: hidden;
 position: absolute;
 border: thin solid black;
-height:  40em;
+height:  98%;
 width: 	68%;
 }
 
@@ -13,7 +13,7 @@ div.vert_list_container
 overflow: hidden;
 position: absolute;
 border: thin solid black;
-height:  40em;
+height:  98%;
 right: 0px;
 width: 30%;
 }

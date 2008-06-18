@@ -55,7 +55,6 @@
 		startSwapTimers();
             </c:if>
             <c:if test="${dispIter.currentView.type ne 'none'}">
-		onPauseTimer();
                 var listElement = document.getElementById("vert_list_id");
                 listheight = listElement.offsetHeight;
                 var listContainerElement = document.getElementById("list_cont_id");
@@ -69,6 +68,8 @@
                 scrollLimit = contheight - elemheight - headerheight - titleheight;
                 pauseTime = Math.floor(${pageRefreshTime} * 1000 / (Math.floor(listheight/scrollLimit) + 2));
                 //alert("List height: "+listheight+"\nContainer height: "+contheight+"\nElement height: "+elemheight+"\Header height: "+headerheight+"\Title height: "+titleheight+"\nScreen height: "+screen.height+"\nScroll Limit: "+scrollLimit+"\nPause Time: "+pauseTime);
+                
+		onPauseTimer();
             </c:if>  
 	}
         <c:if test="${dispIter.currentView.type ne 'none'}">
@@ -119,7 +120,7 @@
 		
 	}
 	function startSwapTimers() {
-		var t = setTimeout("onSwapTimer()",15000);
+		var t = setTimeout("onSwapTimer()",${pageRefreshTime}/swaps.length);
 	}
         </c:if>
 

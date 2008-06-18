@@ -3,6 +3,7 @@
 
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="lfo" uri="/WEB-INF/tlds/LiveFencingObjects" %>
+<%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 
 <c:set var="partcounter" value="0" scope="page" />
 <c:forEach items="${dispIter.currentView.tableauParts}" var="thisPart">
