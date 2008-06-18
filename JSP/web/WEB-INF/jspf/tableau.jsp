@@ -1,61 +1,9 @@
-<%@ page contentType="text/html" %>
+<%-- any content can be specified here e.g.: --%>
+<%@ page pageEncoding="UTF-8" %>
+
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="lfo" uri="/WEB-INF/tlds/LiveFencingObjects" %>
-<%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %> 
 
-<jsp:useBean id="dispIter" class="LiveFencing.DisplaySeriesIterator" scope="session" />
-
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
-<head>
-<link href="css/tableau_style.css" rel="stylesheet" type="text/css" media="screen" />
-<link href="css/tableau.css" rel="stylesheet" type="text/css" media="screen" />
-<link href="css/fencer_list.css" rel="stylesheet" type="text/css" media="screen" />
-<script type="text/javascript">
-	onerror=handleErr
-	function handleErr(msg,url,l) {
-		alert(msg);
-		//Handle the error here
-		return true;
-	}
-
-	function onPageLoaded() {
-		startSwapTimers();
-	}
-        var swaps = new Array();
-    <c:set var="partcounter" value="0" scope="page" />
-    <c:forEach items="${dispIter.currentView.tableauParts}" var="thisPart">
-        swaps[${partcounter}] = "swap-${partcounter}";
-        <c:set var="partcounter" value="${partcounter + 1}" scope="page" />
-    </c:forEach>
-        var tableau_finished = false;
-	var swapindex = 0;
-	function onSwapTimer() {
-            if (swapindex == swaps.length - 1) {
-			tableau_finished = true;
-			checkFinished();
-            } else {
-                var t = setTimeout("onSwapTimer()",15000);
-                document.getElementById(swaps[swapindex]).style.visibility = "hidden";
-                swapindex += 1;
-                document.getElementById(swaps[swapindex]).style.visibility = "visible";
-            }
-		
-	}
-	function startSwapTimers() {
-		var t = setTimeout("onSwapTimer()",15000);
-	}
-        function checkFinished() {
-            if (tableau_finished) {
-                window.location.reload();
-            }
-        }
-
-</script>
-
-</head>
-<body onload="onPageLoaded()">
-<title>${dispIter.currentView.competition.name}</title>
 <c:set var="partcounter" value="0" scope="page" />
 <c:forEach items="${dispIter.currentView.tableauParts}" var="thisPart">
     <c:if test="${0 != partcounter}">
@@ -110,4 +58,3 @@
     </div>
     <c:set var="partcounter" value="${partcounter + 1}" scope="page" />
 </c:forEach>
-</body>

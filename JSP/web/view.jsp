@@ -150,21 +150,12 @@
 </div>
 </c:if>
 <c:if test="${dispIter.currentView.tableau ne 'none'}">
+            <jsp:include page="WEB-INF/jspf/tableau.jsp" />
 </c:if>
 </body>
 </html>
     </c:when>
     
-    <c:when test="${dispIter.currentView.type ne 'none' && dispIter.currentView.tableau eq 'none'}" >
-        
-        <c:url value="list.jsp" var="listPage" scope="page" />
-        <jsp:forward page="${listPage}" />
-    </c:when>
-    <c:when test="${dispIter.currentView.type eq 'none' && dispIter.currentView.tableau ne 'none'}" >
-        
-        <c:url value="tableau.jsp" var="tabPage" scope="page" />
-        <jsp:forward page="${tabPage}" />
-    </c:when>
     <c:otherwise>
             
 <html>
