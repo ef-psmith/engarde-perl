@@ -12,10 +12,10 @@ package LiveFencing;
 public class CompetitionView {
     
     private Competition competition_;
-    private String viewType;
-    private boolean enabled;
-    private String tableau_;
-    private int displayround_;
+    private String viewType = "none";
+    private boolean enabled = false;
+    private String tableau_ = "none";
+    private int displayround_ = 0;
     
     protected CompetitionView (Competition comp) {
         competition_ = comp;
