@@ -103,15 +103,32 @@ sub writeBlurb {
     print $webpage '<link href="tableau_style.css" rel="stylesheet" type="text/css" media="screen" />';
     print $webpage "\n<link href=\"$layout.css\" rel=\"stylesheet\" type=\"text/css\" media=\"screen\" />\n";
     print $webpage '<link href="fencer_list.css" rel="stylesheet" type="text/css" media="screen" />';
+    
     print $webpage "\n<script type=\"text/javascript\">\n\tonerror=handleErr\n";
     print $webpage "\tfunction handleErr(msg,url,l) {\n\t\talert(msg);\n\t\t//Handle the error here\n";
     print $webpage "\t\treturn true;\n\t}\n\n";
+    
+    my $pagefinishedcondition = "true";
     
     # Start function to kick off the scrolling and swapping
     print $webpage "\tfunction onPageLoaded() {\n";
     # If there are any scrolling lists then we need to call onPauseTimer
     if (defined(${$pagedetails}{'vert_scrolling_div'}) or defined(${$pagedetails}{'hori_scrolling_div'})) {
+    
        	# Set the body onload
+       	print $webpage "\t\tvar listElement = document.getElementById(\"vert_list_id\");\n";
+        print $webpage "\t\tlistheight = listElement.offsetHeight;\n";
+        print $webpage "\t\tvar listContainerElement = document.getElementById(\"list_cont_id\");\n";
+        print $webpage "\t\tvar contheight = listContainerElement.offsetHeight;\n";
+        print $webpage "\t\tvar listElementElement = document.getElementById(\"list_row_0\");\n";
+        print $webpage "\t\tvar elemheight = listElementElement.offsetHeight;\n";
+        print $webpage "\t\tvar listHeaderElement = document.getElementById(\"vert_list_header_id\");\n";
+        print $webpage "\t\tvar headerheight = listHeaderElement.offsetHeight;\n";
+        print $webpage "\t\tvar titleheight = listHeaderElement.offsetTop;\n";
+                 
+        print $webpage "\t\tscrollLimit = contheight - elemheight - headerheight - titleheight;\n";
+        print $webpage "\t\tpauseTime = Math.floor($refresh * 1000 / (Math.floor(listheight/scrollLimit) + 2));\n";
+               
        	print $webpage "\t\tonPauseTimer();\n";
     }
     # If there are any swaps then we need to start them off.
@@ -121,32 +138,53 @@ sub writeBlurb {
     print $webpage "\t}\n";
     
     # pause function to stop lists scrolling too soon.
+	print $webpage "\tvar top = 0;\n\tvar left=0;\n\tvar pageStartTop=0;\n\n";
     print $webpage "\tfunction onPauseTimer() {\n";
+    print $webpage "\t\tpageStartTop = top;\n";
     print $webpage "\t\tt1=setTimeout(\"onScrollTimer()\",3000);\n\t}\n";
-    
-    # scroll stuff.  All horizontal scroll together, as do vertical.
-    print $webpage "\tvar top = 0;\n\tvar left=0;\n\n";
-    print $webpage "\tfunction onScrollTimer() {\n\t\tvar topVal = top + 'em';\n\t\tvar leftVal = left + 'em';\n";
     
     
     if (defined(${$pagedetails}{'vert_scrolling_div'})) 
     {
+		# Update the page finished
+		$pagefinishedcondition .= " && list_finished";
+		
+		# scroll stuff.  All scroll together.
+		print $webpage "\tfunction onScrollTimer() {\n\t\tvar topVal = top + 'px';\n";
+	    
         foreach my $vert_scroll (@{${$pagedetails}{'vert_scrolling_div'}}) {
             print $webpage "\t\tdocument.getElementById(\"$vert_scroll\").style.top = topVal;\n";
         }
-    }
-    if (defined(${$pagedetails}{'hori_scrolling_div'})) 
-    {
-        foreach my $hori_scroll (@{${$pagedetails}{'hori_scrolling_div'}}) {
-            print $webpage "\t\tdocument.getElementById(\"$hori_scroll\").style.left = leftVal;\n";
-        }
-    }
-    print $webpage "\t\ttop -= 0.3;\n\t\tleft -= 0.125;\n\t\tt2=setTimeout(\"onScrollTimer()\",200);\n\t}\n";
+	    
+		print $webpage "\t\ttop -= 5;\n";
+		print $webpage "\t\tif (top <= pageStartTop - scrollLimit || top + listheight < 0) {\n";             
+		print $webpage "\t\t\tif (top + listheight < 0) {\n";
+		print $webpage "\t\t\t\tlist_finished = true;\n";
+		print $webpage "\t\t\t\tcheckFinished();\n";
+		print $webpage "\t\t\t} else {\n";
+		print $webpage "\t\t\t\tonPauseTimer();\n";
+		print $webpage "\t\t\t}\n";
+		print $webpage "\t\t} else {\n";
+		print $webpage "\t\t\tt2=setTimeout(\"onScrollTimer()\",50);\n";
+		print $webpage "\t\t}\n\t}\n\n";
+	}
+    
+    
+    #if (defined(${$pagedetails}{'hori_scrolling_div'})) 
+    #{
+    #    foreach my $hori_scroll (@{${$pagedetails}{'hori_scrolling_div'}}) {
+    #        print $webpage "\t\tdocument.getElementById(\"$hori_scroll\").style.left = leftVal;\n";
+    #    }
+    #}
 
     # swapping function
     # first work out the refresh times
     my @swaptimers;
     if (defined(${$pagedetails}{'swaps'})) {
+    
+		# Update the page finished
+		$pagefinishedcondition .= " && tableau_finished";
+		
     	my $seriesnum = 0;
     	foreach (@{${$pagedetails}{'swaps'}}) {
     	    	    
@@ -196,6 +234,10 @@ sub writeBlurb {
 		}
     }
     print $webpage "\t}\n";
+    print $webpage "\tfunction checkFinished() {\n";
+    print $webpage "\t\tif (true $pagefinishedcondition) {\n";
+    print $webpage "\t\t\twindow.location.reload();\n";
+    print $webpage "\t\t}\n\t}\n\n";
     
     print $webpage "\n</script>\n\n<meta http-equiv=\"refresh\" content=\"$refresh;url=$nextpage\">\n</head>\n<body onload=\"onPageLoaded()\">";
 
@@ -266,14 +308,14 @@ sub writeTableau
 				writeTableauFencer($webpage, $bout, 'A',$roundnum);
 				writeTableauFencer($webpage, $bout, 'B',$roundnum);
 	
-				print $webpage "\t\t\t<div class=\"de-element nofencerA\">\n\t\t\t</div>\n";
-	   			print $webpage "\t\t\t<div class=\"de-element nofencerB\">\n\t\t\t</div>\n";
+				#print $webpage "\t\t\t<div class=\"de-element nofencerA\">\n\t\t\t</div>\n";
+	   			#print $webpage "\t\t\t<div class=\"de-element nofencerB\">\n\t\t\t</div>\n";
 			} else {
 				# $bout = undef();
-            
-            	#end of bout div
-            	print $webpage "\t\t</div>\n"
         	}
+            
+            #end of bout div
+            print $webpage "\t\t</div>\n"
 		}
 
 		# Need to include the Winner!
@@ -303,10 +345,11 @@ sub writeEntryListFencer {
     my $EGData = $_[0];
     my $webpage = $_[1];
     my $col_details = $_[2];
+    my $entry_index = $_[3];
 
 	print "writeEntryListFencer: EGData = " . Dumper (\$EGData);
         	
-    print $webpage "\t\t\t<tr>\n";
+    print $webpage "\t\t\t<tr id=\"list_row_$entry_index\">\n";
     foreach my $column_def (@{$col_details}) {
 		my $col_class = ${$column_def}{'class'};
 		my $col_key = ${$column_def}{'key'};
@@ -338,9 +381,9 @@ sub writeFencerList
 	my $entry_list = $pagedetails->{'entry_list'};
 	my $ref = ref $pagedetails->{'entry_list'} || "";
 
-    print $webpage "<div class=\"vert_list_container\">\n";
+    print $webpage "<div class=\"vert_list_container\" id=\"list_cont_id\">\n";
     print $webpage "\t<h2 class=\"list_title\">$list_title</h2>\n";
-    print $webpage "\t<div class=\"list_header\">\n";
+    print $webpage "\t<div class=\"list_header\" id=\"vert_list_header_id\">\n";
     print $webpage "\t\t<table>\n\t\t\t<tr>\n";
     foreach my $column_def (@{$col_details}) 
 	{
@@ -362,18 +405,21 @@ sub writeFencerList
 	{
 		if ($ref eq "HASH")
 		{
+			my $entryindex = 0;
 			if ($sort_func)
 			{
 				foreach my $entrydetail (sort $sort_func keys %$entry_list) 
 				{
-				   	writeEntryListFencer($entry_list->{$entrydetail}, $webpage, $col_details);
+				   	writeEntryListFencer($entry_list->{$entrydetail}, $webpage, $col_details,$entryindex);
+				   	$entryindex += 1;
 				}
 			}
 			else
 			{
 				foreach my $entrydetail (%$entry_list) 
 				{
-				   	writeEntryListFencer($entry_list->{$entrydetail}, $webpage, $col_details);
+				   	writeEntryListFencer($entry_list->{$entrydetail}, $webpage, $col_details,$entryindex);
+				   	$entryindex += 1;
 				}
 			}
 		}
@@ -611,6 +657,31 @@ sub createpage {
 	# default refresh time of 30s.  This is changed later to be a minimum of 10 seconds per tableau view or the size of the vertical list.
 	my $refreshtime = 30;
 
+	# If there are tableaus then we need to create them
+	my $hastableau = $pagedef->{'tableau'};
+
+	my $tabdefs;
+	
+	if (defined($hastableau) && $hastableau eq 'true') 
+	{ 
+		$tabdefs = createRoundTableaus($comp);
+		# PRS: At this point, tabdefs contains all the data we need to print a tableau
+		# print "createpage: tabdefs = " . Dumper(\$tabdefs);
+
+		my $swaps = [ $tabdefs->{'swaps'}];
+		$pagedef->{'swaps'} = $swaps;
+		
+		# Add the tableau to the css file we need for layout
+		$layoutcss .= "tableau";
+		
+		my $mindisplaytime = @{$tabdefs->{'swaps'}} * 10;
+		if ($mindisplaytime > $refreshtime) 
+		{
+			print "Changing refresh time from $refreshtime to $mindisplaytime due to tableaus\n";
+			$refreshtime = $mindisplaytime;
+		}
+	}
+
 	my $messagelistdef = undef();
 	# Now check for urgent messages
     if (open (EXTRAMESSAGES, "messages.txt")) 
@@ -741,30 +812,6 @@ sub createpage {
 
 	writeBlurb($page, $pagedef);
 	
-	# If there are tableaus then we need to create them
-	my $hastableau = $pagedef->{'tableau'};
-
-	my $tabdefs;
-
-	if (defined($hastableau) && $hastableau eq 'true') 
-	{ 
-		$tabdefs = createRoundTableaus($comp);
-		# PRS: At this point, tabdefs contains all the data we need to print a tableau
-		# print "createpage: tabdefs = " . Dumper(\$tabdefs);
-
-		my $swaps = [ $tabdefs->{'swaps'}];
-		$pagedef->{'swaps'} = $swaps;
-		
-		# Add the tableau to the css file we need for layout
-		$layoutcss .= "tableau";
-		
-		my $mindisplaytime = @{$tabdefs->{'swaps'}} * 10;
-		if ($mindisplaytime > $refreshtime) 
-		{
-			print "Changing refresh time from $refreshtime to $mindisplaytime due to tableaus\n";
-			$refreshtime = $mindisplaytime;
-		}
-	}
 		
 	# Write the tableaus if appropriate
 	if (defined($hastableau) && $hastableau eq 'true') 
