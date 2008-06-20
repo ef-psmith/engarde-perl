@@ -34,7 +34,7 @@
     </c:when>
 
     <c:when test="${dispIter.currentView.type ne 'none' || dispIter.currentView.tableau ne 'none'}" >
-<c:set var="pageRefreshTime" value="80" />
+<c:set var="pageRefreshTime" value="80000" />
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en">
 <head>
 <link href="css/tableau_style.css" rel="stylesheet" type="text/css" media="screen" />
@@ -112,7 +112,7 @@
                 tableau_finished = true;
                 checkFinished();
             } else {
-                var t = setTimeout("onSwapTimer()",15000);
+                var t = setTimeout("onSwapTimer()",${pageRefreshTime}/swaps.length);
                 document.getElementById(swaps[swapindex]).style.visibility = "hidden";
                 swapindex += 1;
                 document.getElementById(swaps[swapindex]).style.visibility = "visible";

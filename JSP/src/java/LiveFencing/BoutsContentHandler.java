@@ -32,7 +32,7 @@ public class BoutsContentHandler extends DefaultHandler {
     private int current_ida_ = -1;
     // States are: 0 - not ready, 1 - ready, 2 - started at Piste, 3 - finished at piste, 4 - complete in Engarde
     private int current_state_ = 0;
-    private Bout.Winner current_winner = Bout.Winner.W_NONE;
+    private Bout.Winner current_winner_ = Bout.Winner.W_NONE;
     
     protected class TableauPlaceHolder {
         protected class RoundPlaceHolder {
@@ -142,6 +142,7 @@ public class BoutsContentHandler extends DefaultHandler {
                 current_ida_ = Integer.parseInt(ida);
             }
             current_state_ = Integer.parseInt(attr.getValue("state"));
+            current_winner_ = Bout.Winner.parse(attr.getValue("winner"));
         }
     }
     
@@ -193,7 +194,7 @@ public class BoutsContentHandler extends DefaultHandler {
             if (null == existingBout || current_state_ > existingBout.getState()) {
                 current_round_.bouts_.add(new Bout(current_ida_, fencerA_name, fencerA_club, current_idb_, fencerB_name, fencerB_club,
                             parent_.getCompetition().getName(),parent_.getCompetition().getIndex(),current_tableau_.name_,
-                            current_round_.round_, current_matchnum_,current_state_,current_piste_, current_winner,current_scorea_,current_scoreb_));
+                            current_round_.round_, current_matchnum_,current_state_,current_piste_, current_winner_,current_scorea_,current_scoreb_));
             } else {
                 // Going to reuse the current one as either it is the same (so no new) or it has been updated from the piste
                 current_round_.bouts_.add(existingBout);
@@ -206,7 +207,7 @@ public class BoutsContentHandler extends DefaultHandler {
             current_idb_ = -1;
             current_ida_ = -1;
             current_state_ = 0;
-            current_winner = Bout.Winner.W_NONE;
+            current_winner_ = Bout.Winner.W_NONE;
         }
         if ( localName.equals( "Round" ) ) {
             java.util.Collections.sort(current_round_.bouts_, new BoutComparator());

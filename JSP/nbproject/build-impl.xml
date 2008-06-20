@@ -457,17 +457,11 @@
     </target>
     <target depends="init,compile,compile-jsps,-pre-dist,-do-dist-with-manifest,-do-dist-without-manifest" name="do-dist"/>
     <target depends="init" if="dist.ear.dir" name="library-inclusion-in-manifest">
-        <basename file="${file.reference.postgresql-8.3-603.jdbc4.jar}" property="included.lib.file.reference.postgresql-8.3-603.jdbc4.jar"/>
-        <copy-ear-war file="${file.reference.postgresql-8.3-603.jdbc4.jar}" propname="included.lib.file.reference.postgresql-8.3-603.jdbc4.jar.X"/>
         <mkdir dir="${build.web.dir}/META-INF"/>
-        <manifest file="${build.web.dir}/META-INF/MANIFEST.MF" mode="update">
-            <attribute name="Class-Path" value="${included.lib.file.reference.postgresql-8.3-603.jdbc4.jar} "/>
-        </manifest>
+        <manifest file="${build.web.dir}/META-INF/MANIFEST.MF" mode="update"/>
         <delete dir="${dist.ear.dir}/temp"/>
     </target>
-    <target depends="init" name="library-inclusion-in-archive" unless="dist.ear.dir">
-        <copy file="${file.reference.postgresql-8.3-603.jdbc4.jar}" todir="${build.web.dir}/WEB-INF/lib"/>
-    </target>
+    <target depends="init" name="library-inclusion-in-archive" unless="dist.ear.dir"/>
     <target depends="init,compile,compile-jsps,-pre-dist,library-inclusion-in-manifest" name="do-ear-dist">
         <dirname file="${dist.ear.war}" property="dist.jar.dir"/>
         <mkdir dir="${dist.jar.dir}"/>

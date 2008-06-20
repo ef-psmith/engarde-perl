@@ -13,7 +13,18 @@ public class Bout {
     public enum Winner {
         W_NONE,
         W_A,
-        W_B
+        W_B;
+        
+        public static Winner parse(String val) {
+            Winner ret = W_NONE;
+            if (val.equals("W_A")) {
+                ret = W_A;
+            }
+            else if (val.equals("W_B")) {
+                ret = W_B;
+            }
+            return ret;
+        }                
     }
     private int fencerA_ID_;
     private String fencerA_name_;
@@ -52,6 +63,39 @@ public class Bout {
         scoreA_ = scoreA;
         scoreB_ = scoreB;
     }
+    
+        public static String getFencerState(Bout lhs, String rhs) {
+            String result = "";
+            if (rhs.equals("A")) {
+                switch (lhs.winner_) {
+                    case W_A:
+                        result = "winner";
+                        break;
+                    case W_B:
+                        result = "loser";
+                        break;
+                    case W_NONE:
+                    default:
+                        result = "";
+                        break;
+                }
+            }            
+            if (rhs.equals("B")) {
+                switch (lhs.winner_) {
+                    case W_A:
+                        result = "loser";
+                        break;
+                    case W_B:
+                        result = "winner";
+                        break;
+                    case W_NONE:
+                    default:
+                        result = "";
+                        break;
+                }
+            }            
+            return result;
+        }
     
     public int getFencerA_ID() {
         return fencerA_ID_;
