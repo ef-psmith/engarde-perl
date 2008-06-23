@@ -32,7 +32,6 @@ public class Bout {
     private int fencerB_ID_;
     private String fencerB_name_;
     private String fencerB_club_;
-    private String competition_;
     private int competition_key_;
     private String tableau_;
     private int round_;
@@ -45,14 +44,13 @@ public class Bout {
     
     
     public Bout(int fencerA, String fencerAName, String fencerAClub, int fencerB, String fencerBName, String fencerBClub,
-            String comp, int compKey, String tableau, int round, int match, int state, int piste, Winner winner, int scoreA, int scoreB) {
+            int compKey, String tableau, int round, int match, int state, int piste, Winner winner, int scoreA, int scoreB) {
         fencerA_ID_ = fencerA;
         fencerA_name_ = fencerAName;
         fencerA_club_ = fencerAClub;
         fencerB_ID_ = fencerB;
         fencerB_name_ = fencerBName;
         fencerB_club_ = fencerBClub;
-        competition_ = comp;
         competition_key_ = compKey;
         tableau_ = tableau;
         round_ = round;
@@ -64,36 +62,52 @@ public class Bout {
         scoreB_ = scoreB;
     }
     
-        public static String getFencerState(Bout lhs, String rhs) {
+        public static String getFencerState(Bout lhs, int fencer) {
             String result = "";
-            if (rhs.equals("A")) {
-                switch (lhs.winner_) {
-                    case W_A:
-                        result = "winner";
-                        break;
-                    case W_B:
-                        result = "loser";
-                        break;
-                    case W_NONE:
-                    default:
-                        result = "";
-                        break;
-                }
-            }            
-            if (rhs.equals("B")) {
-                switch (lhs.winner_) {
-                    case W_A:
-                        result = "loser";
-                        break;
-                    case W_B:
-                        result = "winner";
-                        break;
-                    case W_NONE:
-                    default:
-                        result = "";
-                        break;
-                }
-            }            
+            // First check the state of the Bout
+           switch (lhs.state_) {
+               case 0:
+               default:
+                   // Just return the empty string as there is no state
+                   break;
+               case 1:
+                   result = "bout-pending";
+                   break;
+               case 2:
+                   result = "bout-started";
+                   break;
+               case 3:
+               case 4:
+                   // The bout is complete
+                    if (fencer == lhs.fencerA_ID_) {
+                        switch (lhs.winner_) {
+                            case W_A:
+                                result = "winner";
+                                break;
+                            case W_B:
+                                result = "loser";
+                                break;
+                            case W_NONE:
+                            default:
+                                result = "";
+                                break;
+                        }
+                    }            
+                    if (fencer == lhs.fencerB_ID_) {
+                        switch (lhs.winner_) {
+                            case W_A:
+                                result = "loser";
+                                break;
+                            case W_B:
+                                result = "winner";
+                                break;
+                            case W_NONE:
+                            default:
+                                result = "";
+                                break;
+                        }
+                    }       
+           }     
             return result;
         }
     
@@ -115,9 +129,6 @@ public class Bout {
     public String getFencerB_Club() {
         return fencerB_club_;
     }
-   /* public String getCompetition() {
-        return competition_;
-    }*/
     public int getCompetitionKey() {
         return competition_key_;
     }
@@ -157,7 +168,7 @@ public class Bout {
     public void setScoreB(int scoreB) {
         scoreB_ = scoreB;
     }
-    
+    /*
     public String getFencerAClasses() {
         String classes = "";
         switch (state_) {
@@ -198,6 +209,6 @@ public class Bout {
                     classes += "loser";
         }
         return classes;
-    }
+    }*/
 
 }

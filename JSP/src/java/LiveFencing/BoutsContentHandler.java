@@ -193,7 +193,7 @@ public class BoutsContentHandler extends DefaultHandler {
             Bout existingBout = parent_.getCompetition().findBout(current_tableau_.name_, current_round_.round_, current_matchnum_);
             if (null == existingBout || current_state_ > existingBout.getState()) {
                 current_round_.bouts_.add(new Bout(current_ida_, fencerA_name, fencerA_club, current_idb_, fencerB_name, fencerB_club,
-                            parent_.getCompetition().getName(),parent_.getCompetition().getIndex(),current_tableau_.name_,
+                            parent_.getCompetition().getIndex(),current_tableau_.name_,
                             current_round_.round_, current_matchnum_,current_state_,current_piste_, current_winner_,current_scorea_,current_scoreb_));
             } else {
                 // Going to reuse the current one as either it is the same (so no new) or it has been updated from the piste

@@ -57,7 +57,7 @@
     <description>Compare to a Winner object</description>
     <name>getfencerstate</name>
     <function-class>LiveFencing.Bout</function-class>
-    <function-signature>java.lang.String getFencerState( LiveFencing.Bout, java.lang.String) </function-signature>
+    <function-signature>java.lang.String getFencerState( LiveFencing.Bout, int) </function-signature>
   </function>
   
   

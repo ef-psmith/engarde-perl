@@ -16,7 +16,7 @@
             <c:set var="boutnum" value="1" scope="page" />
             <c:forEach items="${thisPart.firstRound}" var="bout">
 		<div class="r1bout-${boutnum} bout">
-                     <div class="de-element fencerA ${lfo:getfencerstate(bout,"A")}">
+                     <div class="de-element fencerA ${lfo:getfencerstate(bout,bout.fencerA_ID)}">
 				<div class="fencer">${bout.fencerA_Name}</div>
 				<div class="score">${bout.scoreA}</div>
 			</div>
@@ -25,7 +25,7 @@
 					Piste: ${bout.piste}  Time:xxxx
 				</div>
 			</div>
-			<div class="de-element fencerB ${lfo:getfencerstate(bout,"B")}">
+			<div class="de-element fencerB ${lfo:getfencerstate(bout,bout.fencerB_ID)}">
 				<div class="fencer">${bout.fencerB_Name}</div>
 				<div class="score">${bout.scoreB}</div>
 			</div>
@@ -38,7 +38,7 @@
             <c:set var="boutnum" value="1" scope="page" />
             <c:forEach items="${thisPart.secondRound}" var="bout">
 		<div class="r2bout-${boutnum} bout">
-			<div class="de-element fencerA ${lfo:getfencerstate(bout,"A")}">
+			<div class="de-element fencerA ${lfo:getfencerstate(bout,bout.fencerA_ID)}">
 				<div class="fencer">${bout.fencerA_Name}</div>
 				<div class="score">${bout.scoreA}</div>
 			</div>
@@ -47,7 +47,7 @@
 					Piste: ${bout.piste}  Time:xxxx
 				</div>
 			</div>
-			<div class="de-element fencerB ${lfo:getfencerstate(bout,"B")}">
+			<div class="de-element fencerB ${lfo:getfencerstate(bout,bout.fencerB_ID)}">
 				<div class="fencer">${bout.fencerB_Name}</div>
 				<div class="score">${bout.scoreB}</div>
 			</div>
