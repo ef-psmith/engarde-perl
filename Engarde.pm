@@ -281,6 +281,8 @@ sub match
 
 	my $match = $tab->match($m);
 
+	# print "match: tab match data = " . Dumper(\$match);
+
 	# print "c = $c, t = $t, m = $m\n";
 
 	my $out = {};
@@ -288,10 +290,14 @@ sub match
 	my $fa = $c->tireur($match->{fencerA}) if $match->{fencerA};
 	my $fb = $c->tireur($match->{fencerB}) if $match->{fencerB};
 
-	# print Dumper (\$fa);
-	# print Dumper (\$fb);
+	# print "match: fa = " . Dumper (\$fa);
+	# print "match: fb = " . Dumper (\$fb);
 
 	my $winner = $c->tireur($match->{winner}) if $match->{winner};
+
+
+	# print "match: winner = $match->{winner}\n";
+	# print "match: winner = " . Dumper(\$winner);
 
 	my $ca = $c->club($fa->{club1}) if $fa->{club1};
 	my $cb = $c->club($fb->{club1}) if $fb->{club1};
@@ -317,6 +323,8 @@ sub match
 	$out->{nationB} = $nb if $nb;
 	$out->{idA} = $match->{fencerA} if $match->{fencerA};
 	$out->{idB} = $match->{fencerB} if $match->{fencerB};
+
+	# print "match returning: " . Dumper(\$out);
 
 	return $out;
 
@@ -708,9 +716,12 @@ sub ranking
 		foreach my $t (@tab)
 		{
 			my $round = $c->tableau($t);
+
+			# print "RANKING: round = " . Dumper(\$round);
+
 			my $taille = $round->taille;
 
-			unless ($taille == 2)
+			unless ($taille == 999)
 			{
 				my $eliminated = $round->eliminated;
 
@@ -752,22 +763,40 @@ sub ranking
 					$seeds->{$e}->{seed} = $current_rang;
 					$seeds->{$e}->{seed} = 3 if $current_rang == 4;
 				}
+
+				if ($taille == 2)
+				{
+					# print "RANKING: getting winner\n";
+
+					my $m = $round->match(1);
+
+					# print "RANKING: match 1 = " . Dumper(\$m);
+
+					my $nom = $m->{winner};
+
+					my $nation = $nom eq $m->{fencerA} ? $m->{nationA} : $m->{nationB};
+					my $club = $nom eq $m->{fencerA} ? $m->{clubA} : $m->{clubB};
+
+					$seeds->{1} = {nom=>$nom, nation=>$nation, club=>$club, seed=>1}; 
+
+				}
 			}
 			else
 			{
+				# PRS - need to change this
 				# print "RANKING: getting final\n";
 				my $final = $c->match($t,1);
 				# print "final = " . Dumper($final);
 
 				if ($final->{winner} eq $final->{fencerA})
 				{
-					$seeds->{$final->{idA}} = {nom=>$final->{fencerA}, nation=>$final->{nationA}, club=>$final->{clubA}, seed=>1}; 
-					$seeds->{$final->{idB}} = {nom=>$final->{fencerB}, nation=>$final->{nationB}, club=>$final->{clubB}, seed=>2}; 
+					$seeds->{1} = {nom=>$final->{fencerA}, nation=>$final->{nationA}, club=>$final->{clubA}, seed=>1}; 
+					$seeds->{2} = {nom=>$final->{fencerB}, nation=>$final->{nationB}, club=>$final->{clubB}, seed=>2}; 
 				}
 				else
 				{
-					$seeds->{$final->{idA}} = {nom=>$final->{fencerA}, nation=>$final->{nationA}, club=>$final->{clubA}, seed=>2}; 
-					$seeds->{$final->{idB}} = {nom=>$final->{fencerB}, nation=>$final->{nationB}, club=>$final->{clubB}, seed=>1}; 
+					$seeds->{2} = {nom=>$final->{fencerA}, nation=>$final->{nationA}, club=>$final->{clubA}, seed=>2}; 
+					$seeds->{1} = {nom=>$final->{fencerB}, nation=>$final->{nationB}, club=>$final->{clubB}, seed=>1}; 
 				}
 
 			}
