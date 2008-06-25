@@ -265,6 +265,7 @@ sub writeTableau
     my $tableau_title = $pagedetails->{'tableau_title'};
     my $tableau_class = 'tableau';
 	my $where = $pagedetails->{'where'};
+	print Dumper $where;
 
     if (defined($pagedetails->{'tableau_class'})) 
 	{
@@ -278,8 +279,7 @@ sub writeTableau
     print $webpage "<div class=\"$tableau_class\" id=\"$div_id\">\n";
     print $webpage "\t<h2 class=\"tableau_title\">$tableau_title</h2>\n";
 
-    # Going to loop through the different rounds building the bouts going to 
-	# do the three rounds first and the member of the fourth round later
+    # Work out how many bouts there are.  Note that we never display the winner in the tableau, merely the final
     my $numbouts = 4;
 
 	$numbouts = 4 if $lastN <= 4;
@@ -292,7 +292,7 @@ sub writeTableau
         print $webpage "\t<div class=\"$colname\">\n";
 
         for (my $boutnum = 1; $boutnum <= $lastN / 2; $boutnum++) {
-	   		print "round = $roundnum, numbouts = $numbouts, boutnum=$boutnum\n";
+	   		print "round = $roundnum, lastN = $lastN, numbouts = $numbouts, boutnum=$boutnum\n";
             my $boutname = "r" . $roundnum . "bout-" . $boutnum;
             print $webpage "\t\t<div class=\"$boutname bout\">\n";
             
@@ -330,9 +330,13 @@ sub writeTableau
         $result = "bout-pending";
         # next round has half as many bouts
         
+	my $oldLastN = $lastN;
         $numbouts /= 2;
         $lastN /= 2;
-        $preceeding_bout /=2;        
+        $preceeding_bout /=2; 
+
+	# Change the where
+	$where =~ s/$oldLastN/$lastN/;       
     }
     
     print $webpage "\t\t\t</div>\n\t\t</div>\n\t</div>\n";
@@ -686,7 +690,7 @@ sub createpage {
 	}
 
 	my $messagelistdef = undef();
-	# Now check for urgent messages
+	# Now check for urgent messages, actually never do this.
     if (open (EXTRAMESSAGES, "messages.txt")) 
 	{
     
