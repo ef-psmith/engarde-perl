@@ -139,9 +139,9 @@ sub writeBlurb {
     
     # pause function to stop lists scrolling too soon.
 	print $webpage "\tvar top = 0;\n\tvar left=0;\n\tvar pageStartTop=0;\n\n";
-    print $webpage "\tfunction onPauseTimer() {\n";
+    print $webpage "\tfunction onPauseTimer() {";
     print $webpage "\t\tpageStartTop = top;\n";
-    print $webpage "\t\tt1=setTimeout(\"onScrollTimer()\",3000);\n\t}\n";
+    print $webpage "\t\tt1=setTimeout(\"onScrollTimer()\",pauseTime);\n\t}\n";
     
     
     if (defined(${$pagedetails}{'vert_scrolling_div'})) 
@@ -150,7 +150,7 @@ sub writeBlurb {
 		$pagefinishedcondition .= " && list_finished";
 		
 		# scroll stuff.  All scroll together.
-		print $webpage "\tfunction onScrollTimer() {\n\t\tvar topVal = top + 'px';\n";
+		print $webpage "\tvar list_finished = false;\n\tfunction onScrollTimer() {\n\t\tvar topVal = top + 'px';\n";
 	    
         foreach my $vert_scroll (@{${$pagedetails}{'vert_scrolling_div'}}) {
             print $webpage "\t\tdocument.getElementById(\"$vert_scroll\").style.top = topVal;\n";
@@ -188,7 +188,7 @@ sub writeBlurb {
     	my $seriesnum = 0;
     	foreach (@{${$pagedetails}{'swaps'}}) {
     	    	    
-    	    print $webpage "\tvar swaps$seriesnum = new Array();\n";
+    	    print $webpage "\tvar tableau_finished = false;\n\tvar swaps$seriesnum = new Array();\n";
     	    
     	    my $index = 0;
     	    foreach (@{$_}) {
@@ -199,6 +199,9 @@ sub writeBlurb {
     	    print $webpage "\tvar swapindex$seriesnum = 0;\n";
     	    
     	    print $webpage "\tfunction onSwapTimer$seriesnum() {\n";
+    	    print $webpage "\t\tif (swapindex$seriesnum == swaps$seriesnum.length - 1) {\n";
+    	    print $webpage "\t\t\ttableau_finished = true;\n\t\t\tcheckFinished();\n\t\t\treturn;\n";
+    	    print $webpage "\t\t}\n";
     	    
 	    # Refresh time is in seconds, swaptimer in milliseconds (and yes I know int() shouldn't be used to round but I don't care)
 	    $swaptimers[$seriesnum] = int($refresh / @{$_} * 1000);
@@ -234,12 +237,12 @@ sub writeBlurb {
 		}
     }
     print $webpage "\t}\n";
-    print $webpage "\tfunction checkFinished() {\n";
-    print $webpage "\t\tif (true $pagefinishedcondition) {\n";
-    print $webpage "\t\t\twindow.location.reload();\n";
+    print $webpage "\tfunction checkFinished() { \n";
+    print $webpage "\t\tif ($pagefinishedcondition) {\n";
+    print $webpage "\t\t\twindow.location.replace(\"$nextpage\");\n";
     print $webpage "\t\t}\n\t}\n\n";
     
-    print $webpage "\n</script>\n\n<meta http-equiv=\"refresh\" content=\"$refresh;url=$nextpage\">\n</head>\n<body onload=\"onPageLoaded()\">";
+    print $webpage "\n</script>\n\n</head>\n<body onload=\"onPageLoaded()\">";
 
     print $webpage "\n<title>$pagetitle</title>\n";
 
