@@ -303,7 +303,7 @@ sub writeTableau
             
 			if (defined($bout)) {
 				print $webpage "\t\t\t<div class=\"pistecontainer\">\n\t\t\t\t<div class=\"de-element fencerA\">";
-				print $webpage ${$bout}{'time'} . "   Piste: " . ${$bout}{'piste'}  . "</div>\n\t\t\t</div>\n";
+				print $webpage "Piste: " . ${$bout}{'piste'}  . "</div>\n\t\t\t</div>\n";
 				
 				print "writeTableau: roundnum = $roundnum, result = $result\n";
 	
