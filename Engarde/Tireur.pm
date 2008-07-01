@@ -98,7 +98,7 @@ sub club
 sub nation
 {
 	my $self = shift;
-	return $self->{nation};
+	return $self->{nation1};
 }
 
 sub rangpou
