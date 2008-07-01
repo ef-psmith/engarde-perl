@@ -14,9 +14,10 @@ package Engarde;
 use strict;
 use File::Stat;
 use File::Basename;
-use Storable qw(dclone);
+# use Storable qw(dclone);
 use Data::Dumper;
 use Carp;
+use Scalar::Util qw(weaken);
 
 use Engarde::Tireur;
 use Engarde::Nation;
@@ -58,6 +59,12 @@ sub AUTOLOAD
 	# }
 	return $self->{$name};
 }  
+
+sub parent
+{
+	my $self = shift; 
+	@_ ? weaken($self->{parent} = shift) : $self->{parent};
+}
 
 ###############################################################################
 #
@@ -606,6 +613,8 @@ sub poule
 		$self = {};
 		$self->{file} = "$dir/$p.txt";
 		bless $self, "Engarde::Poule";
+
+		$self->parent($c);
 	}
 
 	$self->{mtime} = (stat($self->{file}))[9];
@@ -618,7 +627,7 @@ sub poule
 	}
 	else
 	{
-		# print "Not loading $level data...\n";
+		# print "Not loading $round data...\n";
 	}
 
 	return $self;
