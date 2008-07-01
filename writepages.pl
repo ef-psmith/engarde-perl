@@ -212,7 +212,7 @@ sub writeBlurb {
 		    print $webpage "\t\tswapindex$seriesnum += 1;\n";
 		    print $webpage "\t\tdocument.getElementById(swaps$seriesnum";
 		    print $webpage "[swapindex$seriesnum]).style.visibility = \"visible\";\n";
-		    print $webpage "\t\tif (swapindex$seriesnum < swaps$seriesnum.length - 1) {\n";
+		    print $webpage "\t\tif (swapindex$seriesnum < swaps$seriesnum.length) {\n";
 		    print $webpage "\t\t\tvar t = setTimeout(\"onSwapTimer$seriesnum()\",$swaptimers[$seriesnum]);\n";
 		    print $webpage "\t\t}\n";
 	    }
@@ -239,12 +239,61 @@ sub writeBlurb {
     print $webpage "\t}\n";
     print $webpage "\tfunction checkFinished() { \n";
     print $webpage "\t\tif ($pagefinishedcondition) {\n";
-    print $webpage "\t\t\twindow.location.replace(\"$nextpage\");\n";
+	print $webpage "\t\t\twindow.location.replace(\"$nextpage\");\n";
     print $webpage "\t\t}\n\t}\n\n";
     
     print $webpage "\n</script>\n\n</head>\n<body onload=\"onPageLoaded()\">";
 
     print $webpage "\n<title>$pagetitle</title>\n";
+
+}
+
+##################################################################################
+# writePoule
+##################################################################################
+# Write out a poule, writePoule(data, pagehandle, pagedetails)
+sub writePoule 
+{
+    my $EGData = shift;
+    my $webpage = shift;
+    local $pagedetails = shift;
+
+	# print "writePoule: EGData = " . Dumper(\$EGData);
+	print "writePoule: pagedetails = " . Dumper(\$pagedetails);
+
+    my $div_id = $pagedetails->{'poule_div'};
+    my $poule_title = $pagedetails->{'poule_title'};
+    # Note that we are going to use tableau as the generic container for poules as well.
+    my $poule_class = 'tableau';
+	my $where = $pagedetails->{'where'};
+	print Dumper $where;
+
+    if (defined($pagedetails->{'poule_class'})) 
+	{
+        $poule_class = $pagedetails->{'poule_class'};
+    }
+    
+	my @g = $pagedetails->{'poule'}->grid;
+
+	print $webpage "<div class=\"$poule_class\" id=\"$div_id\">\n";
+    print $webpage "\t<h2>$poule_title</h2>\n";
+	print $webpage "\t<table>\n";
+
+	foreach my $line (@g)
+	{
+		print "line = " . Dumper(\$line);
+
+		print $webpage "\t\t<tr>\n";
+
+		foreach my $cell (@$line)
+		{
+			print $webpage "\t\t\t<td>$cell</td>\n";
+		}
+
+		print $webpage "\t\t</tr>\n";
+	}
+
+	print $webpage "\t</table>\n</div>\n";
 
 }
 
@@ -475,6 +524,71 @@ sub writeMessageList {
 }
 
 ##################################################################################
+# createPouleDefinitions($comp);
+##################################################################################
+# create an array of definitions for a set of pages describing a complete round of a tableau
+# the first will be visible the later ones not
+sub createPouleDefinitions {
+    my $competition = shift;
+    my $compname = $competition->titre_reduit();
+
+  	my %retval;
+    
+    my @localswaps;
+
+    my @defs;
+    my $defindex = 0;
+   	my $where = $competition->whereami;
+
+	my $poule;
+	do {
+		$poule = undef;
+		$poule = $competition->poule(1,$defindex + 1);
+		if (defined($poule) && defined($poule->{'mtime'})) {
+			print Dumper ($poule) . "\n";
+
+			my %def;
+			
+			$def{'poule'} = $poule;
+
+			$def{'where'} = $where;
+
+			my $divname = "P1" . "-" . $defindex;
+		
+			$localswaps[$defindex] = $divname;
+		
+			$def{'poule_div'} = $divname;
+
+			
+			$def{'poule_title'} = $compname . " Poule " . ($defindex + 1);
+			
+
+			$def{'poule_num'} = ($defindex + 1);
+		
+			if ($defindex > 0) {
+	    			$def{'poule_class'} = 'tableau hidden';
+			}
+
+			# print "createRoundTableaus: defindex = $defindex, defs = " . Dumper(\%def);
+
+			$defs[$defindex] = \%def;
+		}
+
+		$defindex++;
+   	} while(defined($poule) && defined($poule->{'mtime'}));
+	
+
+
+   	$retval{'definitions'} = \@defs;
+   	$retval{'swaps'} = \@localswaps;
+   	
+   	print "Poules: @localswaps\n";
+   	return \%retval;
+
+
+}
+
+##################################################################################
 # createRoundTableaus
 ##################################################################################
 # create an array of definitions for a set of pages describing a complete round of a tableau
@@ -688,6 +802,42 @@ sub createpage {
 			$refreshtime = $mindisplaytime;
 		}
 	}
+	# If there are poules then we need to create them
+	my $haspoules = $pagedef->{'poules'};
+	my $pouledefs;
+	
+	if (defined($haspoules) && $haspoules eq 'true') 
+	{ 
+		# Just check that we don't have both poules and tableau
+
+		if (defined($hastableau) && $hastableau eq 'true') 
+		{ 
+			die "Can't have both tableau and poules";
+		}
+
+
+		$pouledefs = createPouleDefinitions($comp);
+		# We now have the information to create the poule divs, now set the pages up so it swaps correctly
+
+		if (defined ($pagedef->{'swaps'})) {
+			my $swaps = [ $pagedef->{'swaps'}, $pouledefs->{'swaps'}];
+			$pagedef->{'swaps'} = $swaps;
+		} else {
+			my $swaps = [ $pouledefs->{'swaps'}];
+			$pagedef->{'swaps'} = $swaps;
+		}
+		
+		# Add the tableau to the css file we need for layout, note that we are using Tableau as the layout
+		# for the poules as well as it is just a box with screens that replace.
+		$layoutcss .= "tableau";
+		
+		my $mindisplaytime = @{$pouledefs->{'swaps'}} * 10;
+		if ($mindisplaytime > $refreshtime) 
+		{
+			print "Changing refresh time from $refreshtime to $mindisplaytime due to tableaus\n";
+			$refreshtime = $mindisplaytime;
+		}
+	}
 
 	my $messagelistdef = undef();
 	# Now check for urgent messages, actually never do this.
@@ -831,6 +981,19 @@ sub createpage {
 			# print "createpage: tabdef = " . Dumper(\$tabdef);
 			# PRS: Need to pass tabdefs->{level} here as well or change the way writeTableau is called
 			writeTableau($tabdefs, $page, $tabdef);
+		}
+	}
+	# Write the poules if appropriate
+	if (defined($haspoules) && $haspoules eq 'true') 
+	{ 
+		# print "createpage: writing poules. definitions = " . Dumper($tabdefs->{'definitions'});
+
+		foreach my $pouledef (@{$pouledefs->{'definitions'}}) 
+		{
+			print "createpage: calling writePoule\n";
+			# print "createpage: pouledef = " . Dumper(\$tabdef);
+			# PRS: Need to pass tabdefs->{level} here as well or change the way writeTableau is called
+			writePoule($pouledefs, $page, $pouledef);
 		}
 	}
 	# If we have the horizontal scrolling then add that
