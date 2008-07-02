@@ -94,17 +94,18 @@ sub writeBlurb {
     my $refresh = ${$pagedetails}{'refresh_time'};
     my $layout = ${$pagedetails}{'layout'};
     my $bkcolour = ${$pagedetails}{'background'};
+    my $csspath = ${$pagedetails}{'csspath'};
     
     print $webpage '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">';
     print $webpage "\n<html xmlns=\"http://www.w3.org/1999/xhtml\" lang=\"en\">\n<head>\n";
     
     print $webpage "\t<style type=\"text/css\">\n\t\tbody {background-color: $bkcolour}\n\t</style>\n";
 
-    print $webpage '<link href="tableau_style.css" rel="stylesheet" type="text/css" media="screen" />';
-    print $webpage "\n<link href=\"$layout.css\" rel=\"stylesheet\" type=\"text/css\" media=\"screen\" />\n";
-    print $webpage '<link href="fencer_list.css" rel="stylesheet" type="text/css" media="screen" />';
+    print $webpage "<link href=\"".$csspath."tableau_style.css\" rel=\"stylesheet\" type=\"text/css\" media=\"screen\" />\n";
+    print $webpage "<link href=\"$csspath$layout.css\" rel=\"stylesheet\" type=\"text/css\" media=\"screen\" />\n";
+    print $webpage "<link href=\"".$csspath."fencer_list.css\" rel=\"stylesheet\" type=\"text/css\" media=\"screen\" />\n";
     
-    print $webpage "\n<script type=\"text/javascript\">\n\tonerror=handleErr\n";
+    print $webpage "<script type=\"text/javascript\">\n\tonerror=handleErr\n";
     print $webpage "\tfunction handleErr(msg,url,l) {\n\t\talert(msg);\n\t\t//Handle the error here\n";
     print $webpage "\t\treturn true;\n\t}\n\n";
     
