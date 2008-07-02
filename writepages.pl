@@ -277,20 +277,53 @@ sub writePoule
 
 	print $webpage "<div class=\"$poule_class\" id=\"$div_id\">\n";
     print $webpage "\t<h2>$poule_title</h2>\n";
-	print $webpage "\t<table>\n";
+	print $webpage "\t<table cellpadding=\"5\" border=\"1\">\n";
+	
+	my $lineNum = 0;
 
+	my $firstResult = 0;
 	foreach my $line (@g)
 	{
 		print "line = " . Dumper(\$line);
 
 		print $webpage "\t\t<tr>\n";
 
+		my $cellNum = 0;
 		foreach my $cell (@$line)
 		{
-			print $webpage "\t\t\t<td>$cell</td>\n";
+			if ($cellNum > 0) {
+				if ($lineNum > 0) {
+					# Just a normal line but need to check whether it is the fencer vs self fight
+					if ($lineNum == ($cellNum - $firstResult + 1)) {
+						print $webpage "\t\t\t<td style=\"background-color: black\">$cell</td>\n";
+					} else {
+						print $webpage "\t\t\t<td>$cell</td>\n";
+					}
+				} else {
+					# It is a header, two impacts: it uses <th> elements and it replaces some "result" with a number
+					my $header = $cell;
+					if ("result" eq $header) {
+						if (0 == $firstResult) {
+							$firstResult = $cellNum;
+						}
+						$header = ($cellNum - $firstResult + 1);
+					}
+					print $webpage "\t\t\t<th>$header</th>\n";
+				}
+			} else {
+				# Want to add the Fencer numbers within the poule
+				# But only for the non header line
+				my $num = "";
+				if ($lineNum > 0) {
+					$num = $lineNum;
+				}
+				print $webpage "\t\t\t<td>$num</td>\n";
+			}
+			$cellNum++;
 		}
 
 		print $webpage "\t\t</tr>\n";
+		$lineNum++;
 	}
 
 	print $webpage "\t</table>\n</div>\n";
