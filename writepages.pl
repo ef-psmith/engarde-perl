@@ -263,7 +263,6 @@ sub writePoule
 	print "writePoule: pagedetails = " . Dumper(\$pagedetails);
 
     my $div_id = $pagedetails->{'poule_div'};
-    my $poule_title = $pagedetails->{'poule_title'};
     # Note that we are going to use tableau as the generic container for poules as well.
     my $poule_class = 'tableau';
 	my $where = $pagedetails->{'where'};
@@ -273,61 +272,81 @@ sub writePoule
 	{
         $poule_class = $pagedetails->{'poule_class'};
     }
-    
-	my @g = $pagedetails->{'poule'}->grid;
-
 	print $webpage "<div class=\"$poule_class\" id=\"$div_id\">\n";
-    print $webpage "\t<h2>$poule_title</h2>\n";
-	print $webpage "\t<table cellpadding=\"5\" border=\"1\">\n";
-	
-	my $lineNum = 0;
+    
+    my @poules = @{$pagedetails->{'poules'}};
+    
+    foreach my $pouledef (@poules) {
+    
+		my @g = $pouledef->{'poule'}->grid;
+		my $poule_title = $pouledef->{'poule_title'};
 
-	my $firstResult = 0;
-	foreach my $line (@g)
-	{
-		print "line = " . Dumper(\$line);
+		print $webpage "\t<h2>$poule_title</h2>\n";
+		print $webpage "\t<table cellspacing=\"0\" cellpadding=\"5\" border=\"1\" width=\"95%\" align=\"center\">\n";
+		
+		my $lineNum = 0;
 
-		print $webpage "\t\t<tr>\n";
-
-		my $cellNum = 0;
-		foreach my $cell (@$line)
+		my $firstResult = 0;
+		my $lastResult = 0;
+		foreach my $line (@g)
 		{
-			if ($cellNum > 0) {
-				if ($lineNum > 0) {
-					# Just a normal line but need to check whether it is the fencer vs self fight
-					if ($lineNum == ($cellNum - $firstResult + 1)) {
-						print $webpage "\t\t\t<td style=\"background-color: black\">$cell</td>\n";
+			print "line = " . Dumper(\$line);
+
+			print $webpage "\t\t<tr>\n";
+
+			my $cellNum = 0;
+			foreach my $cell (@$line)
+			{
+				if ($cellNum > 0) {
+					if ($lineNum > 0) {
+						my $style = undef;
+						# Just a normal line but need to check whether it is the fencer vs self fight
+						if ($lineNum == ($cellNum - $firstResult + 1)) {
+							$style = $style ."background-color: black;";
+						}
+						# Now we want to pad the first result column
+						if ($cellNum == $firstResult || $cellNum == $lastResult + 1) {
+							$style = $style ."border-left-width: 15;";
+						}
+						if (defined($style)) {
+							$style = " style=\"$style\"";
+						}
+						print $webpage "\t\t\t<td$style>$cell</td>\n";
 					} else {
-						print $webpage "\t\t\t<td>$cell</td>\n";
+						# It is a header, two impacts: it uses <th> elements and it replaces some "result" with a number
+						my $header = $cell;
+						my $style;
+						if ("result" eq $header) {
+							if (0 == $firstResult) {
+								$firstResult = $cellNum;
+								$style = " style=\"border-left-width: 15\"";
+							}
+							$header = ($cellNum - $firstResult + 1);
+						} elsif (0 < $firstResult && 0 == $lastResult) {
+							$lastResult = $cellNum - 1;
+							$style = " border-left-width: 15\"";
+						}
+						print $webpage "\t\t\t<th$style>$header</th>\n";
 					}
 				} else {
-					# It is a header, two impacts: it uses <th> elements and it replaces some "result" with a number
-					my $header = $cell;
-					if ("result" eq $header) {
-						if (0 == $firstResult) {
-							$firstResult = $cellNum;
-						}
-						$header = ($cellNum - $firstResult + 1);
+					# Want to add the Fencer numbers within the poule
+					# But only for the non header line
+					my $num = "";
+					if ($lineNum > 0) {
+						$num = $lineNum;
 					}
-					print $webpage "\t\t\t<th>$header</th>\n";
+					print $webpage "\t\t\t<td>$num</td>\n";
 				}
-			} else {
-				# Want to add the Fencer numbers within the poule
-				# But only for the non header line
-				my $num = "";
-				if ($lineNum > 0) {
-					$num = $lineNum;
-				}
-				print $webpage "\t\t\t<td>$num</td>\n";
+				$cellNum++;
 			}
-			$cellNum++;
+
+			print $webpage "\t\t</tr>\n";
+			$lineNum++;
 		}
 
-		print $webpage "\t\t</tr>\n";
-		$lineNum++;
+		print $webpage "\t</table>\n";
 	}
-
-	print $webpage "\t</table>\n</div>\n";
+	print $webpage "</div>\n";
 
 }
 
@@ -560,7 +579,7 @@ sub writeMessageList {
 ##################################################################################
 # createPouleDefinitions($comp);
 ##################################################################################
-# create an array of definitions for a set of pages describing a complete round of a tableau
+# create an array of definitions for a set of pages describing a complete round of poules
 # the first will be visible the later ones not
 sub createPouleDefinitions {
     my $competition = shift;
@@ -573,6 +592,8 @@ sub createPouleDefinitions {
     my @defs;
     my $defindex = 0;
    	my $where = $competition->whereami;
+   	
+   	my $numPoulesPerPage = 2;
 
 	my $poule;
 	do {
@@ -580,32 +601,32 @@ sub createPouleDefinitions {
 		$poule = $competition->poule(1,$defindex + 1);
 		if (defined($poule) && defined($poule->{'mtime'})) {
 			print Dumper ($poule) . "\n";
-
-			my %def;
 			
-			$def{'poule'} = $poule;
+			if (0 == $defindex % $numPoulesPerPage) {
+				my %def;
 
-			$def{'where'} = $where;
-
-			my $divname = "P1" . "-" . $defindex;
-		
-			$localswaps[$defindex] = $divname;
-		
-			$def{'poule_div'} = $divname;
-
+				$def{'where'} = $where;
+				my $divname = "P1" . "-" . $defindex;
+				$localswaps[$defindex / $numPoulesPerPage] = $divname;
+				$def{'poule_div'} = $divname;
 			
-			$def{'poule_title'} = $compname . " Poule " . ($defindex + 1);
-			
+				if ($defindex / $numPoulesPerPage > 0) {
+	    				$def{'poule_class'} = 'tableau hidden';
+				}
 
-			$def{'poule_num'} = ($defindex + 1);
-		
-			if ($defindex > 0) {
-	    			$def{'poule_class'} = 'tableau hidden';
+				# print "createRoundTableaus: defindex = $defindex, defs = " . Dumper(\%def);
+
+				$defs[$defindex / $numPoulesPerPage] = \%def;
+				
+				my @pouledefs;
+				
+				$def{'poules'} = \@pouledefs;	
+				
 			}
-
-			# print "createRoundTableaus: defindex = $defindex, defs = " . Dumper(\%def);
-
-			$defs[$defindex] = \%def;
+			my %pouledef;
+			$pouledef{'poule'} = $poule;	
+			$pouledef{'poule_title'} = $compname . " Poule " . ($defindex + 1);
+			${${$defs[$defindex / $numPoulesPerPage]}{'poules'}}[$defindex % $numPoulesPerPage] = \%pouledef;
 		}
 
 		$defindex++;
