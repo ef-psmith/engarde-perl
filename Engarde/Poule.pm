@@ -305,7 +305,7 @@ sub grid
 
 			$r = "X" if $r eq "xx";
 			$r = "V" if $r eq "v" && $s == 5;
-			$r = "V$s" if $r eq "v" && $s lt 5;
+			$r = "V$s" if $r eq "w";
 			$r = "A" if $r eq "a";
 			$r = "S" if $r eq "f";
 			$r = "E" if $r eq "z";
