@@ -265,10 +265,14 @@ sub grid
 	push @titles, "club" if ($domain eq "national");
 	push @titles, "nation" if ($domain eq "international");
 
+	push @titles, "";
+
 	foreach (@$tir)
 	{
 		push @titles, "result";
 	}
+
+	push @titles, "";
 
 	push @titles, qw/vm hs ind pl/;
 
@@ -292,6 +296,7 @@ sub grid
 		push @line, $f;
 		push @line, $fencer->nom;
 		push @line, $affiliation;
+		push @line, "";
 
 		my $i;
 
@@ -313,6 +318,8 @@ sub grid
 
 			push @line, $r;
 		}
+
+		push @line, "";
 
 		push @line, $scores->{$f}->{v} ."/". $scores->{$f}->{m};
 		push @line, $scores->{$f}->{hs};
