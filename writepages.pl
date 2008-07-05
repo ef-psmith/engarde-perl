@@ -260,91 +260,94 @@ sub writePoule
     local $pagedetails = shift;
 
 	# print "writePoule: EGData = " . Dumper(\$EGData);
-	print "writePoule: pagedetails = " . Dumper(\$pagedetails);
+	my $comp = ${$pagedetails->{'poules'}}[0]->{'poule'}->parent;
+	my $compname = $comp->titre_ligne;
 
     my $div_id = $pagedetails->{'poule_div'};
+
     # Note that we are going to use tableau as the generic container for poules as well.
     my $poule_class = 'tableau';
-	my $where = $pagedetails->{'where'};
-	print Dumper $where;
 
     if (defined($pagedetails->{'poule_class'})) 
 	{
         $poule_class = $pagedetails->{'poule_class'};
     }
+
 	print $webpage "<div class=\"$poule_class\" id=\"$div_id\">\n";
     
+	print $webpage "\t<h2>$compname</h2>\n";
     my @poules = @{$pagedetails->{'poules'}};
     
-    foreach my $pouledef (@poules) {
-    
+    foreach my $pouledef (@poules) 
+	{
 		my @g = $pouledef->{'poule'}->grid;
-		my $poule_title = $pouledef->{'poule_title'};
 
-		print $webpage "\t<h2>$poule_title</h2>\n";
-		print $webpage "\t<table cellspacing=\"0\" cellpadding=\"5\" border=\"1\" width=\"95%\" align=\"center\">\n";
+		# print "POULE: poule = " . Dumper(\$pouledef->{'poule'});
+
+		# print "POULE: grid = " . Dumper(\@g);
+
+		print $webpage "\t<h3>Poule no x</h3>\n";
+		print $webpage "\t<table class=\"poule\">\n";
 		
 		my $lineNum = 0;
 
-		my $firstResult = 0;
-		my $lastResult = 0;
+		my $titles = $g[0];
+		
+		# print "POULE: titles = " . Dumper(\$titles);
+
+		print $webpage "\t\t<tr>\n";
+
+		my $cellNum;
+		my $resultNum = 1;
+
+		for ($cellNum = 1; $cellNum < scalar @$titles; $cellNum++)
+		{
+			my $text = $$titles[$cellNum];
+			my $class = $$titles[$cellNum] || "blank";
+
+			if ($$titles[$cellNum] eq "result")
+			{	
+				$text = $resultNum;
+				$resultNum++;
+			}
+
+			print $webpage "\t\t\t<th class=\"poule-title-$class\">$text</th>\n";
+		}
+
+		print $webpage "\t\t</tr>\n";
+		my $lineNum = 1;
+
 		foreach my $line (@g)
 		{
-			print "line = " . Dumper(\$line);
+			$resultNum = 1;
+			# skip titles
+			next if $$line[0] eq "id";
+
+			# print "line = " . Dumper(\$line);
 
 			print $webpage "\t\t<tr>\n";
 
-			my $cellNum = 0;
-			foreach my $cell (@$line)
+			for ($cellNum = 1; $cellNum < scalar @$line; $cellNum++)
 			{
-				if ($cellNum > 0) {
-					if ($lineNum > 0) {
-						my $style = undef;
-						# Just a normal line but need to check whether it is the fencer vs self fight
-						if ($lineNum == ($cellNum - $firstResult + 1)) {
-							$style = $style ."background-color: black;";
-						}
-						# Now we want to pad the first result column
-						if ($cellNum == $firstResult || $cellNum == $lastResult + 1) {
-							$style = $style ."border-left-width: 15;";
-						}
-						if (defined($style)) {
-							$style = " style=\"$style\"";
-						}
-						print $webpage "\t\t\t<td$style>$cell</td>\n";
-					} else {
-						# It is a header, two impacts: it uses <th> elements and it replaces some "result" with a number
-						my $header = $cell;
-						my $style;
-						if ("result" eq $header) {
-							if (0 == $firstResult) {
-								$firstResult = $cellNum;
-								$style = " style=\"border-left-width: 15\"";
-							}
-							$header = ($cellNum - $firstResult + 1);
-						} elsif (0 < $firstResult && 0 == $lastResult) {
-							$lastResult = $cellNum - 1;
-							$style = " border-left-width: 15\"";
-						}
-						print $webpage "\t\t\t<th$style>$header</th>\n";
-					}
-				} else {
-					# Want to add the Fencer numbers within the poule
-					# But only for the non header line
-					my $num = "";
-					if ($lineNum > 0) {
-						$num = $lineNum;
-					}
-					print $webpage "\t\t\t<td>$num</td>\n";
+				my $text = $$line[$cellNum];
+				my $class = $$titles[$cellNum] || "emptycol";
+
+				if ($class eq "result")
+				{
+					$class = "blank" if $resultNum eq $lineNum;
+					$resultNum++;
 				}
-				$cellNum++;
+	
+				print $webpage "\t\t\t<td class=\"poule-grid-$class\">$text</td>\n";
 			}
+
 
 			print $webpage "\t\t</tr>\n";
 			$lineNum++;
 		}
 
 		print $webpage "\t</table>\n";
+		print $webpage "\t<p>&nbsp;</p>\n";
 	}
 	print $webpage "</div>\n";
 
@@ -361,7 +364,7 @@ sub writeTableau
     local $pagedetails = shift;
 
 	# print "writeTableau: EGData = " . Dumper(\$EGData);
-	print "writeTableau: pagedetails = " . Dumper(\$pagedetails);
+	# print "writeTableau: pagedetails = " . Dumper(\$pagedetails);
 
     my $div_id = $pagedetails->{'tableau_div'};
     my $tableau_title = $pagedetails->{'tableau_title'};
@@ -456,7 +459,7 @@ sub writeEntryListFencer {
     my $col_details = $_[2];
     my $entry_index = $_[3];
 
-	print "writeEntryListFencer: EGData = " . Dumper (\$EGData);
+	# print "writeEntryListFencer: EGData = " . Dumper (\$EGData);
         	
     print $webpage "\t\t\t<tr id=\"list_row_$entry_index\">\n";
     foreach my $column_def (@{$col_details}) {
@@ -506,9 +509,9 @@ sub writeFencerList
     print $webpage "\t<div class=\"list_body\">\n";
     print $webpage "\t\t<table class=\"list_table\" id=\"$div_id\">\n";
    
-	print "writeFencerList: entry_list = " . Dumper(\$entry_list);
+	# print "writeFencerList: entry_list = " . Dumper(\$entry_list);
 
-	print "ref = $ref\n";
+	# print "ref = $ref\n";
 
     if (defined ($entry_list))
 	{
@@ -600,7 +603,7 @@ sub createPouleDefinitions {
 		$poule = undef;
 		$poule = $competition->poule(1,$defindex + 1);
 		if (defined($poule) && defined($poule->{'mtime'})) {
-			print Dumper ($poule) . "\n";
+			# print Dumper ($poule) . "\n";
 			
 			if (0 == $defindex % $numPoulesPerPage) {
 				my %def;
@@ -637,7 +640,7 @@ sub createPouleDefinitions {
    	$retval{'definitions'} = \@defs;
    	$retval{'swaps'} = \@localswaps;
    	
-   	print "Poules: @localswaps\n";
+	# print "Poules: @localswaps\n";
    	return \%retval;
 
 
@@ -853,7 +856,7 @@ sub createpage {
 		my $mindisplaytime = @{$tabdefs->{'swaps'}} * 10;
 		if ($mindisplaytime > $refreshtime) 
 		{
-			print "Changing refresh time from $refreshtime to $mindisplaytime due to tableaus\n";
+			# print "Changing refresh time from $refreshtime to $mindisplaytime due to tableaus\n";
 			$refreshtime = $mindisplaytime;
 		}
 	}
@@ -889,7 +892,7 @@ sub createpage {
 		my $mindisplaytime = @{$pouledefs->{'swaps'}} * 10;
 		if ($mindisplaytime > $refreshtime) 
 		{
-			print "Changing refresh time from $refreshtime to $mindisplaytime due to tableaus\n";
+			# print "Changing refresh time from $refreshtime to $mindisplaytime due to tableaus\n";
 			$refreshtime = $mindisplaytime;
 		}
 	}
@@ -929,7 +932,7 @@ sub createpage {
 			# Fencers, Pools, Pistes
 			#######################################################
 
-			print "Calling fpp...\n";
+			# print "Calling fpp...\n";
 
 			$fencers = $comp->fpp();
 
@@ -956,11 +959,12 @@ sub createpage {
 			# Ranking after the pools
 			#######################################################
 
+			# Need to check the round no
 			$fencers = $comp->ranking("p");
 	
 			# print Dumper(\$fencers);	
 			
-			print "Number of seeding results: " . keys (%{$fencers}) . "\n";
+			# print "Number of seeding results: " . keys (%{$fencers}) . "\n";
 		
 			my $entrylistdef = [ 
 				{'class' => 'seed', 'heading' => 'Seed', key => 'seed'},
@@ -1006,7 +1010,7 @@ sub createpage {
 
 		if ( keys %$fencers > $refreshtime) 
 		{
-			print "Changing refresh time due to list.  From $refreshtime to listsize\n";
+			# print "Changing refresh time due to list.  From $refreshtime to listsize\n";
 			$refreshtime = scalar keys %$fencers;
 		}
 		# Add the scrolling list
@@ -1032,7 +1036,7 @@ sub createpage {
 
 		foreach my $tabdef (@{$tabdefs->{'definitions'}}) 
 		{
-			print "createpage: calling writeTableau\n";
+			# print "createpage: calling writeTableau\n";
 			# print "createpage: tabdef = " . Dumper(\$tabdef);
 			# PRS: Need to pass tabdefs->{level} here as well or change the way writeTableau is called
 			writeTableau($tabdefs, $page, $tabdef);
@@ -1045,12 +1049,13 @@ sub createpage {
 
 		foreach my $pouledef (@{$pouledefs->{'definitions'}}) 
 		{
-			print "createpage: calling writePoule\n";
+			# print "createpage: calling writePoule\n";
 			# print "createpage: pouledef = " . Dumper(\$tabdef);
 			# PRS: Need to pass tabdefs->{level} here as well or change the way writeTableau is called
 			writePoule($pouledefs, $page, $pouledef);
 		}
 	}
+
 	# If we have the horizontal scrolling then add that
 	if (defined($messagelistdef)) 
 	{
@@ -1087,9 +1092,9 @@ my $pagedeffile = shift || "pagedefinitions.ini";
 # read the page definitions
 my $pages = readpagedefs ($pagedeffile);
 my $numpages = @{$pages};
-print "number of pages: $numpages\n"; 
+# print "number of pages: $numpages\n"; 
 foreach my $pagedef (@{$pages}) {
-	print "calling createpage for: " . Dumper(\$pagedef);
+# print "calling createpage for: " . Dumper(\$pagedef);
 
 	createpage ($pagedef);
 }
