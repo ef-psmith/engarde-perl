@@ -819,6 +819,7 @@ sub ranking
 sub fpp
 {
 	my $c = shift;
+	my $round = shift || 1;
 
 	my $output = {};
 
@@ -828,8 +829,7 @@ sub fpp
 
 	while ($i<=$num)
 	{
-		# assume only one round of poules for now
-		my $p = $c->poule(1, $i);
+		my $p = $c->poule($round, $i);
 
 		my $tir = $p->les_tir_cons;
 
