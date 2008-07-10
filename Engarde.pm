@@ -29,7 +29,38 @@ use Engarde::Poule;
 use vars qw($VERSION @ISA);
 @ISA = qw(Exporter);
 
-$VERSION = '0.01'; 
+$VERSION = '0.90'; 
+	
+my %order = ( 
+			128 => [undef, 	1, 128, 65, 64, 33, 96, 97, 32, 17, 112, 81, 48, 49, 80, 113, 16, 
+							9, 120, 73, 56, 41, 88, 105, 24, 25, 104, 89, 40, 57, 72, 121, 8, 
+						   	5, 124, 69, 60, 37, 92, 101, 28, 21, 108, 85, 44, 53, 76, 117, 12,
+							13, 116, 77, 52, 45, 84, 109, 20, 29, 100, 93, 36, 61, 68, 125, 4,
+							3, 126, 67, 62, 35, 94, 99, 30, 19, 110, 83, 46, 51, 78, 115, 14,
+							11, 118, 75, 54, 43, 86, 107, 22, 27, 102, 91, 38, 59, 70, 123, 6,
+							7, 122, 71, 58, 39, 90, 103, 26, 23, 106, 87, 42, 55, 74, 119, 10,
+							15, 114, 79, 50, 47, 82, 111, 18, 31, 98, 95, 34, 63, 66, 127, 2],
+			64 => [undef, 	1, 64, 33, 32, 17, 48, 49, 16, 
+							9, 56, 41, 24, 25, 40, 57, 8, 
+							5, 60, 37, 28, 21, 44, 53, 12, 
+							13, 52, 45, 20, 29, 36, 61, 4, 
+							3, 62, 35, 30, 19, 46, 51, 14, 
+							11, 54, 43, 22, 27, 38, 59, 6, 
+							7, 58, 39, 26, 23, 42, 55, 10, 
+							15, 50, 47, 18, 31, 34, 63, 2],
+			32 => [undef, 	1, 32, 17, 16, 9, 24, 25, 8, 
+							5, 28, 21, 12, 13, 20, 29, 4, 
+							3, 30, 19, 14, 11, 22, 27, 6, 
+							7, 26, 23, 10, 15, 18, 31, 2],
+			16 => [undef, 	1, 16, 9, 8, 
+							5, 12, 13, 4, 
+							3, 14, 11, 6, 
+							7, 10, 15, 2],
+			8 => [undef, 	1, 8, 5, 4, 3, 6, 7, 2],
+			4 => [undef, 	1, 4, 3, 2],
+			2 => [undef, 	1, 2]
+		);
+
 
 our $AUTOLOAD;
 
@@ -146,16 +177,21 @@ sub new {
 	# print "NEW: opening $file\n";
 	# print "NEW: $!\n";
 
+	my @nump;
+	my @exempt;
+
 	while (<IN>)
 	{
 		chomp;
 		# print "NEW: $_\n";
+		#
+
 		if ( /nombre_poules/ )
 		{
 			my $num = $_;
 			$num =~ s/.*\[nombre_poules //;
 			$num =~ s/\].*//;
-			$self->{nombre_poules} = $num;
+			push @nump, $num;
 		}
 
 		if ( /entites_exemptees/ )
@@ -163,12 +199,15 @@ sub new {
 			my $num = $_;
 			$num =~ s/.*\[entites_exemptees //;
 			$num =~ s/\].*//;
-			$self->{entites_exemptees} = $num;
+			push @exempt, $num;
 		}
 	}
 
-	close IN;
+	$self->{nombre_poules} = \@nump;
+	$self->{entites_exemptees} = \@exempt;
+	$self->{nombre_tour} = scalar @nump;
 
+	close IN;
 
 	$file = "$dir/description_tableau.txt";
 
@@ -288,9 +327,8 @@ sub match
 
 	my $match = $tab->match($m);
 
-	# print "match: tab match data = " . Dumper(\$match);
-
-	# print "c = $c, t = $t, m = $m\n";
+	# print "\nEngarde::match: t = $t, m = $m\n";
+	# print "Engarde::match: tab match data = " . Dumper(\$match);
 
 	my $out = {};
 
@@ -301,7 +339,6 @@ sub match
 	# print "match: fb = " . Dumper (\$fb);
 
 	my $winner = $c->tireur($match->{winner}) if $match->{winner};
-
 
 	# print "match: winner = $match->{winner}\n";
 	# print "match: winner = " . Dumper(\$winner);
@@ -331,6 +368,14 @@ sub match
 	$out->{idA} = $match->{fencerA} if $match->{fencerA};
 	$out->{idB} = $match->{fencerB} if $match->{fencerB};
 
+	my $size = $tab->taille;
+
+	if ($size <= 128)
+	{
+		# print "MATCH: size = $size, order = ". Dumper(\$order{$size});
+		$out->{seedA} = ${$order{$size}}[($m*2)-1];
+		$out->{seedB} = ${$order{$size}}[$m*2];
+	}
 	# print "match returning: " . Dumper(\$out);
 
 	return $out;
@@ -610,6 +655,8 @@ sub poule
 	}
 	else
 	{
+		return undef unless -f "$dir/$p.txt";
+
 		$self = {};
 		$self->{file} = "$dir/$p.txt";
 		bless $self, "Engarde::Poule";
@@ -644,51 +691,73 @@ sub ranking
 	my $c = shift;
 	# o = overall, p = after pools
 	my $type = shift || "o";
+	my $round = shift || $c->nombre_tour;
 
-	my $exempt = $c->entites_exemptees || 0;
+	# sanity check
+	if ($type eq "p")
+	{
+		my $where = $c->whereami;
+
+		my @w = split / /, $where;
+
+		return undef unless ($w[1] >= $round || $w[0] eq "tableau");
+	}
+	
+
+	my $exempt = $c->entites_exemptees;
+	
+	my $ex = $$exempt[$round-1] || 0;
+
+	# print "Engarde:ranking: ex = $ex\n";
 
 	my $seeds = {};
 
 	my $dir = $c->dir;
 
-	my $file = "$dir/claspou_fin_1.txt";
-
-	open RANKING, $file || return undef;
-
-	while (<RANKING>)
+	my $current_round = 1;
+	while ($current_round <= $round)
 	{
-		# group ; rank ; id ; v ; m ; hs ; hr
-		# q;1;160;6;6;30;8;
-		
-		chomp;
+		my $file = "$dir/claspou_fin_$current_round.txt";
 
-		my @result = split /;/, $_;
+		# print "ranking: file = $file, round = $current_round\n";
 
-		if ($result[0] eq "e" || $result[0] eq "a" || $type eq "p")
+		open RANKING, $file || return undef;
+
+		while (<RANKING>)
 		{
-			# either fencer is eliminated, abandoned or we just need a ranking after the poules
-			my $t = $c->tireur($result[2]);
-
-			my $ind = $result[5] - $result[6];
-			my $name = $t->nom;
-			my $cid = $t->club;
-			my $club = $cid ? $c->club($cid) : "";
-			my $nid = $t->nation;
-			my $nation = $nid ? $c->nation($nid) : "";
-			my $serie = $t->serie;
+			# group ; rank ; id ; v ; m ; hs ; hr
+			# q;1;160;6;6;30;8;
+			
+			chomp;
 	
-			$seeds->{$result[2]} = { group=>$result[0], nom=>$name, club=>$club, nation=>$nation, 
+			my @result = split /;/, $_;
+	
+			if ($result[0] eq "e" || $result[0] eq "a" || ($type eq "p" && $current_round == $round))
+			{
+				# either fencer is eliminated, abandoned or we just need a ranking after the poules
+				my $t = $c->tireur($result[2]);
+	
+				my $ind = $result[5] - $result[6];
+				my $name = $t->nom;
+				my $cid = $t->club;
+				my $club = $cid ? $c->club($cid) : "";
+				my $nid = $t->nation;
+				my $nation = $nid ? $c->nation($nid) : "";
+				my $serie = $t->serie;
+	
+				$seeds->{$result[2]} = { group=>$result[0], nom=>$name, club=>$club, nation=>$nation, 
 							 	 	v=>$result[4], m=>$result[3], hs=>$result[5], hr=>$result[6], 
-								 	ind=>$ind, seed=>$result[1]+$exempt, serie=>$serie };
-
+								 	ind=>$ind, seed=>$result[1]+$ex, serie=>$serie };
+			}
 		}
-	}
 
-	close RANKING;
+		close RANKING;
+		$current_round++;
+	}
 
 	if ($type eq "o")
 	{
-		$file = "$dir/clastab_initial.txt";
+		my $file = "$dir/clastab_initial.txt";
 
 		open RANKING, $file || return undef;
 
@@ -730,88 +799,66 @@ sub ranking
 
 			my $taille = $round->taille;
 
-			unless ($taille == 999)
+			my $eliminated = $round->eliminated;
+
+			my $next_rang = $round->rang_premier_battu;
+
+			my $elim = {};	# eliminated this round
+
+			foreach my $e (@$eliminated)
 			{
-				my $eliminated = $round->eliminated;
+				my $t = $c->tireur($e);
+				my $rang = $t->rangpou;
+				my $nom = $t->nom;
+				my $clubid = $t->club;
+				my $club = $clubid ? $c->club($clubid) : "";
+				my $nationid = $t->nation;
+				my $nation = $nationid ? $c->nation($nationid) : "";
 
-				# print "RANKING: round = $t, " . Dumper ($eliminated);
+				# do something unless $rang for those with byes...
 
-				my $next_rang = $round->rang_premier_battu;
-
-				my $elim = {};	# eliminated this round
-
-				foreach my $e (@$eliminated)
-				{
-					my $t = $c->tireur($e);
-					my $rang = $t->rangpou;
-					my $nom = $t->nom;
-					my $clubid = $t->club;
-					my $club = $clubid ? $c->club($clubid) : "";
-					my $nationid = $t->nation;
-					my $nation = $nationid ? $c->nation($nationid) : "";
-
-					# do something unless $rang for those with byes...
-
-					$elim->{$e} = {nom=>$nom, nation=>$nation, club=>$club, rangpou=>$rang}; 
-				}
-
-				my $current_rang = $next_rang-1;
-				my $last_rang = 0;
-
-				foreach my $e (sort { $elim->{$a}->{rangpou} <=> $elim->{$b}->{rangpou}} keys(%$elim))
-				{
-					# print "e = " . Dumper(\$e);
-
-					my $rangpou = $elim->{$e}->{rangpou};
-
-					$current_rang = $next_rang if $rangpou > $last_rang;
-					$next_rang++;
-					$last_rang = $rangpou;
-
-					$seeds->{$e} = $elim->{$e};
-					$seeds->{$e}->{seed} = $current_rang;
-					$seeds->{$e}->{seed} = 3 if $current_rang == 4;
-				}
-
-				if ($taille == 2)
-				{
-					# print "RANKING: getting winner\n";
-
-					my $m = $round->match(1);
-
-					# print "RANKING: match 1 = " . Dumper(\$m);
-
-					my $nom = $m->{winner};
-
-					my $nation = $nom eq $m->{fencerA} ? $m->{nationA} : $m->{nationB};
-					my $club = $nom eq $m->{fencerA} ? $m->{clubA} : $m->{clubB};
-
-					$seeds->{1} = {nom=>$nom, nation=>$nation, club=>$club, seed=>1}; 
-
-				}
+				$elim->{$e} = {nom=>$nom, nation=>$nation, club=>$club, rangpou=>$rang}; 
 			}
-			else
-			{
-				# PRS - need to change this
-				# print "RANKING: getting final\n";
-				my $final = $c->match($t,1);
-				# print "final = " . Dumper($final);
 
-				if ($final->{winner} eq $final->{fencerA})
-				{
-					$seeds->{1} = {nom=>$final->{fencerA}, nation=>$final->{nationA}, club=>$final->{clubA}, seed=>1}; 
-					$seeds->{2} = {nom=>$final->{fencerB}, nation=>$final->{nationB}, club=>$final->{clubB}, seed=>2}; 
-				}
-				else
-				{
-					$seeds->{2} = {nom=>$final->{fencerA}, nation=>$final->{nationA}, club=>$final->{clubA}, seed=>2}; 
-					$seeds->{1} = {nom=>$final->{fencerB}, nation=>$final->{nationB}, club=>$final->{clubB}, seed=>1}; 
-				}
+			my $current_rang = $next_rang-1;
+			my $last_rang = 0;
+
+			foreach my $e (sort { $elim->{$a}->{rangpou} <=> $elim->{$b}->{rangpou}} keys(%$elim))
+			{
+				# print "e = " . Dumper(\$e);
+
+				my $rangpou = $elim->{$e}->{rangpou};
+
+				$current_rang = $next_rang if $rangpou > $last_rang;
+				$next_rang++;
+				$last_rang = $rangpou;
+
+				$seeds->{$e} = $elim->{$e};
+				$seeds->{$e}->{seed} = $current_rang;
+				$seeds->{$e}->{seed} = 3 if $current_rang == 4;
+			}
+
+			if ($taille == 2)
+			{
+				# print "RANKING: getting winner\n";
+
+				my $m = $c->match($t,1);
+				# my $m = $round->match(1);
+
+				# print "RANKING: match 1 = " . Dumper(\$m);
+
+				my $nom = $m->{winner};
+
+				my $nation = $nom eq $m->{fencerA} ? $m->{nationA} : $m->{nationB};
+				my $club = $nom eq $m->{fencerA} ? $m->{clubA} : $m->{clubB};
+
+				$seeds->{1} = {nom=>$nom, nation=>$nation, club=>$club, seed=>1}; 
 
 			}
 		}
 	}
 
+	# print "Engarde::ranking: seeds = " . Dumper(\$seeds);
 	return $seeds;
 }
 
@@ -819,16 +866,23 @@ sub ranking
 sub fpp
 {
 	my $c = shift;
-	my $round = shift || 1;
+
+	# print "fpp: c = " . Dumper(\$c);
+
+	my $round = shift || $c->nutour;
 
 	my $output = {};
 
-	my $num = $c->nombre_poules;
+	my $nump = $c->nombre_poules;
+	my $num = $$nump[$round-1];
+
+	# print "fpp: num = " . Dumper($num);
 
 	my $i = 1;
 
 	while ($i<=$num)
 	{
+		# print "fpp: round = $round, i = $i\n";
 		my $p = $c->poule($round, $i);
 
 		my $tir = $p->les_tir_cons;
@@ -854,6 +908,43 @@ sub fpp
 	return $output;
 }
 
+
+###################################################
+#
+#	creates a de-referenced list of entries
+#
+###################################################
+sub tireurs
+{
+	my $c = shift;
+	my $output = {};
+
+	my $t = $c->tireur;
+
+	# print "tireurs: t = " . Dumper(\$t);
+
+	foreach my $id (keys %$t)
+	{
+		next unless ($id > 0 && $id < 999);
+
+		my $f = $c->tireur($id);
+
+		# print "tireurs: f = " . Dumper(\$f);
+
+		my $club = $c->club($f->club);
+		my $nom = $f->nom;
+		my $serie = $f->serie;
+		my $nation = $f->nation ? $c->nation($f->nation) : "";
+
+		# print "FPP: id = $id, club = $club " . Dumper($f);
+			
+		$output->{$id} = { nom=>$nom, club=>$club, serie=>$serie, nation=>$nation };
+	}
+
+	return $output;
+}
+
+
 sub spreadsheet
 {
 	undef $ERRSTR;
@@ -865,173 +956,6 @@ sub spreadsheet
 	# print "spreadsheet: _ = @_\n";
 
 	return Engarde::Spreadsheet::writeL32($self, $name);
-}
-
-
-
-sub html
-{
-	my $self = shift;
-
-	my $options = shift;
-	# my $level = shift;
-	# my $end = shift;
-
-	my $level = $options->{level};
-	my $end_level = $options->{end};
-	my $style = $options->{style};
-
-	my $active = $self->tableauxactifs;
-
-	# print "HTML: options = " . Dumper($options);
-
-	my $no_results = "<div align=\"center\">\n<p /><p />\nThere are no currently no results for this stage</div>";
-
-	return $no_results unless exists $active->{$level};
-
-	# print "HTML: self = " . Dumper($self);
-
-	my $out;
-	my $match = 1;
-
-	my @weapons = ("we", "me", "wf", "mf", "ws", "ms");
-
-	my @levels = ("pool", "16", "8", "4", "2");
-	my %level_names = (
-				pool => "Pool", 
-				64 => "Tableau of 64", 
-				32 => "Tableau of 32", 
-				16 => "Tableau of 16", 
-				8 => "Tableau of 8", 
-				4 => "Semi Final", 
-				2 => "Final"
-			);
-
-
-	my %order = ( 
-				128 => [undef, 	1, 128, 65, 64, 33, 96, 97, 32, 17, 112, 81, 48, 49, 80, 113, 16, 
-								9, 120, 73, 56, 41, 88, 105, 24, 25, 104, 89, 40, 57, 72, 121, 8, 
-							   	5, 124, 69, 60, 37, 92, 101, 28, 21, 108, 85, 44, 53, 76, 117, 12,
-								13, 116, 77, 52, 45, 84, 109, 20, 29, 100, 93, 36, 61, 68, 125, 4,
-								3, 126, 67, 62, 35, 94, 99, 30, 19, 110, 83, 46, 51, 78, 115, 14,
-								11, 118, 75, 54, 43, 86, 107, 22, 27, 102, 91, 38, 59, 70, 123, 6,
-								7, 122, 71, 58, 39, 90, 103, 26, 23, 106, 87, 42, 55, 74, 119, 10,
-								15, 114, 79, 50, 47, 82, 111, 18, 31, 98, 95, 34, 63, 66, 127, 2],
-				64 => [undef, 	1, 64, 33, 32, 17, 48, 49, 16, 
-								9, 56, 41, 24, 25, 40, 57, 8, 
-								5, 60, 37, 28, 21, 44, 53, 12, 
-								13, 52, 45, 20, 29, 36, 61, 4, 
-								3, 62, 35, 30, 19, 46, 51, 14, 
-								11, 54, 43, 22, 27, 38, 59, 6, 
-								7, 58, 39, 26, 23, 42, 55, 10, 
-								15, 50, 47, 18, 31, 34, 63, 2],
-				32 => [undef, 	1, 32, 17, 16, 9, 24, 25, 8, 
-								5, 28, 21, 12, 13, 20, 29, 4, 
-								3, 30, 19, 14, 11, 22, 27, 6, 
-								7, 26, 23, 10, 15, 18, 31, 2],
-				16 => [undef, 	1, 16, 9, 8, 
-								5, 12, 13, 4, 
-								3, 14, 11, 6, 
-								7, 10, 15, 2],
-				8 => [undef, 	1, 8, 5, 4, 3, 6, 7, 2],
-				4 => [undef, 	1, 4, 3, 2],
-				2 => [undef, 	1, 2]
-			);
-
-
-	my %names = ( 	we => "Womens Epee",
-					me => "Mens Epee",	
-					wf => "Womens Foil",	
-					mf => "Mens Foil",	
-					ws => "Womens Sabre",	
-					ms => "Mens Sabre"	);
-
-	my $end = $level/2;
-
-	# print Dumper(\%tableau);
-
-	unless (defined $level)
-	{
-		# add_output("No results for tableau");
-		return undef;
-	}
-
-	$out = "<table cellspacing=0 summary=\"$level_names{$level}\">\n";
-  	$out .= "<col width=20>\n";
-  	$out .= "<col width=200>\n";
-  	$out .= "<col width=30>\n";
-  	$out .= "<col width=200>\n";
-
-	while ($match <= $end)
-	{
-		my $m = $self->match($level, $match);
-
-		# print "HTML: match = $match, m = " . Dumper($m);
-
-		my $A = $m->{'fencerA'} || "";
-		my $B = $m->{'fencerB'} || "";
-		my $scoreA = $m->{'scoreA'};
-		my $scoreB = $m->{'scoreB'};
-		my $winner = $m->{'winner'};
-
-		my $cA = $m->{clubA} || $m->{nationA} || "";
-		my $cB = $m->{clubB} || $m->{nationB} || "";
-
-		#add_output("A = $A");
-		#add_output("B = $B");
-		#add_output("scoreA = $scoreA");
-		#add_output("scoreB = $scoreB");
-
-		# Fencer A
-		$out .= "<tr>\n";
-		$out .= "<td align=right>$order{$level}[($match*2)-1]&nbsp;</td>\n"; 
-  		$out .= "<td bgcolor=\"#B8D9DC\">&nbsp;$A</td>";
-  		$out .= "<td bgcolor=\"#B8D9DC\">&nbsp;$cA</td>\n";
-		$out .= "</tr>\n";
-
-		# Winner
-		$out .= "<tr>\n";
-  		$out .= "<td>&nbsp;</td>\n";
-  		$out .= "<td>&nbsp;</td>\n";
-  		$out .= "<td>&nbsp;</td>\n";
-
-		if ($winner)
-		{
-  			$out .= "<td bgcolor=\"#FFCCCC\">&nbsp;$winner</td>\n";
-		}
-		else
-		{
-  			$out .= "<td bgcolor=\"#FFCCCC\">&nbsp;</td>\n";
-		}
-
-		$out .= "</tr>\n";
-
-		# Fencer B
-		$out .= "<tr>\n";
-		$out .= "<td align=right>$order{$level}[$match*2]&nbsp;</td>\n"; 
-  		$out .= "<td bgcolor=\"#B8D9DC\">&nbsp;$B</td>";
-  		$out .= "<td bgcolor=\"#B8D9DC\">&nbsp;$cB</td>\n";
-
-		if ($winner && $scoreA ne "" && $scoreB ne "")
-		{
-  			$out .= "<td>&nbsp;&nbsp;&nbsp;$scoreA/$scoreB</td>\n";
-		}
-		else
-		{
-			$out .= "<td>&nbsp;</td>";
-		}
-
-		$out .= "</tr>\n";
-
-		# Blank
-		$out .= "<tr height=25>\n<td>&nbsp;</td>\n</tr>\n";
-
-		$match++;
-	}
-
-	$out .= "</table>\n";
-
-	return $out;
 }
 
 
@@ -1117,8 +1041,10 @@ sub tableaux
 
 	my @result = sort {$ta->{$a}->{rang_premier_battu} <=> $ta->{$b}->{rang_premier_battu} } @tableaux;
 
-	return reverse @result unless $current;
-	return @result if $current;
+
+	# print "TABLEAUX: result @result\n";
+
+	return reverse @result;
 }
 
 
@@ -1131,6 +1057,10 @@ sub whereami
 	my $result = "unknown";
 	my $etat = $self->etat;
 	my $etattour = $self->etattour;
+
+	# nutour is the current round
+	# etattour is either en_cours or constitution
+	my $nutour = $self->nutour;	
 
 	# print "whereami: etat = $etat\n";
 	# print "whereami: etattour = $etattour\n";
@@ -1146,7 +1076,7 @@ sub whereami
 		if ($etattour eq "constitution")
 		{
 			# All poules are entered and final ranking produced but tableaux not yet drawn
-			$result = "poules finished";
+			$result = "poules " . $self->nombre_tour . " finished";
 		}
 		else
 		{
@@ -1161,14 +1091,14 @@ sub whereami
 		# in rounds of poules
 		# print "in poules\n";
 	
-		# nutour is the current round
-		# etattour is either en_cours or constitution
-		my $nutour = $self->nutour;	
+		my $waiting = $self->poules_a_saisir || "finished";
 
-		my $waiting = $self->poules_a_saisir || "";
+		$waiting = "constitution" if $etattour eq "constitution";
 
 		# print "poules to complete = $waiting\n";
 
+		# $result = "poules $nutour $waiting" unless $waiting eq "finished";
+		# $result = "poules " . ($nutour - 1) . " $waiting" if $waiting eq "finished";
 		$result = "poules $nutour $waiting";
 	}
 

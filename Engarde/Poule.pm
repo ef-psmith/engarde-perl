@@ -232,9 +232,6 @@ sub grid
 	my $self = shift;
 	my $c = $self->parent;
 
-
-	# print "GRID: parent = " . Dumper(\$c);
-
 	my $tir = $self->les_tir_cons;
 
 	# print "GRID: les_tir_cons = " . Dumper(\$tir);
