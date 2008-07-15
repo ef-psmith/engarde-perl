@@ -63,7 +63,7 @@ sub load
 
 		# print "POULE: cooked grille = $self->{grille}\n";
 
-		my @g = _unbracket($self->{grille});
+		my @g = Engarde::_unbracket($self->{grille});
 
 		# print "POULE: split grille = " . Dumper(\@g);
 
@@ -86,7 +86,7 @@ sub load
 		{
 			my $line = $self->{grille}[$i];
 
-			my @res = _unbracket($line);
+			my @res = Engarde::_unbracket($line);
 			
 			my $v = 0;
 
@@ -116,7 +116,7 @@ sub load
 	if ($self->{scores})
 	{
 		$self->{scores} =~ s/^\((\(.*\))\)$/$1/;
-		my @scores = _unbracket($self->{scores});
+		my @scores = Engarde::_unbracket($self->{scores});
 		# print "POULE: scores = " . Dumper(\@scores);
 
 		# scores can be any of these
@@ -180,51 +180,6 @@ sub decode
 	}
 }
 
-
-
-sub _unbracket
-{
-	# prive sub used to resolve strings with an arbitary number of 
-	# pairs of brackets into an array of strings each of which will 
-	# inevitably also contain pairs of brackets
-	#
-	# needed because "split" cant cope with the endless variations!
-	#
-	
-	my $in = shift;
-
-	my $depth = 0;
-	my $i = 0;
-	my $string;
-	my @g;
-
-	while($i < length $in)
-	{
-		my $char = substr($in,$i,1);
-
-		$depth++ if $char eq "(";
-		$depth-- if $char eq ")";
-
-		if ($depth == 0 && $char eq ")")
-		{
-			push @g, $string;
-			$string = "";
-		}
-		elsif (($depth == 0 && $char eq " ") || ($depth == 1 && $char eq "("))
-		{
-			# skip space after closing bracket
-			# and opening left bracket
-		}
-		else
-		{
-			$string .= $char;
-		}
-
-		$i++;
-	}
-
-	return @g;
-}
 
 
 sub grid

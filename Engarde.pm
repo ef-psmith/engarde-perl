@@ -25,12 +25,13 @@ use Engarde::Club;
 use Engarde::Tableau;
 # use Engarde::Spreadsheet;
 use Engarde::Poule;
+use Engarde::Arbitre;
 
 use vars qw($VERSION @ISA);
 @ISA = qw(Exporter);
 
 $VERSION = '0.90'; 
-	
+
 my %order = ( 
 			128 => [undef, 	1, 128, 65, 64, 33, 96, 97, 32, 17, 112, 81, 48, 49, 80, 113, 16, 
 							9, 120, 73, 56, 41, 88, 105, 24, 25, 104, 89, 40, 57, 72, 121, 8, 
@@ -170,111 +171,128 @@ sub new {
 
 	close IN;
 
+	#
+	# Poules
+	#
 	$file = "$dir/tour_de_poules.txt";
 
-	open IN, $file;
-
-	# print "NEW: opening $file\n";
-	# print "NEW: $!\n";
-
-	my @nump;
-	my @exempt;
-
-	while (<IN>)
+	if (-r $file)
 	{
-		chomp;
-		# print "NEW: $_\n";
-		#
+		open IN, $file;
 
-		if ( /nombre_poules/ )
+		# print "NEW: opening $file\n";
+		# print "NEW: $!\n";
+
+		my @nump;
+		my @exempt;
+
+		while (<IN>)
 		{
-			my $num = $_;
-			$num =~ s/.*\[nombre_poules //;
-			$num =~ s/\].*//;
-			push @nump, $num;
-		}
+			chomp;
+			# print "NEW: $_\n";
+			#
 
-		if ( /entites_exemptees/ )
-		{
-			my $num = $_;
-			$num =~ s/.*\[entites_exemptees //;
-			$num =~ s/\].*//;
-			push @exempt, $num;
-		}
-	}
-
-	$self->{nombre_poules} = \@nump;
-	$self->{entites_exemptees} = \@exempt;
-	$self->{nombre_tour} = scalar @nump;
-
-	close IN;
-
-	$file = "$dir/description_tableau.txt";
-
-	open IN, $file;
-
-	# {[classe description_tableau] [suite a] [nom a64] [nom_etendu "prelimenary tableau of 64"]
- 	# [cle 1] [nombre_entites 64] [taille 64] [destination_vainqueurs b64] [classe_apres
- 	# (b64 b32 b16 b8 b4 b2)] [groupe_clasmt_battus 8] [rang_premier_battu 65]}
-
-	undef $unparsed;
-	while (<IN>)
-	{
-		chomp;
-
-		# print "_ = $_\n";
-
-		if (/\[classe description_tableau/ && $unparsed)
-		{
-			# do something with $unparsed
-
-			$unparsed =~ s/^\[//;
-			$unparsed =~ s/\}$//;
-
-			my $item = {};
-			my @elements = split /[ \]]*\[/, $unparsed;
-
-			# print "elements = @elements\n";
-
-			foreach (@elements)
+			if ( /nombre_poules/ )
 			{
-				my @keywords = qw/suite nom nom_etendu rang_premier_battu inactif taille/;
-
-				s/\]//;
-
-				# print "element = $_\n";
-
-				foreach my $key (@keywords)
-				{
-					# print "\tkey = $key _=[$_]\n";
-					if (/^$key /)
-					{
-						s/$key //;
-						s/\"//g;
-						s/\]//;
-
-						# print "\tvalue = $_\n";
-						$item->{$key} = $_;
-					}
-				}
+				my $num = $_;
+				$num =~ s/.*\[nombre_poules //;
+				$num =~ s/\].*//;
+				push @nump, $num;
 			}
 
-			$self->{tableauxactifs}->{$item->{nom}} = $item unless $item->{inactif};
+			if ( /entites_exemptees/ )
+			{
+				my $num = $_;
+				$num =~ s/.*\[entites_exemptees //;
+				$num =~ s/\].*//;
+				push @exempt, $num;
+			}
+		}
 
-			s/.*classe description_tableau\] //;
-			$unparsed = $_;
-		}
-		else
-		{
-			s/.*classe description_tableau\] //;
-			$unparsed .= $_;
-			# print "fall through: unparsed = \n";
-		}
+		$self->{nombre_poules} = \@nump;
+		$self->{entites_exemptees} = \@exempt;
+		$self->{nombre_tour} = scalar @nump;
+
+		close IN;
 	}
 
-	close IN;
+
+
+	# 
+	# Tableaux
+	#
+	$file = "$dir/description_tableau.txt";
+
+	if (-r $file)
+	{
+		open IN, $file;
+
+		# {[classe description_tableau] [suite a] [nom a64] [nom_etendu "prelimenary tableau of 64"]
+ 		# [cle 1] [nombre_entites 64] [taille 64] [destination_vainqueurs b64] [classe_apres
+ 		# (b64 b32 b16 b8 b4 b2)] [groupe_clasmt_battus 8] [rang_premier_battu 65]}
+
+		undef $unparsed;
+		while (<IN>)
+		{
+			chomp;
+
+			# print "_ = $_\n";
+
+			if (/\[classe description_tableau/ && $unparsed)
+			{
+				# do something with $unparsed
+
+				$unparsed =~ s/^\[//;
+				$unparsed =~ s/\}$//;
+
+				my $item = {};
+				my @elements = split /[ \]]*\[/, $unparsed;
+	
+				# print "elements = @elements\n";
+	
+				foreach (@elements)
+				{
+					my @keywords = qw/suite nom nom_etendu rang_premier_battu inactif taille/;
+
+					s/\]//;
+
+					# print "element = $_\n";
+
+					foreach my $key (@keywords)
+					{
+						# print "\tkey = $key _=[$_]\n";
+						if (/^$key /)
+						{
+							s/$key //;
+							s/\"//g;
+							s/\]//;
+	
+							# print "\tvalue = $_\n";
+							$item->{$key} = $_;
+						}
+					}
+				}
+
+				$self->{tableauxactifs}->{$item->{nom}} = $item unless $item->{inactif};
+
+				s/.*classe description_tableau\] //;
+				$unparsed = $_;
+			}
+			else
+			{
+				s/.*classe description_tableau\] //;
+				$unparsed .= $_;
+				# print "fall through: unparsed = \n";
+			}
+		}
+
+		close IN;
+	}
 
     bless  $self, $class;
+
+	$self->initialise;
+
     return $self;
 }
 
@@ -519,9 +537,6 @@ sub nation
 
 sub club
 {
-	undef $ERRSTR;
-
-
 	my $c = shift;	
 	my $id = shift;
 	my $dir = $c->dir();
@@ -679,6 +694,58 @@ sub poule
 
 	return $self;
 }
+
+
+sub arbitre 
+{
+	my $c = shift;
+	my $id = shift;
+
+	my $dir = $c->dir;
+	my $self;
+	my $old_mtime = 0;
+	my $a = "arbitre";
+
+	if ($c->{$a})
+	{
+		$self = $c->{$a};
+		$old_mtime = $self->mtime();
+	}
+	else
+	{
+		return undef unless -f "$dir/$a.txt";
+
+		$self = {};
+		$self->{file} = "$dir/$a.txt";
+		bless $self, "Engarde::Arbitre";
+	}
+
+	$self->{mtime} = (stat($self->{file}))[9];
+
+	if ($self->{mtime} && $self->{mtime} > $old_mtime)
+	{
+		# print "Loading arbitre data...\n";
+		$self->load;
+		$c->{$a} = $self;
+	}
+	else
+	{
+		# print "Not loading arbitre data...\n";
+	}
+
+
+	if ($id)
+	{
+		return $self->{$id};
+	}
+	else
+	{
+		return $self;
+	}
+}
+
+
+
 
 
 sub ranking
@@ -1062,8 +1129,8 @@ sub whereami
 	# etattour is either en_cours or constitution
 	my $nutour = $self->nutour;	
 
-	# print "whereami: etat = $etat\n";
-	# print "whereami: etattour = $etattour\n";
+	print "whereami: etat = $etat\n";
+	print "whereami: etattour = $etattour\n";
 
 	if ($etat eq "termine")
 	{
@@ -1086,6 +1153,10 @@ sub whereami
 			$result = "tableau $tab[0]";
 		}
 	}
+	elsif ($etat eq "debut")
+	{
+		$result = "debut";
+	}
 	else
 	{
 		# in rounds of poules
@@ -1104,6 +1175,53 @@ sub whereami
 
 	return $result; 
 }
+
+
+sub _unbracket
+{
+	# prive sub used to resolve strings with an arbitary number of 
+	# pairs of brackets into an array of strings each of which will 
+	# inevitably also contain pairs of brackets
+	#
+	# needed because "split" can't cope with the endless variations!
+	#
+	
+	my $in = shift;
+
+	my $depth = 0;
+	my $i = 0;
+	my $string;
+	my @g;
+
+	while($i < length $in)
+	{
+		my $char = substr($in,$i,1);
+
+		$depth++ if $char eq "(";
+		$depth-- if $char eq ")";
+
+		if ($depth == 0 && $char eq ")")
+		{
+			push @g, $string;
+			$string = "";
+		}
+		elsif (($depth == 0 && $char eq " ") || ($depth == 1 && $char eq "("))
+		{
+			# skip space after closing bracket
+			# and opening left bracket
+		}
+		else
+		{
+			$string .= $char;
+		}
+
+		$i++;
+	}
+
+	return @g;
+}
+
+
 1;
 
 __END__

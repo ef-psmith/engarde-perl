@@ -69,11 +69,25 @@ sub load
 
 		# '(160 212 () () () 1 32)' OR '(160 212 15 14 160 1 32)' OR '(160 212 15 5 160 1 32)] [piste_no 1] [heure "~11:00"',
 		# OR '(160 212 15 5 160 1 32)] [piste_no 1] [imprime vrai] [heure "~11:00"',
+		#
+ 		# [les_matches ({[match (96 nobody () () 96 1 128)] [piste_no 1]} {[match (121 40 () () () 65 64)]
+ 		# [piste_no 1]} {[match (25 nobody () () 25 33 96)] [piste_no 1]} {[match (nobody
+ 		# 101 () () 101 97 32)] [piste_no 1]} {[match (78 nobody () () 78 17 112)] [piste_no
+ 		# 1]} {[match (65 118 () () () 81 48)] [piste_no 1]} {[match (34 39 () () () 49 80)]
+		# 
+		# print "Tableau::decode: match $i = " . Dumper(\$matches[$i]);
 		
 		($item->{'fencerA'},$item->{'fencerB'},$item->{'scoreA'},$item->{'scoreB'},$item->{'winner'},$item->{'seedA'},$item->{'seedB'})
 			= $matches[$i] =~ m/^\((.*) (.*) (.*) (.*) (.*) ([0-9]*) ([0-9]*)\)/;
 
-		($item->{'piste'}, $item->{'time'}) = $matches[$i] =~ m/.*\[piste_no (.*)\].*\[heure "~(.*)\"/;
+		if ($matches[$i] =~ /heure/)
+		{
+			($item->{'piste'}, $item->{'time'}) = $matches[$i] =~ m/.*\[piste_no (.*)\]*.*\[heure "~(.*)\"/;
+		}
+		else
+		{
+			$item->{'piste'} = $matches[$i] =~ m/.*\[piste_no (.*).*/;
+		}
 
 		# remove [imprime vrai
 		$item->{'piste'} =~ s/\].*$// if $item->{'piste'};
