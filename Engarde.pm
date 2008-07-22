@@ -811,10 +811,11 @@ sub ranking
 				my $nid = $t->nation;
 				my $nation = $nid ? $c->nation($nid) : "";
 				my $serie = $t->serie;
+				my $group = $result[0] eq "e" ? "elim_p" : "";
 	
-				$seeds->{$result[2]} = { group=>$result[0], nom=>$name, club=>$club, nation=>$nation, 
-							 	 	v=>$result[4], m=>$result[3], hs=>$result[5], hr=>$result[6], 
-								 	ind=>$ind, seed=>$result[1]+$ex, serie=>$serie };
+				$seeds->{$result[2]} = { group=>$group , nom=>$name, club=>$club, nation=>$nation, 
+							 	 	v=>$result[4], m=>$result[3], vm=>"$result[4]/$result[3]", hs=>$result[5], hr=>$result[6], 
+								 	ind=>"$ind", seed=>$result[1]+$ex, serie=>$serie };
 			}
 		}
 
@@ -884,7 +885,7 @@ sub ranking
 
 				# do something unless $rang for those with byes...
 
-				$elim->{$e} = {nom=>$nom, nation=>$nation, club=>$club, rangpou=>$rang}; 
+				$elim->{$e} = {nom=>$nom, nation=>$nation, club=>$club, rangpou=>$rang, group=>"elim_$taille"}; 
 			}
 
 			my $current_rang = $next_rang-1;
@@ -919,7 +920,7 @@ sub ranking
 				my $nation = $nom eq $m->{fencerA} ? $m->{nationA} : $m->{nationB};
 				my $club = $nom eq $m->{fencerA} ? $m->{clubA} : $m->{clubB};
 
-				$seeds->{1} = {nom=>$nom, nation=>$nation, club=>$club, seed=>1}; 
+				$seeds->{1} = {nom=>$nom, nation=>$nation, club=>$club, seed=>1, group=>"elim_0"}; 
 
 			}
 		}
