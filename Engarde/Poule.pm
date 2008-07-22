@@ -273,7 +273,7 @@ sub grid
 
 		push @line, "";
 
-		push @line, $scores->{$f}->{v} ."/". $scores->{$f}->{m};
+		push @line, $scores->{$f}->{v} . "/" . $scores->{$f}->{m};
 		push @line, $scores->{$f}->{hs};
 		push @line, ($scores->{$f}->{hs} - $scores->{$f}->{hr});
 		push @line, $scores->{$f}->{position};
