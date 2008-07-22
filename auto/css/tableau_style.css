@@ -1,0 +1,168 @@
+div.hidden {
+	visibility: hidden;
+}
+
+div.bout {
+	border-right: thin solid black;
+	width: 95%;
+}
+
+div.country {
+	width: 2.5em;
+	text-align: right;
+	position: absolute;
+	right: 0px;
+	top: 0px;
+}
+
+div.de-element {
+	width: 100%;
+	position: absolute;
+	height: 1.3em;
+	right: 0.5ex;
+	width: 92%;
+	background-color: #dcdcdc;
+}
+
+div.fencer {
+	white-space: nowrap;
+	text-align: left;
+	position: absolute;
+	right: 0em;
+	left: 0em;
+	overflow: hidden;
+	top: 0px;
+}
+
+div.fencerA, div.nofencerA {
+	position: absolute;
+	top: -0.65em;
+	left: 1.5em;
+}
+
+div.fencerB, div.nofencerB {
+	position: absolute;
+	bottom: -0.65em;
+	left: 1.5em;
+}
+
+div.fenceronly {
+	white-space: nowrap;
+	text-align: left;
+	position: absolute;
+	right: 0em;
+	left: 0em;
+	overflow: hidden;
+	top: 0px;
+}
+
+
+div.pistecontainer {
+	width: 90%;
+	margin-right: 2ex;
+	text-align: right;
+	position: absolute;
+	top: 35%;
+}
+
+div.seedA {
+	text-align: left;
+	float: left;
+	position: absolute;
+	top: -0.65em;
+}
+
+div.seedB {
+	text-align: left;
+	float: left;
+	position: absolute;
+	bottom: -0.65em;
+}
+
+
+div.r1bout-1 {
+	position: absolute;
+	top: 15%;
+	height: 10%;
+}
+
+div.r1bout-2 {
+	position: absolute;
+	top: 37%;
+	height: 10%;
+}
+
+div.r1bout-3 {
+	position: absolute;
+	top: 63%;
+	height: 10%;
+}
+
+div.r1bout-4 {
+	position: absolute;
+	top: 85%;
+	height: 10%;
+}
+
+div.r1col {
+	width: 50%;
+	position: absolute;
+	left: 0.5ex;
+	height: 100%;
+}
+
+div.r2bout-1 {
+	position: absolute;
+	top: 20%;
+	height: 22%;
+}
+
+div.r2bout-2 {
+	position: absolute;
+	top: 68%;
+	height: 22%;
+}
+
+div.r2col {
+	width: 45%;
+	position: absolute;
+	left: 46%;
+	height: 100%;
+}
+
+div.score {
+	text-align: right;
+	position: absolute;
+	right: -2em;
+	height: 1.3em;
+}
+
+div.seed {
+	width: 1.2em;
+	float: left;
+	padding-right: 0.2em;
+	text-align: left;
+	position: absolute;
+	height: 1.3em;
+	top: 0px;
+	background-color: inherit;
+}
+
+div.victory {
+	font-weight: bold;
+}
+
+div.loser, div.bout-started, div.bout-pending {
+}
+
+div.winner {
+	font-weight: bold;
+} 
+
+h2.tableau_title {
+	text-align: center;
+	width: 100%;
+	position: absolute;
+	top: 0em;
+	right: 0em;
+}
