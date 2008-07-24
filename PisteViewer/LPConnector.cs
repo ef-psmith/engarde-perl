@@ -443,9 +443,9 @@ namespace PisteView
 
         // The main control for communicating through the RS-232 port
         private SerialPort comport_ = new SerialPort();
-        private byte[] incomplete_message_;
+        private byte[] incomplete_message_ = null;
+        private ViewerFunctor incomplete_functor_ = null;
         private string equip_name_;
-        private ViewerFunctor incomplete_functor_;
         private PisteViewer parent_;
 
         #region Serial Port Properties
@@ -535,135 +535,109 @@ namespace PisteView
             // Read the data from the port and store it in our buffer
             comport_.Read(buffer, 0, bytes);
 
-            int offset = 0;
+            // we can't create a new functor
+            int oldBufferSize = 0;
+            byte[] oldbuffer = incomplete_message_;
+            if (null != incomplete_message_)
+            {
+                oldBufferSize = oldbuffer.GetLength(0);
+            }
+
+            byte[] message = new byte[oldBufferSize + bytes];
+
+            // Copy the old buffer
+            int pos = 0;
+            if (null != oldbuffer)
+            {
+                for (int i = 0; i < oldBufferSize; ++i)
+                {
+                    message[pos++] = oldbuffer[i];
+                }
+            }
             
-            if (null != incomplete_message_) 
-                offset = incomplete_message_.GetLength(0);
-
-            if (3 <= offset)
+            for (int i = 0; i < bytes; ++i)
             {
-                // Parsing error, we should have created a Functor
+                message[pos++] = buffer[i++];
             }
 
+            // Do the processing of the concatenated buffer
+            int offset = processMessage(message);
+
+            // Copy the remainder into a new incomplete buffer.
+            int newIncompleteBufferSize = message.GetLength(0) - offset;
+            incomplete_message_ = new byte[newIncompleteBufferSize];
+            int index = 0;
+            while (offset < message.GetLength(0))
+            {
+                incomplete_message_[index++] = message[offset++];
+            }
+
+        }
+        private int processMessage(byte[] message) {
             int bytes_read = 0;
-            // Deal with an incomplete functor
-            if (null != incomplete_functor_)
-            {
-                bytes_read = incomplete_functor_.Initialise(buffer, 0, bytes);
-                if (incomplete_functor_.isInitialised())
-                {
-                    incomplete_functor_.Execute();
-                    incomplete_functor_ = null;
+            int bytes = message.GetLength(0);
 
-                }
-            }
-            if (null == incomplete_functor_)
-            {
-                // So we are trying to create a new functor
-                while (bytes_read < bytes + offset)
+            // Going to loop around until we don't have enough space to get the message type
+            while (bytes_read < bytes - 3) {
+
+                if (null != incomplete_functor_)
                 {
-                    // These come in threes.
-                    // Check that we have enough information to create a functor
-                    // from the buffer and the stored buffer
-                    if (bytes_read + 3 > bytes + offset)
+                    bytes_read = incomplete_functor_.Initialise(message, bytes_read, bytes);
+                    if (incomplete_functor_.isInitialised())
                     {
-                        // we can't create a new functor
-                        byte[] oldbuffer = incomplete_message_;
-                        incomplete_message_ = new byte[offset + bytes - bytes_read];
-                        // Copy the old buffer
-                        int pos = 0;
-                        if (null != oldbuffer)
-                        {
-                            for (int i = 0; i < oldbuffer.GetLength(0); ++i)
-                            {
-                                incomplete_message_[pos++] = oldbuffer[i];
-                            }
-                        }
-                        while (bytes_read < bytes)
-                        {
-                            incomplete_message_[pos++] = buffer[bytes_read++];
-                        }
+                        incomplete_functor_.Execute();
+                        incomplete_functor_ = null;
                     }
-                    else
+                }
+                else
+                {
+                    if (SOH != message[bytes_read] || DC3 != message[bytes_read + 1])
                     {
-                        // Set the place to the next type
-                        bytes_read = bytes_read + 3 - offset;
-                        // Clear out the old buffer
-                        incomplete_message_ = null; 
-                        offset = 0;
+                        // This isn't the start of a message so carry on until we find one
+                        ++bytes_read;
+                        continue;
+                    }
 
-                        byte type = buffer[bytes_read++];
+                    // Consume the SOH and DC3 messages
+                    bytes_read += 2;
 
-                        switch (type)
-                        {
-                            case 0x53: /* 'S' */
-                                // Score 
-                                incomplete_functor_ = new SetScore(parent_);
-                                break;
-                            case 0x54: /* 'T' */
-                                // Time
-                                incomplete_functor_ = new SetTime(parent_);
-                                break;
-                            case 0x4c: /* 'L' */
-                                // Lights
-                                incomplete_functor_ = new SetLights(parent_);
-                                break;
-                            case 0x50: /* 'P' */
-                                // Priority
-                                incomplete_functor_ = new SetPriority(parent_);
-                                break;
-                            case 0x4d: /* 'M' */
-                                // Match ??
-                                incomplete_functor_ = new SetMatchNum(parent_);
-                                break;
-                            case 0x43: /* 'C' */
-                                // Cards
-                                incomplete_functor_ = new SetCards(parent_);
-                                break;
-                            default:
-                                // Parsing error
-                                // Wait for the next EOT.
-                                while (EOT != buffer[bytes_read++] && bytes_read < bytes + offset) ;
-                                break;
-                        }
-                        if (null != incomplete_functor_)
-                        {
-                            bytes_read = incomplete_functor_.Initialise(buffer, bytes_read, bytes);
-                            if (incomplete_functor_.isInitialised())
-                            {
-                                incomplete_functor_.Execute();
-                                incomplete_functor_ = null;
-                            }
-                        }
+                    byte type = message[bytes_read++];
+
+                    switch (type)
+                    {
+                        case 0x53: /* 'S' */
+                            // Score 
+                            incomplete_functor_ = new SetScore(parent_);
+                            break;
+                        case 0x54: /* 'T' */
+                            // Time
+                            incomplete_functor_ = new SetTime(parent_);
+                            break;
+                        case 0x4c: /* 'L' */
+                            // Lights
+                            incomplete_functor_ = new SetLights(parent_);
+                            break;
+                        case 0x50: /* 'P' */
+                            // Priority
+                            incomplete_functor_ = new SetPriority(parent_);
+                            break;
+                        case 0x4d: /* 'M' */
+                            // Match ??
+                            incomplete_functor_ = new SetMatchNum(parent_);
+                            break;
+                        case 0x43: /* 'C' */
+                            // Cards
+                            incomplete_functor_ = new SetCards(parent_);
+                            break;
+                        default:
+                            // Parsing error
+                            // Wait for the next EOT.
+                            while (EOT != message[bytes_read++] && bytes_read < bytes) ;
+                            break;
                     }
                 }
             }
-
-            // Now go parsing...
-
-            // Determain which mode (string or binary) the user is in
-            /*if (CurrentDataMode == DataMode.Text)
-            {
-                // Read all the data waiting in the buffer
-                string data = comport.ReadExisting();
-
-                // Display the text to the user in the terminal
-                Log(LogMsgType.Incoming, data);
-            }
-            else
-            {
-                // Obtain the number of bytes waiting in the port's buffer
-                int bytes = comport.BytesToRead;
-
-                // Create a byte array buffer to hold the incoming data
-                byte[] buffer = new byte[bytes];
-
-                // Read the data from the port and store it in our buffer
-                comport.Read(buffer, 0, bytes);
-
-                // Show the user the incoming data in hex format
-                Log(LogMsgType.Incoming, ByteArrayToHexString(buffer));
-            }*/
+            return bytes_read;
         }
 
 

@@ -287,6 +287,7 @@ namespace PisteView
                     selectBoutButton.Enabled = true;
                     swapFencersButton.Enabled = true;
                     finishBoutButton.Enabled = false;
+                    period_chooser.Enabled = false;
                     break;
                 default:
                 case BoutState.bs_notready:
@@ -298,6 +299,7 @@ namespace PisteView
                     selectBoutButton.Enabled = true;
                     swapFencersButton.Enabled = false;
                     finishBoutButton.Enabled = false;
+                    period_chooser.Enabled = false;
                     break;
                 case BoutState.bs_inprogress:
                     startBoutButton.Enabled = false;
@@ -305,6 +307,7 @@ namespace PisteView
                     selectBoutButton.Enabled = false;
                     swapFencersButton.Enabled = true;
                     finishBoutButton.Enabled = true;
+                    period_chooser.Enabled = true;
                     break;
             }
 
