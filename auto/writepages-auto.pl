@@ -1,4 +1,4 @@
-# (c) Copyright Oliver Smith 2007 
+# (c) Copyright Oliver Smith & Peter Smith 2007-2008 
 # oliver_rps@yahoo.co.uk
 
 # modified to reduce the amount of info needed in the config file by
@@ -395,6 +395,8 @@ sub writeTableau
     my $div_id = $page->{'tableau_div'};
     my $tableau_title = $page->{'tableau_title'};
 	my $where = $page->{'where'};
+	
+	print "Where: $where \n";
 
     # this is the bout before this tableau.  Should be divisible by 2.
     my $preceeding_bout = $page->{'preceeding_bout'};
@@ -656,6 +658,16 @@ sub createPouleDefinitions
 sub createRoundTableaus 
 {
     my $competition = shift;
+    my $tableaupart = shift;
+    my $chosenpart = 0;
+    my $numparts = 0;
+
+    if ($tableaupart =~ m%(\d)/(\d)%) {
+		$chosenpart = $1;
+		$numparts = $2;
+    }
+    print "Tableau Part: $tableaupart or $chosenpart / $numparts \n";
+        
     my $compname = $competition->titre_reduit();
     
   	my $retval = {};
@@ -682,6 +694,15 @@ sub createRoundTableaus
 			$where = $tableaux[0];
 		}
 
+		# Move to the specified place in the tableau
+		if (0 != $numparts) {
+			$roundsize = $numparts * 8;
+			
+			print "where = $where\n";
+			$where =~ s/\d+/$roundsize/;
+			print "Now where is (after round definition)  $where\n";
+			
+		}	
 
 		# print "where = $where\n";
 		$tab = $competition->tableau($where);
@@ -695,7 +716,12 @@ sub createRoundTableaus
 			$where =~ s/2/4/;
 			$roundsize = 4;
 		}
-	}	
+	}
+	else
+	{
+		# Nothing to display
+		return $retval;
+	}
 
     my @localswaps;
 
@@ -704,45 +730,55 @@ sub createRoundTableaus
 
     my $preceedingbout = 0;
     while ($preceedingbout < $roundsize / 2) {
-		my %def;
-
-		$def{'where'} = $where;
-
-		my $divname = "R".$roundsize . "-" . $defindex;
-	
-		$localswaps[$defindex] = $divname;
-	
-		$def{'tableau_div'} = $divname;
-
-		if ($preceedingbout == 0 && $roundsize <= 4) 
+    
+		print "Preceeding Bout: $preceedingbout Chosen part: $chosenpart \n";
+    
+		if (0 == $chosenpart || $preceedingbout == 4 * $chosenpart) 
 		{
-	    	$def{'tableau_title'} = $compname . " Finals";
-		} 
-		elsif ($preceedingbout == 0 && $roundsize == 8)
-		{
-	    	$def{'tableau_title'} = $compname . " Last 8";
+			my %def;
+
+			$def{'where'} = $where;
+
+			my $divname = "R".$roundsize . "-" . $defindex;
+		
+			$localswaps[$defindex] = $divname;
+		
+			$def{'tableau_div'} = $divname;
+
+			if ($preceedingbout == 0 && $roundsize <= 4) 
+			{
+	    		$def{'tableau_title'} = $compname . " Finals";
+			} 
+			elsif ($preceedingbout == 0 && $roundsize == 8)
+			{
+	    		$def{'tableau_title'} = $compname . " Last 8";
+			}
+			else 
+			{
+				my $part = ($defindex + 1);
+				if (0 != $chosenpart) {
+					$part = $chosenpart;
+				}
+	    		$def{'tableau_title'} = $compname . " Last ". $roundsize . " part " . $part;
+			}
+
+			$def{'lastN'} = $roundsize;
+			$def{'preceeding_bout'} = $preceedingbout;
+		
+			if ($preceedingbout != 0 && 0 == $chosenpart) 
+			{
+	    		$def{'tableau_class'} = 'tableau hidden';
+			}
+			else
+			{
+	    		$def{'tableau_class'} = 'tableau';
+			}
+
+			$defs[$defindex] = \%def;
+			$defindex++;
 		}
-		else 
-		{
-	    	$def{'tableau_title'} = $compname . " Last ". $roundsize . " part " . ($defindex + 1);
-		}
-
-		$def{'lastN'} = $roundsize;
-		$def{'preceeding_bout'} = $preceedingbout;
-	
-		if ($preceedingbout > 0) 
-		{
-	    	$def{'tableau_class'} = 'tableau hidden';
-		}
-		else
-		{
-	    	$def{'tableau_class'} = 'tableau';
-		}
-
-		$defs[$defindex] = \%def;
 
 		$preceedingbout += 4;
-		$defindex++;
    	}
 
    	$retval->{'definitions'} = \@defs;
@@ -856,7 +892,7 @@ sub createpage
 	
 	if ($hastableau) 
 	{ 
-		$tabdefs = createRoundTableaus($comp);
+		$tabdefs = createRoundTableaus($comp, $pagedef->{'tableau'});
 
 		$pagedef->{'swaps'} = $tabdefs->{'swaps'};
 		
