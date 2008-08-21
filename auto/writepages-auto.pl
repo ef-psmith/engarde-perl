@@ -37,53 +37,53 @@ sub writeTableauMatch
 		my $fencer = $bout->{'fencer' . $key};
 		my $seed = $bout->{'seed' . $key};
 
-		if ($roundnumber == 1 && defined($seed)) 
+		if (!defined($fencer)) 
 		{
-			print WEBPAGE "\t\t\t<div class=\"seed$key\">$seed</div>\n";
+			$fencer = '&nbsp;';
+			$seed = '';
 		}
+		my $result = "";
 
-		if (defined($fencer)) 
+		if (defined($bout->{'winner'})) 
 		{
-			my $result = "";
-	
-			if (defined($bout->{'winner'})) 
+			if ($bout->{'winner'} eq $fencer) 
 			{
-				if ($bout->{'winner'} eq $fencer) 
-				{
-					$result = "winner";
-				} 
-				else 
-				{
-					$result = "loser";
-				}
-			}
-
-			print WEBPAGE "\t\t\t<div class=\"de-element fencer$key $result\">\n";
-
-			if ($roundnumber == 1) 
-			{
-				print WEBPAGE "\t\t\t\t<div class=\"fencer\">$fencer</div>\n";
-	
-				my $country = $bout->{'nation' . $key};
-
-				if (defined($country)) 
-				{
-					print WEBPAGE "\t\t\t\t<div class=\"country\">$country</div>\n";
-				}
+				$result = "winner";
 			} 
 			else 
 			{
-				print WEBPAGE "\t\t\t\t<div class=\"fenceronly\">$fencer</div>\n";
+				$result = "loser";
 			}
-	
-			print WEBPAGE "\t\t\t</div>\n";
-	
+			
+		}
+
+		print WEBPAGE "\t\t\t<div class=\"de-element fencer$key\">\n";
+
+
+		if ($roundnumber == 1 && defined($seed)) 
+		{
+			print WEBPAGE "\t\t\t\t<div class=\"seed\">$seed</div>\n";
+		}
+		
+		if ($roundnumber == 1) 
+		{
+			print WEBPAGE "\t\t\t\t<div class=\"fencer fencerspace $result\">$fencer</div>\n";
+
+			my $country = $bout->{'nation' . $key};
+
+			if (defined($country)) 
+			{
+				print WEBPAGE "\t\t\t\t<div class=\"country fencerspace\">$country</div>\n";
+			}
 		} 
 		else 
 		{
-			print WEBPAGE "\t\t\t<div class=\"de-element nofencer$key\">\n";
-			print WEBPAGE "\t\t\t</div>\n";
+			print WEBPAGE "\t\t\t\t<div class=\"fenceronly fencerspace $result\">$fencer</div>\n";
 		}
+
+		print WEBPAGE "\t\t\t</div>\n";
+
+		
 	}
 }
 
@@ -738,8 +738,14 @@ sub createRoundTableaus
 			my %def;
 
 			$def{'where'} = $where;
+			
+			my $part = ($defindex + 1);
+			if (0 != $chosenpart) {
+				$part = $chosenpart;
+			}
 
-			my $divname = "R".$roundsize . "-" . $defindex;
+			# $part is 1 indexed and our divs are 0 indexed to avoid confusing me.
+			my $divname = "R".$roundsize . "-" . ($part - 1);
 		
 			$localswaps[$defindex] = $divname;
 		
@@ -755,10 +761,6 @@ sub createRoundTableaus
 			}
 			else 
 			{
-				my $part = ($defindex + 1);
-				if (0 != $chosenpart) {
-					$part = $chosenpart;
-				}
 	    		$def{'tableau_title'} = $compname . " Last ". $roundsize . " part " . $part;
 			}
 

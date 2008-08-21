@@ -4,7 +4,7 @@ div.hidden {
 
 div.bout {
 	border-right: thin solid black;
-	width: 95%;
+	width: 100%;
 }
 
 div.country {
@@ -13,15 +13,13 @@ div.country {
 	position: absolute;
 	right: 0px;
 	top: 0px;
+	float: right;
 }
 
 div.de-element {
-	width: 100%;
 	position: absolute;
 	height: 1.3em;
-	right: 0.5ex;
-	width: 92%;
-	background-color: #dcdcdc;
+	width: 100%;
 }
 
 div.fencer {
@@ -29,21 +27,13 @@ div.fencer {
 	text-align: left;
 	position: absolute;
 	right: 0em;
-	left: 0em;
+	left: 1.5em;
 	overflow: hidden;
 	top: 0px;
 }
 
-div.fencerA, div.nofencerA {
-	position: absolute;
-	top: -0.65em;
-	left: 1.5em;
-}
-
-div.fencerB, div.nofencerB {
-	position: absolute;
-	bottom: -0.65em;
-	left: 1.5em;
+div.fencerspace {
+	background-color: #dcdcdc;
 }
 
 div.fenceronly {
@@ -56,6 +46,16 @@ div.fenceronly {
 	top: 0px;
 }
 
+div.fencerA {
+	position: absolute;
+	top: -0.65em;
+}
+
+div.fencerB {
+	position: absolute;
+	bottom: -0.65em;
+}
+
 
 div.pistecontainer {
 	width: 90%;
@@ -64,21 +64,6 @@ div.pistecontainer {
 	position: absolute;
 	top: 35%;
 }
-
-div.seedA {
-	text-align: left;
-	float: left;
-	position: absolute;
-	top: -0.65em;
-}
-
-div.seedB {
-	text-align: left;
-	float: left;
-	position: absolute;
-	bottom: -0.65em;
-}
-
 
 div.r1bout-1 {
 	position: absolute;
@@ -105,10 +90,11 @@ div.r1bout-4 {
 }
 
 div.r1col {
-	width: 50%;
+	width: 48%;
 	position: absolute;
-	left: 0.5ex;
 	height: 100%;
+	left: 0%;
+	margin: 0.5ex;
 }
 
 div.r2bout-1 {
@@ -124,10 +110,11 @@ div.r2bout-2 {
 }
 
 div.r2col {
-	width: 45%;
+	width: 48%;
 	position: absolute;
-	left: 46%;
+	left: 50%;
 	height: 100%;
+	margin: 0.5ex;
 }
 
 div.score {
@@ -145,11 +132,6 @@ div.seed {
 	position: absolute;
 	height: 1.3em;
 	top: 0px;
-	background-color: inherit;
-}
-
-div.victory {
-	font-weight: bold;
 }
 
 div.loser, div.bout-started, div.bout-pending {
