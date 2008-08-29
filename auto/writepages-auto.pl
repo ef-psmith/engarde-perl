@@ -114,15 +114,15 @@ sub writeBlurb
     
     print WEBPAGE "<title>$pagetitle</title>\n";
 
-    print WEBPAGE "\t<style type=\"text/css\">\n/*<![CDATA[*/\n\t\tbody {background-color: $bkcolour}\n/*]]>*/\t</style>\n";
+    print WEBPAGE "\t<style type=\"text/css\">\n\t\tbody {background-color: $bkcolour}\t</style>\n";
 
     print WEBPAGE "<link href=\"".$csspath."tableau_style.css\" rel=\"stylesheet\" type=\"text/css\" media=\"screen\" />\n";
     print WEBPAGE "<link href=\"".$csspath."poule_style.css\" rel=\"stylesheet\" type=\"text/css\" media=\"screen\" />\n";
     print WEBPAGE "<link href=\"$csspath$layout.css\" rel=\"stylesheet\" type=\"text/css\" media=\"screen\" />\n";
     print WEBPAGE "<link href=\"".$csspath."fencer_list.css\" rel=\"stylesheet\" type=\"text/css\" media=\"screen\" />\n";
     
-    print WEBPAGE "<script type=\"text/javascript\">\n//<![CDATA[\n\tonerror=handleErr\n";
-    print WEBPAGE "\tfunction handleErr(msg,url,l) {\n\t\talert(msg);\n\t\t//Handle the error here\n";
+    print WEBPAGE "<script type=\"text/javascript\">\n\tonerror=handleErr\n";
+    print WEBPAGE "\tfunction handleErr(msg,url,l) {\n\t\t//alert(msg);\n\t\t//Handle the error here\n";
     print WEBPAGE "\t\treturn true;\n\t}\n\n";
     
     my $pagefinishedcondition = "true";
@@ -135,19 +135,19 @@ sub writeBlurb
 	{
        	# Set the body onload
        	print WEBPAGE "\t\tvar listElement = document.getElementById(\"vert_list_id\");\n";
+        print WEBPAGE "\t\tvar listContainerElement = document.getElementById(\"list_cont_id\");\n";
+        print WEBPAGE "\t\tvar listElementElement = document.getElementById(\"list_row_0\");\n";
+        print WEBPAGE "\t\tvar listHeaderElement = document.getElementById(\"vert_list_header_id\");\n";
 
-		print WEBPAGE "\t\tif (listElement == null) {\n";
+		print WEBPAGE "\t\tif (listElement == null || null == listContainerElement || null == listHeaderElement) {\n";
 		print WEBPAGE "\t\t\twindow.location.replace(\"$nextpage\");\n";
 		print WEBPAGE  "\t\t}\n";
-
+		
         print WEBPAGE "\t\tlistheight = listElement.offsetHeight;\n";
-        print WEBPAGE "\t\tvar listContainerElement = document.getElementById(\"list_cont_id\");\n";
         print WEBPAGE "\t\tvar contheight = listContainerElement.offsetHeight;\n";
-        print WEBPAGE "\t\tvar listElementElement = document.getElementById(\"list_row_0\");\n";
         print WEBPAGE "\t\tvar elemheight;\n\t\tif (listElementElement==null) {\n";
 	   	print WEBPAGE "\t\t\telemheight = 0;\n\t\t} else {\n";
 	   	print WEBPAGE "\t\t\telemheight = listElementElement.offsetHeight;\n\t\t}\n";
-        print WEBPAGE "\t\tvar listHeaderElement = document.getElementById(\"vert_list_header_id\");\n";
         print WEBPAGE "\t\tvar headerheight = listHeaderElement.offsetHeight;\n";
         print WEBPAGE "\t\tvar titleheight = listHeaderElement.offsetTop;\n";
                  
@@ -283,7 +283,7 @@ sub writeBlurb
 	print WEBPAGE "\t\t\twindow.location.replace(\"$nextpage\");\n";
     print WEBPAGE "\t\t}\n\t}\n\n";
     
-    print WEBPAGE "\n//]]>\n</script>\n\n</head>\n<body onload=\"onPageLoaded()\">\n";
+    print WEBPAGE "\n</script>\n\n</head>\n<body onload=\"onPageLoaded()\">\n";
 
 
 }
