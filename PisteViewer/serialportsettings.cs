@@ -43,5 +43,20 @@ namespace PisteView
                 this.Close();
             }
         }
+
+        private void cancelButton_Click(object sender, EventArgs e)
+        {
+            this.Close();
+        }
+
+        private void okButton_Click(object sender, EventArgs e)
+        {
+            parent_.parity = (Parity)Enum.Parse(typeof(Parity), parityCombo.Text);
+            parent_.stopBits = (StopBits)Enum.Parse(typeof(StopBits), stopBitsCombo.Text);
+            parent_.dataBits = Convert.ToInt32(dataBitsCombo.Text);
+            parent_.baudRate = Convert.ToInt32(baudRateCombo.Text);
+            parent_.portName = portNameCombo.Text;
+            this.Close();
+        }
     }
 }

@@ -14,15 +14,15 @@ namespace PisteView
      */
     public class SGConnector : EquipmentConnector
     {
-        private static int SOH = 0x01;
-        private static int DC3 = 0x13;
-        private static int EOT = 0x04;
+        private static char SOH = (char)0x01;
+        private static char DC3 = (char)0x13;
+        private static char EOT = (char)0x04;
 
         #region Functor Classes
         private interface ViewerFunctor
         {
             void Execute();
-            int Initialise(byte[] buffer, int index, int size);
+            int Initialise(string buffer, int index, int size);
             bool isInitialised();
         }
         private class SetLights : ViewerFunctor
@@ -43,7 +43,8 @@ namespace PisteView
                 viewer_ = viewer;
             }
 
-            public int Initialise(byte[] buffer, int offset, int size) {
+            public int Initialise(string buffer, int offset, int size)
+            {
                 // Do nothing if we are already initialised
                 if (8 < bytes_read_)
                     return offset;
@@ -58,26 +59,26 @@ namespace PisteView
                             break;
                         case 1:
                             // State of the red light
-                            red_ = (1 == buffer[index + offset]);
+                            red_ = ('1' == buffer[index + offset]);
                             break;
                         case 2:
                             // Should be 'G' but we don't care
                             break;
                         case 3:
                             // State of the green light
-                            green_ = (1 == buffer[index + offset]);
+                            green_ = ('1' == buffer[index + offset]);
                             break;
                         case 4:
                             // Should be 'W' but we don't care
                             break;
                         case 5:
-                            red_white_ = (1 == buffer[index + offset]);
+                            red_white_ = ('1' == buffer[index + offset]);
                             break;
                         case 6:
                             // Should be 'W' but we don't care
                             break;
                         case 7:
-                            green_white_ = (1 == buffer[index + offset]);
+                            green_white_ = ('1' == buffer[index + offset]);
                             break;
                         case 8:
                             // should be EOT
@@ -119,7 +120,7 @@ namespace PisteView
                 viewer_ = viewer;
             }
 
-            public int Initialise(byte[] buffer, int offset, int size)
+            public int Initialise(string buffer, int offset, int size)
             {
                 // Do nothing if we are already initialised
                 if (5 < bytes_read_)
@@ -133,22 +134,22 @@ namespace PisteView
                     {
                         case 0:
                             // Right 10s
-                            right_score_ += 10 * (int)buffer[index + offset];
+                            right_score_ += 10 * ((int)buffer[index + offset] - (int)'0');
                             break;
                         case 1:
                             // Right units
-                            right_score_ += (int)buffer[index + offset];
+                            right_score_ += ((int)buffer[index + offset] - (int)'0');
                             break;
                         case 2:
                             // Should be ':' but we don't care
                             break;
                         case 3:
                             // Left 10s
-                            left_score_ += 10 * (int)buffer[index + offset];
+                            left_score_ += 10 * ((int)buffer[index + offset] - (int)'0');
                             break;
                         case 4:
                             // Left units
-                            left_score_ += (int)buffer[index + offset];
+                            left_score_ += ((int)buffer[index + offset] - (int)'0');
                             break;
                         case 5:
                             // should be EOT
@@ -190,7 +191,7 @@ namespace PisteView
                 viewer_ = viewer;
             }
 
-            public int Initialise(byte[] buffer, int offset, int size)
+            public int Initialise(string buffer, int offset, int size)
             {
                 // Do nothing if we are already initialised
                 if (5 < bytes_read_)
@@ -204,22 +205,22 @@ namespace PisteView
                     {
                         case 0:
                             // Minute 10s
-                            time_left_ += 600 * (int)buffer[index + offset];
+                            time_left_ += 600 * ((int)buffer[index + offset] - (int)'0');
                             break;
                         case 1:
                             // Minute units
-                            time_left_ += 60 * (int)buffer[index + offset];
+                            time_left_ += 60 * ((int)buffer[index + offset] - (int)'0');
                             break;
                         case 2:
                             // Should be ':' but we don't care
                             break;
                         case 3:
                             // Second 10s
-                            time_left_ += 10 * (int)buffer[index + offset];
+                            time_left_ += 10 * ((int)buffer[index + offset] - (int)'0');
                             break;
                         case 4:
                             // second units
-                            time_left_ += (int)buffer[index + offset];
+                            time_left_ += ((int)buffer[index + offset] - (int)'0');
                             break;
                         case 5:
                             // should be EOT
@@ -261,7 +262,7 @@ namespace PisteView
                 viewer_ = viewer;
             }
 
-            public int Initialise(byte[] buffer, int offset, int size)
+            public int Initialise(string buffer, int offset, int size)
             {
                 // Do nothing if we are already initialised
                 if (2 < bytes_read_)
@@ -275,11 +276,11 @@ namespace PisteView
                     {
                         case 0:
                             // match 10s
-                            match_num_ += 10 * (int)buffer[index + offset];
+                            match_num_ += 10 * ((int)buffer[index + offset] - (int)'0');
                             break;
                         case 1:
                             // match units
-                            match_num_ += (int)buffer[index + offset];
+                            match_num_ += ((int)buffer[index + offset] - (int)'0');
                             break;
                         
                         case 2:
@@ -322,7 +323,7 @@ namespace PisteView
                 viewer_ = viewer;
             }
 
-            public int Initialise(byte[] buffer, int offset, int size)
+            public int Initialise(string buffer, int offset, int size)
             {
                 // Do nothing if we are already initialised
                 if (3 < bytes_read_)
@@ -336,7 +337,7 @@ namespace PisteView
                     {
                         case 0:
                             // Priority
-                            priority_ = (int)buffer[index + offset];
+                            priority_ = ((int)buffer[index + offset] - (int)'0');
                             break;
                         case 1:
                             // should be EOT
@@ -384,7 +385,7 @@ namespace PisteView
                 viewer_ = viewer;
             }
 
-            public int Initialise(byte[] buffer, int offset, int size)
+            public int Initialise(string buffer, int offset, int size)
             {
                 // Do nothing if we are already initialised
                 if (4 < bytes_read_)
@@ -398,19 +399,19 @@ namespace PisteView
                     {
                         case 0:
                             // Cards for the left fencer
-                            left_card_ = (int)buffer[index + offset];
+                            left_card_ = ((int)buffer[index + offset] - (int)'0');
                             break;
                         case 1:
                             // Cards for the right fencer
-                            right_card_ = (int)buffer[index + offset];
+                            right_card_ = ((int)buffer[index + offset] - (int)'0');
                             break;
                         case 2:
                             // Number of cards for left fencer
-                            left_card_num_ = (int)buffer[index + offset];
+                            left_card_num_ = ((int)buffer[index + offset] - (int)'0');
                             break;
                         case 3:
                             // Number of cards for right fencer
-                            right_card_num_ = (int)buffer[index + offset];
+                            right_card_num_ = ((int)buffer[index + offset] - (int)'0');
                             break;
                         case 4:
                             // should be EOT
@@ -443,7 +444,7 @@ namespace PisteView
 
         // The main control for communicating through the RS-232 port
         private SerialPort comport_ = new SerialPort();
-        private byte[] incomplete_message_ = null;
+        private string incomplete_message_ = null;
         private ViewerFunctor incomplete_functor_ = null;
         private string equip_name_;
         private PisteViewer parent_;
@@ -516,7 +517,7 @@ namespace PisteView
             parent_ = parent;
             baudRate_ = 9600;
             dataBits_ = 8;
-            stopBits_ = StopBits.None;
+            stopBits_ = StopBits.One;
             portName_ = "COM8";
             parity_ = Parity.None;
             equip_name_ = name;
@@ -527,62 +528,28 @@ namespace PisteView
             // This method will be called when there is data waiting in the port's buffer
 
             // Obtain the number of bytes waiting in the port's buffer
-            int bytes = comport_.BytesToRead;
+            string newData = comport_.ReadExisting();
 
-            // Create a byte array buffer to hold the incoming data
-            byte[] buffer = new byte[bytes];
-
-            // Read the data from the port and store it in our buffer
-            comport_.Read(buffer, 0, bytes);
-
-            // we can't create a new functor
-            int oldBufferSize = 0;
-            byte[] oldbuffer = incomplete_message_;
-            if (null != incomplete_message_)
-            {
-                oldBufferSize = oldbuffer.GetLength(0);
-            }
-
-            byte[] message = new byte[oldBufferSize + bytes];
-
-            // Copy the old buffer
-            int pos = 0;
-            if (null != oldbuffer)
-            {
-                for (int i = 0; i < oldBufferSize; ++i)
-                {
-                    message[pos++] = oldbuffer[i];
-                }
-            }
-            
-            for (int i = 0; i < bytes; ++i)
-            {
-                message[pos++] = buffer[i++];
-            }
+            string message = incomplete_message_ + newData;
 
             // Do the processing of the concatenated buffer
             int offset = processMessage(message);
 
             // Copy the remainder into a new incomplete buffer.
-            int newIncompleteBufferSize = message.GetLength(0) - offset;
-            incomplete_message_ = new byte[newIncompleteBufferSize];
-            int index = 0;
-            while (offset < message.GetLength(0))
-            {
-                incomplete_message_[index++] = message[offset++];
-            }
+            incomplete_message_ = message.Substring(offset, message.Length - offset);
 
         }
-        private int processMessage(byte[] message) {
-            int bytes_read = 0;
-            int bytes = message.GetLength(0);
+        private int processMessage(string message) {
+            int chars_read = 0;
+            int num_chars = message.Length;
 
             // Going to loop around until we don't have enough space to get the message type
-            while (bytes_read < bytes - 3) {
+            while (chars_read < num_chars - 3)
+            {
 
                 if (null != incomplete_functor_)
                 {
-                    bytes_read = incomplete_functor_.Initialise(message, bytes_read, bytes);
+                    chars_read = incomplete_functor_.Initialise(message, chars_read, num_chars);
                     if (incomplete_functor_.isInitialised())
                     {
                         incomplete_functor_.Execute();
@@ -591,53 +558,53 @@ namespace PisteView
                 }
                 else
                 {
-                    if (SOH != message[bytes_read] || DC3 != message[bytes_read + 1])
+                    if (SOH != message[chars_read] || DC3 != message[chars_read + 1])
                     {
                         // This isn't the start of a message so carry on until we find one
-                        ++bytes_read;
+                        ++chars_read;
                         continue;
                     }
 
                     // Consume the SOH and DC3 messages
-                    bytes_read += 2;
+                    chars_read += 2;
 
-                    byte type = message[bytes_read++];
+                    char type = message[chars_read++];
 
                     switch (type)
                     {
-                        case 0x53: /* 'S' */
+                        case 'S':
                             // Score 
                             incomplete_functor_ = new SetScore(parent_);
                             break;
-                        case 0x54: /* 'T' */
+                        case 'T': 
                             // Time
                             incomplete_functor_ = new SetTime(parent_);
                             break;
-                        case 0x4c: /* 'L' */
+                        case 'L': 
                             // Lights
                             incomplete_functor_ = new SetLights(parent_);
                             break;
-                        case 0x50: /* 'P' */
+                        case 'P': 
                             // Priority
                             incomplete_functor_ = new SetPriority(parent_);
                             break;
-                        case 0x4d: /* 'M' */
+                        case 'M': 
                             // Match ??
                             incomplete_functor_ = new SetMatchNum(parent_);
                             break;
-                        case 0x43: /* 'C' */
+                        case 'C': 
                             // Cards
                             incomplete_functor_ = new SetCards(parent_);
                             break;
                         default:
                             // Parsing error
                             // Wait for the next EOT.
-                            while (EOT != message[bytes_read++] && bytes_read < bytes) ;
+                            while (EOT != (int)message[chars_read++] && chars_read < num_chars) ;
                             break;
                     }
                 }
             }
-            return bytes_read;
+            return chars_read;
         }
 
 
@@ -645,8 +612,11 @@ namespace PisteView
 
         void EquipmentConnector.showSettings(PisteViewer view)
         {
+            EquipmentConnector pThis = (EquipmentConnector)this;
+            pThis.disconnect();
             serialportsettings sett = new serialportsettings(this);
             sett.ShowDialog();
+            pThis.connect();
         }
 
         void EquipmentConnector.connect()

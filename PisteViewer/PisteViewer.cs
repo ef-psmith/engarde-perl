@@ -20,7 +20,7 @@ namespace PisteView
 
             serverName_ = "Localhost:8084";
             pisteNumber_ = "1";
-            equipType_ = "";
+            //equipType_ = "";
             updateServer_ = true;
 
             allEquipConnectors_ = new List<EquipmentConnector>(5);
@@ -33,6 +33,45 @@ namespace PisteView
             update_next_bouts();
             fencerA_on_left_ = true;
 
+        }
+
+        private void allControls_KeyUp(object sender, System.Windows.Forms.KeyEventArgs e)
+        {
+            BoutState state = BoutState.bs_notready;
+            state = bout_.state_;
+
+            switch (e.KeyCode)
+            {
+                case Keys.NumPad8:
+                    if (0 < nextBoutsList.SelectedIndex &&
+                        (BoutState.bs_finishedatpiste == state 
+                        || BoutState.bs_finishedinengarde == state 
+                        || BoutState.bs_notready == state))
+                    {
+                        --nextBoutsList.SelectedIndex;
+                    }
+                    break;
+                case Keys.NumPad2:
+                    if (nextBoutsList.Items.Count - 1 > nextBoutsList.SelectedIndex &&
+                        (BoutState.bs_finishedatpiste == state
+                        || BoutState.bs_finishedinengarde == state
+                        || BoutState.bs_notready == state))
+                    {
+                        ++nextBoutsList.SelectedIndex;
+                    }
+                    break;
+                case Keys.Add:
+                    break;
+                case Keys.Subtract:
+                    break;
+                case Keys.Multiply:
+                    break;
+                case Keys.Divide:
+                    break;
+                default:
+                    // Do nothing
+                    break;
+            }
         }
 
         private void settingsButton_Click(object sender, EventArgs e)
@@ -77,6 +116,12 @@ namespace PisteView
         }
         private void selectBoutButton_Click(object sender, EventArgs e)
         {
+            bool replacing_bout = false;
+            if (bout_.state_ == BoutState.bs_readytostart)
+            {
+                // The current bout selected is being replaced
+                replacing_bout = true;
+            }
             bout_ = boutList_[nextBoutsList.SelectedIndex];
             scoreA_ = 0;
             scoreB_ = 0;

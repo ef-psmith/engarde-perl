@@ -29,8 +29,8 @@ namespace PisteView
             // Save the data to the parent
             parent_.serverName = dbDSNText.Text;
             parent_.pisteNumber = pisteNumText.Text;
-
-            //parent_.equipConnector = (equipCombo.Text);
+            //parent_.equipType = equipCombo.Text;
+            parent_.equipConnector = currentConnector_;
 
             Close();
         }
@@ -55,7 +55,7 @@ namespace PisteView
 
         private void advSettings_Click(object sender, EventArgs e)
         {
-            parent_.equipConnector.showSettings(parent_);
+            currentConnector_.showSettings(parent_);
         }
 
         private void equipCombo_SelectedIndexChanged(object sender, EventArgs e)

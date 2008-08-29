@@ -138,6 +138,7 @@ namespace PisteView
             this.okButton.TabIndex = 11;
             this.okButton.Text = "&Ok";
             this.okButton.UseVisualStyleBackColor = true;
+            this.okButton.Click += new System.EventHandler(this.okButton_Click);
             // 
             // cancelButton
             // 
@@ -147,6 +148,7 @@ namespace PisteView
             this.cancelButton.TabIndex = 12;
             this.cancelButton.Text = "&Cancel";
             this.cancelButton.UseVisualStyleBackColor = true;
+            this.cancelButton.Click += new System.EventHandler(this.cancelButton_Click);
             // 
             // serialportsettings
             // 

@@ -84,6 +84,7 @@ namespace PisteView
             this.groupBox1.TabIndex = 0;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "Current Bout";
+            this.groupBox1.KeyUp  += new System.Windows.Forms.KeyEventHandler(this.allControls_KeyUp);
             // 
             // swapFencersButton
             // 
@@ -94,6 +95,7 @@ namespace PisteView
             this.swapFencersButton.Text = "Swap Fencers";
             this.swapFencersButton.UseVisualStyleBackColor = true;
             this.swapFencersButton.Click += new System.EventHandler(this.swapFencersButton_Click);
+            this.swapFencersButton.KeyUp += new System.Windows.Forms.KeyEventHandler(this.allControls_KeyUp);
             // 
             // cancelBoutButton
             // 
@@ -103,6 +105,7 @@ namespace PisteView
             this.cancelBoutButton.TabIndex = 14;
             this.cancelBoutButton.Text = "Unselect Bout";
             this.cancelBoutButton.UseVisualStyleBackColor = true;
+            this.cancelBoutButton.KeyUp += new System.Windows.Forms.KeyEventHandler(this.allControls_KeyUp);
             // 
             // startBoutButton
             // 
@@ -113,6 +116,7 @@ namespace PisteView
             this.startBoutButton.Text = "Start Bout";
             this.startBoutButton.UseVisualStyleBackColor = true;
             this.startBoutButton.Click += new System.EventHandler(this.startBoutButton_Click);
+            this.startBoutButton.KeyUp += new System.Windows.Forms.KeyEventHandler(this.allControls_KeyUp);
             // 
             // scoreRLabel
             // 
@@ -123,6 +127,7 @@ namespace PisteView
             this.scoreRLabel.Size = new System.Drawing.Size(36, 39);
             this.scoreRLabel.TabIndex = 12;
             this.scoreRLabel.Text = "0";
+            this.scoreRLabel.KeyUp += new System.Windows.Forms.KeyEventHandler(this.allControls_KeyUp);
             // 
             // scoreLLabel
             // 
@@ -133,6 +138,7 @@ namespace PisteView
             this.scoreLLabel.Size = new System.Drawing.Size(36, 39);
             this.scoreLLabel.TabIndex = 11;
             this.scoreLLabel.Text = "0";
+            this.scoreLLabel.KeyUp += new System.Windows.Forms.KeyEventHandler(this.allControls_KeyUp);
             // 
             // period_chooser
             // 
@@ -141,6 +147,7 @@ namespace PisteView
             this.period_chooser.Name = "period_chooser";
             this.period_chooser.Size = new System.Drawing.Size(148, 21);
             this.period_chooser.TabIndex = 10;
+            this.period_chooser.KeyUp += new System.Windows.Forms.KeyEventHandler(this.allControls_KeyUp);
             // 
             // period_timer
             // 
@@ -152,6 +159,7 @@ namespace PisteView
             this.period_timer.TabIndex = 9;
             this.period_timer.Text = "00:00";
             this.period_timer.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.period_timer.KeyUp += new System.Windows.Forms.KeyEventHandler(this.allControls_KeyUp);
             // 
             // finishBoutButton
             // 
@@ -163,6 +171,7 @@ namespace PisteView
             this.finishBoutButton.Text = "Bout Finished";
             this.finishBoutButton.UseVisualStyleBackColor = true;
             this.finishBoutButton.Click += new System.EventHandler(this.finishBoutButton_Click);
+            this.finishBoutButton.KeyUp += new System.Windows.Forms.KeyEventHandler(this.allControls_KeyUp);
             // 
             // colourR
             // 
@@ -173,6 +182,7 @@ namespace PisteView
             this.colourR.SizeMode = System.Windows.Forms.PictureBoxSizeMode.AutoSize;
             this.colourR.TabIndex = 6;
             this.colourR.TabStop = false;
+            this.colourR.KeyUp += new System.Windows.Forms.KeyEventHandler(this.allControls_KeyUp);
             // 
             // whiteL
             // 
@@ -183,6 +193,7 @@ namespace PisteView
             this.whiteL.SizeMode = System.Windows.Forms.PictureBoxSizeMode.AutoSize;
             this.whiteL.TabIndex = 5;
             this.whiteL.TabStop = false;
+            this.whiteL.KeyUp += new System.Windows.Forms.KeyEventHandler(this.allControls_KeyUp);
             // 
             // colourL
             // 
@@ -193,6 +204,7 @@ namespace PisteView
             this.colourL.SizeMode = System.Windows.Forms.PictureBoxSizeMode.AutoSize;
             this.colourL.TabIndex = 4;
             this.colourL.TabStop = false;
+            this.colourL.KeyUp += new System.Windows.Forms.KeyEventHandler(this.allControls_KeyUp);
             // 
             // whiteR
             // 
@@ -203,6 +215,7 @@ namespace PisteView
             this.whiteR.SizeMode = System.Windows.Forms.PictureBoxSizeMode.AutoSize;
             this.whiteR.TabIndex = 3;
             this.whiteR.TabStop = false;
+            this.whiteR.KeyUp += new System.Windows.Forms.KeyEventHandler(this.allControls_KeyUp);
             // 
             // fencerRLabel
             // 
@@ -213,6 +226,7 @@ namespace PisteView
             this.fencerRLabel.Size = new System.Drawing.Size(74, 20);
             this.fencerRLabel.TabIndex = 1;
             this.fencerRLabel.Text = "Fencer B";
+            this.fencerRLabel.KeyUp += new System.Windows.Forms.KeyEventHandler(this.allControls_KeyUp);
             // 
             // fencerLLabel
             // 
@@ -223,6 +237,7 @@ namespace PisteView
             this.fencerLLabel.Size = new System.Drawing.Size(74, 20);
             this.fencerLLabel.TabIndex = 0;
             this.fencerLLabel.Text = "Fencer A";
+            this.fencerLLabel.KeyUp += new System.Windows.Forms.KeyEventHandler(this.allControls_KeyUp);
             // 
             // selectBoutButton
             // 
@@ -233,6 +248,7 @@ namespace PisteView
             this.selectBoutButton.Text = "Select Bout";
             this.selectBoutButton.UseVisualStyleBackColor = true;
             this.selectBoutButton.Click += new System.EventHandler(this.selectBoutButton_Click);
+            this.selectBoutButton.KeyUp += new System.Windows.Forms.KeyEventHandler(this.allControls_KeyUp);
             // 
             // nextBoutsList
             // 
@@ -242,6 +258,7 @@ namespace PisteView
             this.nextBoutsList.Size = new System.Drawing.Size(536, 147);
             this.nextBoutsList.TabIndex = 1;
             this.nextBoutsList.SelectedIndexChanged += new System.EventHandler(this.nextBoutsList_SelectedIndexChanged);
+            this.nextBoutsList.KeyUp += new System.Windows.Forms.KeyEventHandler(this.allControls_KeyUp);
             // 
             // groupBox2
             // 
@@ -256,6 +273,7 @@ namespace PisteView
             this.groupBox2.TabIndex = 2;
             this.groupBox2.TabStop = false;
             this.groupBox2.Text = "Assigned Bouts";
+            this.groupBox2.KeyUp += new System.Windows.Forms.KeyEventHandler(this.allControls_KeyUp);
             // 
             // updateBoutsButton
             // 
@@ -266,6 +284,7 @@ namespace PisteView
             this.updateBoutsButton.Text = "Update Next Bouts";
             this.updateBoutsButton.UseVisualStyleBackColor = true;
             this.updateBoutsButton.Click += new System.EventHandler(this.updateBoutsButton_Click);
+            this.updateBoutsButton.KeyUp += new System.Windows.Forms.KeyEventHandler(this.allControls_KeyUp);
             // 
             // next_bout_names
             // 
@@ -276,6 +295,7 @@ namespace PisteView
             this.next_bout_names.Size = new System.Drawing.Size(164, 20);
             this.next_bout_names.TabIndex = 3;
             this.next_bout_names.Text = "a vs b in sword waving";
+            this.next_bout_names.KeyUp += new System.Windows.Forms.KeyEventHandler(this.allControls_KeyUp);
             // 
             // next_bout_label
             // 
@@ -286,6 +306,7 @@ namespace PisteView
             this.next_bout_label.Size = new System.Drawing.Size(93, 20);
             this.next_bout_label.TabIndex = 2;
             this.next_bout_label.Text = "Next Bout:";
+            this.next_bout_label.KeyUp += new System.Windows.Forms.KeyEventHandler(this.allControls_KeyUp);
             // 
             // settingsButton
             // 
@@ -296,6 +317,7 @@ namespace PisteView
             this.settingsButton.Text = "Settings";
             this.settingsButton.UseVisualStyleBackColor = true;
             this.settingsButton.Click += new System.EventHandler(this.settingsButton_Click);
+            this.settingsButton.KeyUp += new System.Windows.Forms.KeyEventHandler(this.allControls_KeyUp);
             // 
             // pisteNumLabel
             // 
@@ -306,9 +328,11 @@ namespace PisteView
             this.pisteNumLabel.Size = new System.Drawing.Size(169, 26);
             this.pisteNumLabel.TabIndex = 4;
             this.pisteNumLabel.Text = "Piste Number: 1";
+            this.pisteNumLabel.KeyUp += new System.Windows.Forms.KeyEventHandler(this.allControls_KeyUp);
             // 
             // PisteViewer
             // 
+            this.KeyUp += new System.Windows.Forms.KeyEventHandler(this.allControls_KeyUp);
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(765, 640);

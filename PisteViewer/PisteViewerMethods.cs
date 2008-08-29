@@ -107,7 +107,6 @@ namespace PisteView
 
         private string serverName_;
         private string pisteNumber_;
-        private string equipType_;
         private EquipmentConnector equipConnector_;
         private List<EquipmentConnector> allEquipConnectors_;
         private bool updateServer_;
@@ -158,30 +157,17 @@ namespace PisteView
             }
         }
 
-        public string equipType
-        {
-            get
-            {
-                return equipType_;
-            }
-
-            set
-            {
-                if (0 == equipType_.CompareTo(value))
-                {
-                    return;
-                }
-                // Changing equipment type
-                equipType_ = value;
-                
-            }
-        }
-
         public EquipmentConnector equipConnector
         {
             get
             {
                 return equipConnector_;
+            }
+            set
+            {
+                equipConnector_.disconnect();
+                equipConnector_ = value;
+                equipConnector_.connect();
             }
         }
 
@@ -214,12 +200,20 @@ namespace PisteView
 
             return url;
         }
+        private void setTextOnLabel(string text, System.Windows.Forms.Label obj)
+        {
+            obj.Text = text;
+        }
+        public delegate void UpdateTextCallback(string text, System.Windows.Forms.Label obj);
         public void setTime(int seconds_left)
         {
             int mins = seconds_left / 60;
             int secs = seconds_left % 60;
 
-            period_timer.Text = mins.ToString() + ":" + ((secs < 10) ? "0" : "") + secs.ToString();
+            string newTime = mins.ToString() + ":" + ((secs < 10) ? "0" : "") + secs.ToString();
+            // period_timer.Text
+            period_timer.Invoke(new UpdateTextCallback(this.setTextOnLabel), 
+            new object[]{newTime, period_timer});
         }
         public void setScore(int scoreL, int scoreR)
         {
@@ -235,8 +229,10 @@ namespace PisteView
             }
 
             // Update the UI.
-            this.scoreLLabel.Text = Convert.ToString(scoreA_);
-            this.scoreRLabel.Text = Convert.ToString(scoreB_);
+            scoreLLabel.Invoke(new UpdateTextCallback(this.setTextOnLabel),
+            new object[] { Convert.ToString(scoreA_), scoreLLabel });
+            scoreRLabel.Invoke(new UpdateTextCallback(this.setTextOnLabel),
+            new object[] { Convert.ToString(scoreB_), scoreRLabel });
 
             if (updateServer_)
             {
@@ -357,40 +353,54 @@ namespace PisteView
             }
         }
 
+        private void updateImage(Image pic, PictureBox box)
+        {
+            box.Image = pic;
+        }
+        public delegate void UpdateImageCallback(Image pic, PictureBox box);
+
         public void showLights(bool onTargetLeft, bool offTargetLeft, bool onTargetRight, bool offTargetRight)
         {
             if (onTargetLeft)
             {
-                colourL.Image = PisteView.Properties.Resources.red_on;
+                colourL.Invoke(new UpdateImageCallback(this.updateImage)
+                    , new object[] { PisteView.Properties.Resources.red_on, colourL });
             }
             else
             {
-                colourL.Image = PisteView.Properties.Resources.red_off;
+                colourL.Invoke(new UpdateImageCallback(this.updateImage)
+                    , new object[] { PisteView.Properties.Resources.red_off, colourL });
             }
 
             if (offTargetLeft)
             {
-                whiteL.Image = PisteView.Properties.Resources.white_on;
+                whiteL.Invoke(new UpdateImageCallback(this.updateImage)
+                    , new object[] { PisteView.Properties.Resources.white_on, whiteL });
             }
             else
             {
-                whiteL.Image = PisteView.Properties.Resources.white_off;
+                whiteL.Invoke(new UpdateImageCallback(this.updateImage)
+                    , new object[] { PisteView.Properties.Resources.white_off, whiteL });
             }
             if (onTargetRight)
             {
-                colourR.Image = PisteView.Properties.Resources.green_on;
+                colourR.Invoke(new UpdateImageCallback(this.updateImage)
+                    , new object[] { PisteView.Properties.Resources.green_on, colourR });
             }
             else
             {
-                colourR.Image = PisteView.Properties.Resources.green_off;
+                colourR.Invoke(new UpdateImageCallback(this.updateImage)
+                    , new object[] { PisteView.Properties.Resources.green_off, colourR });
             }
             if (offTargetRight)
             {
-                whiteR.Image = PisteView.Properties.Resources.white_on;
+                whiteR.Invoke(new UpdateImageCallback(this.updateImage)
+                    , new object[] { PisteView.Properties.Resources.white_on, whiteR });
             }
             else
             {
-                whiteR.Image = PisteView.Properties.Resources.white_off;
+                whiteR.Invoke(new UpdateImageCallback(this.updateImage)
+                    , new object[] { PisteView.Properties.Resources.white_off, whiteR });
             }
         }
 

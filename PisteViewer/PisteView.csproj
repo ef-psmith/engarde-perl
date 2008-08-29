@@ -55,7 +55,7 @@
     <Compile Include="confirmwinner.Designer.cs">
       <DependentUpon>confirmwinner.cs</DependentUpon>
     </Compile>
-    <Compile Include="LPConnector.cs" />
+    <Compile Include="SGConnector.cs" />
     <Compile Include="PisteViewer.cs">
       <SubType>Form</SubType>
     </Compile>
