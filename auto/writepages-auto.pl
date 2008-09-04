@@ -404,24 +404,30 @@ sub writeTableau
     print WEBPAGE "<div class=\"$page->{tableau_class}\" id=\"$div_id\">\n";  # 1st DIV		"tableau"
     print WEBPAGE "\t<h2 class=\"tableau_title\">$tableau_title</h2>\n";
 
-    # Work out how many bouts there are.  Note that we never display the winner in the tableau, merely the final
-    my $numbouts = 4;
-	$numbouts = 2 if $page->{'lastN'} <= 4;
+	my $numrounds = $page->{'num_cols'};
+	if (!defined($numrounds)  || $numrounds < 2) {
+		$numrounds = 2;
+	}
+	
+	# Work out the number of bouts
+	my $lastN = $page->{'lastN'};
+	my $numbouts = $page->{'num_bouts'};
+	
+	print "Number of rounds: $numrounds Number of bouts: $numbouts\n";
 
 	my $minbout = $preceeding_bout + 1;
 	my $maxbout = $minbout + $numbouts;
-
-
 	my $result = "bout-started";
 
-    for (my $roundnum = 1; $roundnum <= 2; $roundnum++) 
+	
+    for (my $roundnum = 1; $roundnum <= $numrounds; $roundnum++) 
 	{
-        my $colname = "r" . $roundnum . "col";
+        my $colname = "r" . $roundnum . "-". $numrounds . "col";
         print WEBPAGE "\t<div class=\"$colname\">\n";		# 2nd DIV  "r1col"
 
         for (my $boutnum = $minbout; $boutnum < $maxbout; $boutnum++) 
 		{
-            my $boutname = "r" . $roundnum . "bout-" . ($boutnum - $preceeding_bout);
+            my $boutname = "r" . $numbouts . "bout-" . ($boutnum - $preceeding_bout);
             print WEBPAGE "\t\t<div class=\"$boutname bout\">\n";		# 3rd DIV			"r1bout-1 bout" etc
             
 			my $bout = $comp->match($where, $boutnum);
@@ -457,15 +463,15 @@ sub writeTableau
         $result = "bout-pending";
         # next round has half as many bouts
         
-		my $newlastN = $page->{'lastN'};
         $numbouts /= 2;
-        $newlastN /= 2;
+        my $newlastN = $lastN/2;
         $preceeding_bout /=2; 
 		$minbout = $preceeding_bout + 1;
 		$maxbout = $minbout + $numbouts;
 
 		# Change the where
-		$where =~ s/$page->{'lastN'}/$newlastN/;       
+		$where =~ s/$lastN/$newlastN/; 
+		$lastN = $newlastN;
     }
     
     print WEBPAGE "</div>\n";					# close 1st DIV
@@ -661,10 +667,13 @@ sub createRoundTableaus
     my $tableaupart = shift;
     my $chosenpart = 0;
     my $numparts = 0;
+    #	default is two columns
+	my $numcols = 2;
 
-    if ($tableaupart =~ m%(\d)/(\d)%) {
+    if ($tableaupart =~ m%(\d)/(\d)in(\d)%) {
 		$chosenpart = $1;
 		$numparts = $2;
+		$numcols = $3;
     }
     print "Tableau Part: $tableaupart or $chosenpart / $numparts \n";
         
@@ -674,7 +683,9 @@ sub createRoundTableaus
 	
 	my $tab;
 	my $roundsize;
-  
+	
+	my $minroundsize = 2 << ($numcols-1);
+	  
    	my $where = $competition->whereami;
 
  	if ($where =~ /tableau/ || $where eq "termine")
@@ -696,7 +707,7 @@ sub createRoundTableaus
 
 		# Move to the specified place in the tableau
 		if (0 != $numparts) {
-			$roundsize = $numparts * 8;
+			$roundsize = $numparts * $minroundsize;
 			
 			print "where = $where\n";
 			$where =~ s/\d+/$roundsize/;
@@ -708,13 +719,14 @@ sub createRoundTableaus
 		$tab = $competition->tableau($where);
 
 		$roundsize = $tab->taille if ref $tab;
+		print "Roundsize $roundsize, Minroundsize $minroundsize\n";
 
-		if ($roundsize == 2)	# assume it's the final - wouldn't be true if all the DE places were fought
+		if ($roundsize < $minroundsize)	# assume it's the final - wouldn't be true if all the DE places were fought
 		{
 			# do it this way since we can't be certain that the tableau letter is "a" - e.g. A grade formula would be "bf"
 			# after the preliminary tableau
-			$where =~ s/2/4/;
-			$roundsize = 4;
+			$where =~ s/$roundsize/$minroundsize/;
+			$roundsize = $minroundsize;
 		}
 	}
 	else
@@ -733,11 +745,12 @@ sub createRoundTableaus
     
 		print "Preceeding Bout: $preceedingbout Chosen part: $chosenpart \n";
     
-		if (0 == $chosenpart || $preceedingbout == 4 * $chosenpart) 
+		if (0 == $chosenpart || $preceedingbout == ($minroundsize /2) * $chosenpart) 
 		{
 			my %def;
 
 			$def{'where'} = $where;
+			$def{'num_bouts'} = $minroundsize /2;
 			
 			my $part = ($defindex + 1);
 			if (0 != $chosenpart) {
@@ -750,14 +763,15 @@ sub createRoundTableaus
 			$localswaps[$defindex] = $divname;
 		
 			$def{'tableau_div'} = $divname;
+			$def{'num_cols'} = $numcols;
 
 			if ($preceedingbout == 0 && $roundsize <= 4) 
 			{
 	    		$def{'tableau_title'} = $compname . " Finals";
 			} 
-			elsif ($preceedingbout == 0 && $roundsize == 8)
+			elsif ($preceedingbout == 0 && $roundsize == $minroundsize)
 			{
-	    		$def{'tableau_title'} = $compname . " Last 8";
+	    		$def{'tableau_title'} = $compname . " Last $minroundsize";
 			}
 			else 
 			{

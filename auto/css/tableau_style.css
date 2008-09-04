@@ -65,37 +65,146 @@ div.pistecontainer {
 	top: 35%;
 }
 
-div.r1bout-1 {
-	position: absolute;
-	top: 15%;
-	height: 10%;
-}
-
-div.r1bout-2 {
-	position: absolute;
-	top: 37%;
-	height: 10%;
-}
-
-div.r1bout-3 {
-	position: absolute;
-	top: 63%;
-	height: 10%;
-}
-
-div.r1bout-4 {
-	position: absolute;
-	top: 85%;
-	height: 10%;
-}
-
-div.r1col {
+div.r1-2col {
 	width: 48%;
 	position: absolute;
 	height: 100%;
 	left: 0%;
 	margin: 0.5ex;
 }
+
+div.r2-2col {
+	width: 48%;
+	position: absolute;
+	left: 50%;
+	height: 100%;
+	margin: 0.5ex;
+}
+div.r1-3col {
+	width: 32%;
+	position: absolute;
+	height: 100%;
+	left: 0%;
+	margin: 0.5ex;
+}
+
+div.r2-3col {
+	width: 32%;
+	position: absolute;
+	left: 33%;
+	height: 100%;
+	margin: 0.5ex;
+}
+div.r3-3col {
+	width: 32%;
+	position: absolute;
+	height: 100%;
+	left: 66%;
+	margin: 0.5ex;
+}
+div.r1-4col {
+	width: 24%;
+	position: absolute;
+	height: 100%;
+	left: 0%;
+	margin: 0.5ex;
+}
+
+div.r2-4col {
+	width: 24%;
+	position: absolute;
+	left: 25%;
+	height: 100%;
+	margin: 0.5ex;
+}
+div.r3-4col {
+	width: 24%;
+	position: absolute;
+	height: 100%;
+	left: 50%;
+	margin: 0.5ex;
+}
+
+div.r4-4col {
+	width: 24%;
+	position: absolute;
+	left: 75%;
+	height: 100%;
+	margin: 0.5ex;
+}
+
+div.r8bout-1 {
+	position: absolute;
+	top: 12.5%;
+	height: 5%;
+}
+
+div.r8bout-2 {
+	position: absolute;
+	top: 22.5%;
+	height: 5%;
+}
+
+div.r8bout-3 {
+	position: absolute;
+	top: 34.5%;
+	height: 5%;
+}
+
+div.r8bout-4 {
+	position: absolute;
+	top: 44.5%;
+	height: 5%;
+}
+
+div.r8bout-5 {
+	position: absolute;
+	top: 60.5%;
+	height: 5%;
+}
+
+div.r8bout-6 {
+	position: absolute;
+	top: 70.5%;
+	height: 5%;
+}
+
+div.r8bout-7 {
+	position: absolute;
+	top: 82.5%;
+	height: 5%;
+}
+
+div.r8bout-8 {
+	position: absolute;
+	top: 92.5%;
+	height: 5%;
+}
+
+div.r4bout-1 {
+	position: absolute;
+	top: 15%;
+	height: 10%;
+}
+
+div.r4bout-2 {
+	position: absolute;
+	top: 37%;
+	height: 10%;
+}
+
+div.r4bout-3 {
+	position: absolute;
+	top: 63%;
+	height: 10%;
+}
+
+div.r4bout-4 {
+	position: absolute;
+	top: 85%;
+	height: 10%;
+}
+
 
 div.r2bout-1 {
 	position: absolute;
@@ -109,12 +218,10 @@ div.r2bout-2 {
 	height: 22%;
 }
 
-div.r2col {
-	width: 48%;
+div.r1bout-1 {
 	position: absolute;
-	left: 50%;
-	height: 100%;
-	margin: 0.5ex;
+	top: 31%;
+	height: 48%;
 }
 
 div.score {
