@@ -1130,8 +1130,8 @@ sub whereami
 	# etattour is either en_cours or constitution
 	my $nutour = $self->nutour;	
 
-	print "whereami: etat = $etat\n";
-	print "whereami: etattour = $etattour\n";
+	#print "whereami: etat = $etat\n";
+	#print "whereami: etattour = $etattour\n";
 
 	if ($etat eq "termine")
 	{
