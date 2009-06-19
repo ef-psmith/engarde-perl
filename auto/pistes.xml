@@ -1,8 +1,0 @@
-<Pistes>
-<Piste pistename="one">
-<CurrentBout comp="1" compkey="1" order="3" tableau="A" round="2" match="1" state="1">
-<fencer_a club="U/A" fencer_id="1">DOE John</fencer_a>
-<fencer_b club="U/A" fencer_id="1">CHUMBLEY-WARNER Thaddeus-Sebastien</fencer_b>
-</CurrentBout>
-</Piste>
-</Pistes>
