@@ -1,0 +1,19 @@
+
+div.tableau
+{
+overflow: hidden;
+position: absolute;
+border-right: thin solid black;
+height:  95%;
+width: 	62%;
+}
+
+div.vert_list_container
+{
+overflow: hidden;
+position: absolute;
+border: none;
+height:  95%;
+right: 0px;
+width: 36%;
+}
