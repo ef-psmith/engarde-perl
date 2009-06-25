@@ -447,6 +447,9 @@ sub tireur
 
 	my $dir = $c->dir();
 
+
+	print "tireur: dir = $dir\n";
+
 	my $self;
 	my $old_mtime = 0;
 
