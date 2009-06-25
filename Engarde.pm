@@ -442,7 +442,7 @@ sub tireur
 	my $c = shift;	
 	my $id = shift;
 
-	print "TIREUR 1: c = " . Dumper($c);
+	# print "TIREUR 1: c = " . Dumper($c);
 	# print "TIREUR: id = $id\n" if $id;
 
 	my $dir = $c->dir();
@@ -1068,6 +1068,8 @@ sub load
 	while (<IN>)
 	{
 		chomp;
+
+		s///g;
 	
 		if (/^\{\[classe / && $unparsed)
 		{
