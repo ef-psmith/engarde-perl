@@ -141,6 +141,8 @@ sub new {
 	{
 		chomp;
 
+		s///g;
+
 		if ((/^\(def ma_competition/ || /^\(def ma_formule/ || $inside))
 		{
 			if (/^\)$/)
@@ -452,12 +454,10 @@ sub tireur
 	my $self;
 	my $old_mtime = 0;
 
-
 	if ($c->{tireur})
 	{
 		$self = $c->{tireur};
 		$old_mtime = $self->{mtime};
-
 	}
 	else
 	{
