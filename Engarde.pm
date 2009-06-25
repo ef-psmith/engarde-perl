@@ -198,6 +198,7 @@ sub new {
 			chomp;
 			# print "NEW: $_\n";
 			#
+			s///g;
 
 			if ( /nombre_poules/ )
 			{
@@ -242,6 +243,8 @@ sub new {
 		while (<IN>)
 		{
 			chomp;
+
+			s///g;
 
 			# print "_ = $_\n";
 
@@ -820,6 +823,7 @@ sub ranking
 			# q;1;160;6;6;30;8;
 			
 			chomp;
+			s///g;
 	
 			my @result = split /;/, $_;
 	
@@ -859,6 +863,7 @@ sub ranking
 			# q;1;160;6;6;30;8;
 			
 			chomp;
+			s///g;
 	
 			my @result = split /;/, $_;
 	
@@ -1071,7 +1076,7 @@ sub load
 
 		s///g;
 
-		print "load: $_\n";
+		# print "load: $_\n";
 	
 		if (/^\{\[classe / && $unparsed)
 		{
