@@ -456,7 +456,7 @@ sub tireur
 	if ($c->{tireur})
 	{
 		$self = $c->{tireur};
-		$old_mtime = $self->{mtime} || 0;
+		$old_mtime = $self->{mtime};
 
 	}
 	else
@@ -1070,6 +1070,8 @@ sub load
 		chomp;
 
 		s///g;
+
+		print "load: $_\n";
 	
 		if (/^\{\[classe / && $unparsed)
 		{
