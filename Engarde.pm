@@ -442,13 +442,12 @@ sub tireur
 	my $c = shift;	
 	my $id = shift;
 
-	# print "TIREUR 1: c = " . Dumper($c);
+	print "TIREUR 1: c = " . Dumper($c);
 	# print "TIREUR: id = $id\n" if $id;
 
 	my $dir = $c->dir();
 
-
-	print "tireur: dir = $dir\n";
+	# print "tireur: dir = $dir\n";
 
 	my $self;
 	my $old_mtime = 0;
