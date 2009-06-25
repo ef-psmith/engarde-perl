@@ -454,7 +454,7 @@ sub tireur
 	if ($c->{tireur})
 	{
 		$self = $c->{tireur};
-		$old_mtime = $self->{mtime};
+		$old_mtime = $self->{mtime} || 0;
 
 	}
 	else
