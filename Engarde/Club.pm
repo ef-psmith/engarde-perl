@@ -13,6 +13,10 @@ sub decode
 	my $in = shift;
 	my $cle;
 
+	chomp $in;
+
+	$in =~ s///g;
+
 	# print "CLUB: in = $in\n";
 
 	my $item = {};

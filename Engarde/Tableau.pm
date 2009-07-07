@@ -86,7 +86,7 @@ sub load
 		}
 		else
 		{
-			$item->{'piste'} = $matches[$i] =~ m/.*\[piste_no (.*).*/;
+			($item->{'piste'}) = $matches[$i] =~ m/.*\[piste_no (.*).*/;
 		}
 
 		# remove [imprime vrai

@@ -235,6 +235,9 @@ sub grid
 	foreach my $f (@$tir)
 	{
 		my $fencer = $c->tireur($f);
+
+		next unless $fencer;
+
 		my $affiliation;
 	   
 		$affiliation = $c->nation($fencer->nation) if $domain eq "international";

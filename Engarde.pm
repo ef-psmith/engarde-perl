@@ -988,6 +988,8 @@ sub fpp
 		{
 			my $f = $c->tireur($id);
 
+			next unless $f;
+
 			my $club = $f->club ? $c->club($f->club) : "";
 			my $nom = $f->nom;
 			my $serie = $f->serie;
