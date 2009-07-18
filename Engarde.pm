@@ -243,7 +243,7 @@ sub new {
 
 			s///g;
 
-			# print "_ = $_\n";
+			print STDERR "DEBUG: new(): _ = $_\n" if $DEBUGGING;
 
 			if (/\[classe description_tableau/ && $unparsed)
 			{
@@ -255,7 +255,7 @@ sub new {
 				my $item = {};
 				my @elements = split /[ \]]*\[/, $unparsed;
 	
-				print STDERR "DEBUG: new(): elements = @elements\n" if $DEBUGGING;
+				# print STDERR "DEBUG: new(): elements = @elements\n" if $DEBUGGING;
 	
 				foreach (@elements)
 				{
@@ -263,7 +263,7 @@ sub new {
 
 					s/\]//;
 
-					# print "element = $_\n";
+					print STDERR "DEBUG: new(): element = $_\n" if $DEBUGGING;
 
 					foreach my $key (@keywords)
 					{
@@ -280,7 +280,7 @@ sub new {
 					}
 				}
 
-				$self->{tableauxactifs}->{$item->{nom}} = $item; # unless $item->{inactif};
+				$self->{tableauxactifs}->{$item->{nom}} = $item unless $item->{inactif};
 
 				s/.*classe description_tableau\] //;
 				$unparsed = $_;
