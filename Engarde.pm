@@ -27,8 +27,9 @@ use Engarde::Tableau;
 use Engarde::Poule;
 use Engarde::Arbitre;
 use Time::Local;
+our $DEBUGGING;
 
-use vars qw($VERSION @ISA DEBUGGING);
+use vars qw($VERSION @ISA);
 @ISA = qw(Exporter);
 
 $VERSION = '0.90'; 
