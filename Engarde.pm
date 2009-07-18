@@ -1106,13 +1106,13 @@ sub tableaux
 
 	my $ta = $self->tableauxactifs;
 
-	print STDERR "DEBUG: tableaux(): tableauxactifs = $ta\n" if $DEBUGGING;
+	print STDERR "DEBUG: tableaux(): tableauxactifs = " . Dumper(\$ta) if $DEBUGGING;
 
 	my @tableaux;
 
 	foreach my $key (keys %$ta)
 	{
-		# print "tableaux: key = $key\n";
+		# print STDERR "DEBUG: tableaux(): current tableau = $key\n";
 
 		my $tab = $self->tableau($key);
 
