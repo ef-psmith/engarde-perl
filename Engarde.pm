@@ -255,7 +255,7 @@ sub new {
 				my $item = {};
 				my @elements = split /[ \]]*\[/, $unparsed;
 	
-				# print "elements = @elements\n";
+				print STDERR "DEBUG: new(): elements = @elements\n" if $DEBUGGING;
 	
 				foreach (@elements)
 				{
