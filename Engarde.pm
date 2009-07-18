@@ -28,7 +28,7 @@ use Engarde::Poule;
 use Engarde::Arbitre;
 use Time::Local;
 
-use vars qw($VERSION @ISA);
+use vars qw($VERSION @ISA DEBUGGING);
 @ISA = qw(Exporter);
 
 $VERSION = '0.90'; 
@@ -65,8 +65,6 @@ my %order = (
 
 
 our $AUTOLOAD;
-
-our $ERRSTR;
 
 sub AUTOLOAD 
 {
@@ -107,19 +105,17 @@ sub parent
 
 sub new {
 
-	undef $ERRSTR;
-
     my $class = shift;
 	my $file = shift;
 
 	# print "NEW: class = $class\n";
-	# print "NEW: file = $file\n";
+	print STDERR "NEW: file = $file\n" if $DEBUGGING;
 
     my $self  = {};
 
 	unless (-r $file)
 	{
-		$ERRSTR = "Cannot read file $file";
+		print STDERR "NEW: Cannot read file $file\n" if $DEBUGGING;
 		return undef;
 	}
 
@@ -315,8 +311,6 @@ sub new {
 
 sub initialise
 {
-	undef $ERRSTR;
-
 	my $c = shift;
 	
 	$c->tireur;
@@ -345,8 +339,6 @@ sub initialise
 
 sub match
 {
-	undef $ERRSTR;
-
 	my $c = shift;
 	my $t = shift;
 	my $m = shift;
@@ -442,8 +434,6 @@ sub match
 
 sub tireur
 {
-	undef $ERRSTR;
-
 	my $c = shift;	
 	my $id = shift;
 
@@ -512,8 +502,6 @@ sub tireur
 
 sub nation
 {
-	undef $ERRSTR;
-
 	my $c = shift;	
 	my $id = shift;
 	my $dir = $c->dir();
@@ -608,8 +596,6 @@ sub club
 
 sub tableau
 {
-	undef $ERRSTR;
-
 	my $c = shift;
 	my $level = shift;
 	my $decode = shift;
@@ -677,8 +663,6 @@ sub tableau
 
 sub poule
 {
-	undef $ERRSTR;
-
 	my $c = shift;
 	my $round = shift;
 	my $poule = shift;
@@ -1046,8 +1030,6 @@ sub tireurs
 
 sub spreadsheet
 {
-	undef $ERRSTR;
-
 	my $self = shift;
 	my $name = shift;
 
@@ -1061,8 +1043,6 @@ sub spreadsheet
 
 sub load 
 {
-	undef $ERRSTR;
-
     my $self = shift;	
 
 	my $file = $self->{file};
