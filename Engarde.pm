@@ -110,13 +110,13 @@ sub new {
 	my $file = shift;
 
 	# print "NEW: class = $class\n";
-	print STDERR "NEW: file = $file\n" if $DEBUGGING;
+	print STDERR "DEBUG: new(): file = $file\n" if $DEBUGGING;
 
     my $self  = {};
 
 	unless (-r $file)
 	{
-		print STDERR "NEW: Cannot read file $file\n" if $DEBUGGING;
+		print STDERR "DEBUG: new(): Cannot read file $file\n" if $DEBUGGING;
 		return undef;
 	}
 
@@ -280,7 +280,7 @@ sub new {
 					}
 				}
 
-				$self->{tableauxactifs}->{$item->{nom}} = $item unless $item->{inactif};
+				$self->{tableauxactifs}->{$item->{nom}} = $item; # unless $item->{inactif};
 
 				s/.*classe description_tableau\] //;
 				$unparsed = $_;
