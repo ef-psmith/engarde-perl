@@ -1106,6 +1106,8 @@ sub tableaux
 
 	my $ta = $self->tableauxactifs;
 
+	print STDERR "DEBUG: tableaux(): tableauxactifs = $ta\n" if $DEBUGGING;
+
 	my @tableaux;
 
 	foreach my $key (keys %$ta)
