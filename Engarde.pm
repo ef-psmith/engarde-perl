@@ -671,6 +671,8 @@ sub tableau
 		$self->{rang_premier_battu} = $c->{tableauxactifs}->{$level}->{rang_premier_battu};
 		$self->{taille} = $c->{tableauxactifs}->{$level}->{taille};
 		bless $self, "Engarde::Tableau";
+
+		$self->load($level);
 	}
 
 	$self->{mtime} = (stat($self->{file}))[9];
