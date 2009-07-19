@@ -291,6 +291,7 @@ sub _init_tableaux
 
 			if ($item->{nom})
 			{
+				print STDERR "DEBUG: _init_tableaux(): adding " . $item->{nom} . " to tableauxactifs\n" if $DEBUGGING > 1;
 				$self->{tableauxactifs}->{$item->{nom}} = $item unless $item->{inactif};
 			}
 		}
