@@ -289,7 +289,7 @@ sub new {
 			{
 				s/.*classe description_tableau\] //;
 				$unparsed .= $_;
-				# print "fall through: unparsed = \n";
+				print STDERR "DEBUG: new(): fall through: unparsed = $_\n";
 			}
 		}
 
