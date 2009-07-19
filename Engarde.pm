@@ -175,10 +175,23 @@ sub new {
 
 	close IN;
 
+    bless  $self, $class;
+
+	$self->initialise;
+
+    return $self;
+}
+
+
+sub _init_poules
+{
+	my $self = shift;
+
+	my $dir = $self->dir;
 	#
 	# Poules
 	#
-	$file = "$dir/tour_de_poules.txt";
+	my $file = "$dir/tour_de_poules.txt";
 
 	if (-r $file)
 	{
@@ -220,13 +233,19 @@ sub new {
 
 		close IN;
 	}
+}
 
 
+sub _init_tableaux
+{
+	my $self = shift;
+
+	my $dir = $self->dir;
 
 	# 
 	# Tableaux
 	#
-	$file = "$dir/description_tableau.txt";
+	my $file = "$dir/description_tableau.txt";
 
 	if (-r $file)
 	{
@@ -236,50 +255,18 @@ sub new {
  		# [cle 1] [nombre_entites 64] [taille 64] [destination_vainqueurs b64] [classe_apres
  		# (b64 b32 b16 b8 b4 b2)] [groupe_clasmt_battus 8] [rang_premier_battu 65]}
 
-		undef $unparsed;
+		my $unparsed;
 		while (<IN>)
 		{
 			chomp;
 
 			s///g;
 
-			print STDERR "DEBUG: new(): _ = $_\n" if $DEBUGGING;
+			print STDERR "DEBUG: _init_tableaux(): _ = $_\n" if $DEBUGGING;
 
 			if (/\[classe description_tableau/ && $unparsed)
 			{
-				# do something with $unparsed
-
-				$unparsed =~ s/^\[//;
-				$unparsed =~ s/\}$//;
-
-				my $item = {};
-				my @elements = split /[ \]]*\[/, $unparsed;
-	
-				# print STDERR "DEBUG: new(): elements = @elements\n" if $DEBUGGING;
-	
-				foreach (@elements)
-				{
-					my @keywords = qw/suite nom nom_etendu rang_premier_battu inactif taille/;
-
-					s/\]//;
-
-					print STDERR "DEBUG: new(): element = $_\n" if $DEBUGGING;
-
-					foreach my $key (@keywords)
-					{
-						# print "\tkey = $key _=[$_]\n";
-						if (/^$key /)
-						{
-							s/$key //;
-							s/\"//g;
-							s/\]//;
-	
-							# print "\tvalue = $_\n";
-							$item->{$key} = $_;
-						}
-					}
-				}
-
+				my $item = _decode_tableau($unparsed);
 				$self->{tableauxactifs}->{$item->{nom}} = $item unless $item->{inactif};
 
 				s/.*classe description_tableau\] //;
@@ -289,18 +276,59 @@ sub new {
 			{
 				s/.*classe description_tableau\] //;
 				$unparsed .= $_;
-				print STDERR "DEBUG: new(): fall through: unparsed = $_\n";
+				print STDERR "DEBUG: _init_tableaux(): fall through: unparsed = $_\n";
 			}
+		}
+
+		if ($unparsed)
+		{
+			my $item = _decode_tableau($unparsed);
+			$self->{tableauxactifs}->{$item->{nom}} = $item unless $item->{inactif};
 		}
 
 		close IN;
 	}
+}
 
-    bless  $self, $class;
 
-	$self->initialise;
+sub _decode_tableau
+{
+	my $unparsed = shift;
 
-    return $self;
+	# do something with $unparsed
+
+	$unparsed =~ s/^\[//;
+	$unparsed =~ s/\}$//;
+
+	my $item = {};
+	my @elements = split /[ \]]*\[/, $unparsed;
+
+	# print STDERR "DEBUG: new(): elements = @elements\n" if $DEBUGGING;
+
+	foreach (@elements)
+	{
+		my @keywords = qw/suite nom nom_etendu rang_premier_battu inactif taille/;
+
+		s/\]//;
+
+		print STDERR "DEBUG: _init_tableaux(): element = $_\n" if $DEBUGGING;
+
+		foreach my $key (@keywords)
+		{
+			# print "\tkey = $key _=[$_]\n";
+			if (/^$key /)
+			{
+				s/$key //;
+				s/\"//g;
+				s/\]//;
+
+				# print "\tvalue = $_\n";
+				$item->{$key} = $_;
+			}
+		}
+	}
+
+	return $item;
 }
 
 
@@ -313,7 +341,10 @@ sub new {
 sub initialise
 {
 	my $c = shift;
-	
+
+	$c->_init_poules;
+	$c->_init_tableaux;	
+
 	$c->tireur;
 	$c->nation;
 	$c->club;
