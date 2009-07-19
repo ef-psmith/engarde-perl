@@ -110,7 +110,7 @@ sub new {
 	my $file = shift;
 
 	# print "NEW: class = $class\n";
-	print STDERR "DEBUG: new(): file = $file\n" if $DEBUGGING;
+	print STDERR "DEBUG: new(): processing file $file\n" if $DEBUGGING;
 
     my $self  = {};
 
@@ -262,7 +262,7 @@ sub _init_tableaux
 
 			s///g;
 
-			print STDERR "DEBUG: _init_tableaux(): _ = $_\n" if $DEBUGGING;
+			print STDERR "DEBUG: _init_tableaux(): _ = $_\n" if $DEBUGGING > 1;
 
 			if (/\[classe description_tableau/ && $unparsed)
 			{
@@ -280,7 +280,7 @@ sub _init_tableaux
 			{
 				s/.*classe description_tableau\] //;
 				$unparsed .= $_;
-				print STDERR "DEBUG: _init_tableaux(): fall through: unparsed = $_\n";
+				print STDERR "DEBUG: _init_tableaux(): fall through: unparsed = $_\n" if $DEBUGGING > 1;
 			}
 		}
 
@@ -315,7 +315,7 @@ sub _decode_tableau
 
 		s/\]//;
 
-		print STDERR "DEBUG: _init_tableaux(): element = $_\n" if $DEBUGGING;
+		print STDERR "DEBUG: _decode_tableau(): element = $_\n" if $DEBUGGING > 1;
 
 		foreach my $key (@keywords)
 		{
@@ -1141,7 +1141,7 @@ sub tableaux
 
 	my $ta = $self->tableauxactifs;
 
-	print STDERR "DEBUG: tableaux(): tableauxactifs = " . Dumper(\$ta) if $DEBUGGING;
+	print STDERR "DEBUG: tableaux(): tableauxactifs = " . Dumper(\$ta) if $DEBUGGING > 1;
 
 	my @tableaux;
 
