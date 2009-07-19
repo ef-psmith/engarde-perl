@@ -1155,7 +1155,7 @@ sub tableaux
 
 	foreach my $key (keys %$ta)
 	{
-		# print STDERR "DEBUG: tableaux(): current tableau = $key\n";
+		print STDERR "DEBUG: tableaux(): current tableau = $key\n" if $DEBUGGING > 1;
 
 		my $tab = $self->tableau($key);
 
@@ -1163,13 +1163,13 @@ sub tableaux
 
 		my $etat = $tab->etat;
 
-		# print "tableaux: etat = $etat\n";
+		print STDERR "DEBUG: tableaux(): etat = $etat\n" if $DEBUGGING > 1;
 
 		push @tableaux, $key if ($etat eq "en_cours" && $current);
 		push @tableaux, $key if ($etat eq "termine" &&  not $current);
 	}
 
-	# print "TABLEAUX: returning @tableaux\n";
+	print STDERR "DEBUG: tableaux(): returning @tableaux\n" if $DEBUGGING;
 
 	my @result = sort {$ta->{$a}->{rang_premier_battu} <=> $ta->{$b}->{rang_premier_battu} } @tableaux;
 
