@@ -267,7 +267,11 @@ sub _init_tableaux
 			if (/\[classe description_tableau/ && $unparsed)
 			{
 				my $item = _decode_tableau($unparsed);
-				$self->{tableauxactifs}->{$item->{nom}} = $item unless $item->{inactif};
+
+				if ($item->{nom})
+				{
+					$self->{tableauxactifs}->{$item->{nom}} = $item unless $item->{inactif};
+				}
 
 				s/.*classe description_tableau\] //;
 				$unparsed = $_;
