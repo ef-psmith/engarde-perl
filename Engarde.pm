@@ -652,8 +652,11 @@ sub tableau
 	my $self;
 	my $old_mtime = 0;
 
+	print STDERR "DEBUG: tableau(): procesing $level\n" if $DEBUGGING;
+
 	if ($c->{tableau}->{$level})
 	{
+		print STDERR "DEBUG: tableau(): level $level exists\n" if $DEBUGGING > 1;
 		$self = $c->{tableau}->{$level};
 		$old_mtime = $self->mtime();
 	}
@@ -674,12 +677,14 @@ sub tableau
 
 	if ($self->{mtime} && $self->{mtime} > $old_mtime)
 	{
+		print STDERR "DEBUG: tableau(): re-loading level $level\n" if $DEBUGGING > 1;
 		# print "Loading $level data...\n";
 		$self->load($level);
 		$c->{tableau}->{$level} = $self;
 	}
 	else
 	{
+		print STDERR "DEBUG: tableau(): not re-loading level $level\n" if $DEBUGGING > 1;
 		# print "Not loading $level data...\n";
 	}
 
