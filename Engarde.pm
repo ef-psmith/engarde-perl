@@ -299,7 +299,7 @@ sub _init_tableaux
 		close IN;
 	}
 
-	print STDERR "DEBUG: _init_tableau(): tableauxactifs = " . Dumper($self->{tableauactifs}) if $DEBUGGING > 1;
+	print STDERR "DEBUG: _init_tableau(): tableauxactifs = " . Dumper($self->{tableauxactifs}) if $DEBUGGING > 1;
 }
 
 
