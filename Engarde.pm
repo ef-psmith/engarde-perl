@@ -298,6 +298,8 @@ sub _init_tableaux
 
 		close IN;
 	}
+
+	print STDERR "DEBUG: _init_tableau(): tableauxactifs = " . Dumper($self->{tableauactifs}) if $DEBUGGING > 1;
 }
 
 
@@ -1170,7 +1172,6 @@ sub tableaux
 	# print "TABLEAUX: returning @tableaux\n";
 
 	my @result = sort {$ta->{$a}->{rang_premier_battu} <=> $ta->{$b}->{rang_premier_battu} } @tableaux;
-
 
 	# print "TABLEAUX: result @result\n";
 
