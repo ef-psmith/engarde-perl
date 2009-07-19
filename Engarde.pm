@@ -671,12 +671,12 @@ sub tableau
 		$self->{rang_premier_battu} = $c->{tableauxactifs}->{$level}->{rang_premier_battu};
 		$self->{taille} = $c->{tableauxactifs}->{$level}->{taille};
 		bless $self, "Engarde::Tableau";
-
-		$self->load($level);
 	}
 
 	$self->{mtime} = (stat($self->{file}))[9];
 	$self->{ctime} = (stat($self->{file}))[10];
+
+	print STDERR "DEBUG: tableau(): mtime = $self->{mtime}\n" if $DEBUGGING > 1;
 
 	if ($self->{mtime} && $self->{mtime} > $old_mtime)
 	{
