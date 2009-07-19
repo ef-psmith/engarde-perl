@@ -340,6 +340,8 @@ sub _decode_tableau
 		}
 	}
 
+	uc($item->{nom});
+
 	return $item;
 }
 
