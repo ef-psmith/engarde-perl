@@ -662,6 +662,7 @@ sub tableau
 	}
 	else
 	{
+		print STDERR "DEBUG: tableau(): level $level does not exist yet\n" if $DEBUGGING > 1;
 		$self = {};
 		$self->{file} = "$dir/tableau$level.txt";
 		$self->{nom} = $level;
@@ -1149,7 +1150,7 @@ sub tableaux
 	# returns a list of complete tableaux sorted into ranking order (lowest first)
 	my $self = shift;
 
-	# if set to 1 to returns just the current stage
+	# if set to 1 returns just the current stage(s)
 	my $current = shift || 0;
 
 	my $ta = $self->tableauxactifs;
