@@ -37,6 +37,7 @@ sub load
 	my $etat = <IN>;
 
 	chomp $etat;
+	$etat =~ s///g;
 
 	# print "etat = [$etat]\n";
 
@@ -51,6 +52,7 @@ sub load
 	while (<IN>)
 	{
 		chomp;
+		s///g;
 		$unparsed .= $_;
 	}
 
@@ -58,7 +60,7 @@ sub load
 
 	my @matches = split /[\]\} ]*\{\[match /, $unparsed;
 
-	# print Dumper(\@matches);
+	print STDERR "DEBUG: Tableau::decode(): matches = " . Dumper(\@matches) if $Engarde::DEBUGGING > 2;
 
 	my $i;
 	my @eliminated;
@@ -75,7 +77,7 @@ sub load
  		# 101 () () 101 97 32)] [piste_no 1]} {[match (78 nobody () () 78 17 112)] [piste_no
  		# 1]} {[match (65 118 () () () 81 48)] [piste_no 1]} {[match (34 39 () () () 49 80)]
 		# 
-		# print "Tableau::decode: match $i = " . Dumper(\$matches[$i]);
+		print STDERR "DEBUG: Tableau::decode(): match $i = " . Dumper(\$matches[$i]) if $Engarde::DEBUGGING > 2;
 		
 		($item->{'fencerA'},$item->{'fencerB'},$item->{'scoreA'},$item->{'scoreB'},$item->{'winner'},$item->{'seedA'},$item->{'seedB'})
 			= $matches[$i] =~ m/^\((.*) (.*) (.*) (.*) (.*) ([0-9]*) ([0-9]*)\)/;
@@ -97,9 +99,9 @@ sub load
 
 		# print "$item->{'piste'}\n";
 
-		if ($item->{'scoreA'} eq "()")
+		if ($item->{'scoreA'} && $item->{'scoreA'} eq "()")
 		{
-			if ($item->{'scoreB'} eq "()")
+			if ($item->{'scoreB'} && $item->{'scoreB'} eq "()")
 			{
 				$item->{'scoreA'} = "";
 				$item->{'scoreB'} = "";
@@ -110,15 +112,15 @@ sub load
 			}
 		}
 
-		if ($item->{'scoreB'} eq "()")
+		if ($item->{'scoreB'} && $item->{'scoreB'} eq "()")
 		{
 			$item->{'scoreB'} = 0;
 		}
 
-		$item->{'winner'} = "" if ($item->{'winner'} eq "()" || $item->{'winner'} eq " ");
-
 		if ($item->{'winner'})
 		{
+			$item->{'winner'} = "" if ($item->{'winner'} eq "()" || $item->{'winner'} eq " ");
+
 			# push loser
 			my $id = $item->{'winner'} eq $item->{'fencerA'} ? $item->{'fencerB'} : $item->{'fencerA'};
 

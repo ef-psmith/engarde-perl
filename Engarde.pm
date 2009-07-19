@@ -262,7 +262,7 @@ sub _init_tableaux
 
 			s///g;
 
-			print STDERR "DEBUG: _init_tableaux(): _ = $_\n" if $DEBUGGING > 1;
+			print STDERR "DEBUG: _init_tableaux(): _ = $_\n" if $DEBUGGING > 2;
 
 			if (/\[classe description_tableau/ && $unparsed)
 			{
@@ -270,7 +270,7 @@ sub _init_tableaux
 
 				if ($item->{nom})
 				{
-					print STDERR "DEBUG: _init_tableaux(): adding " . $item->{nom} . " to tableauxactifs\n" if $DEBUGGING > 1;
+					print STDERR "DEBUG: _init_tableaux(): adding " . $item->{nom} . " to tableauxactifs\n" if $DEBUGGING > 2;
 					$self->{tableauxactifs}->{$item->{nom}} = $item unless $item->{inactif};
 				}
 
@@ -281,7 +281,7 @@ sub _init_tableaux
 			{
 				s/.*classe description_tableau\] //;
 				$unparsed .= $_;
-				print STDERR "DEBUG: _init_tableaux(): fall through: unparsed = $_\n" if $DEBUGGING > 1;
+				print STDERR "DEBUG: _init_tableaux(): fall through: unparsed = $_\n" if $DEBUGGING > 2;
 			}
 		}
 
@@ -291,7 +291,7 @@ sub _init_tableaux
 
 			if ($item->{nom})
 			{
-				print STDERR "DEBUG: _init_tableaux(): adding " . $item->{nom} . " to tableauxactifs\n" if $DEBUGGING > 1;
+				print STDERR "DEBUG: _init_tableaux(): adding " . $item->{nom} . " to tableauxactifs\n" if $DEBUGGING > 2;
 				$self->{tableauxactifs}->{$item->{nom}} = $item unless $item->{inactif};
 			}
 		}
@@ -299,7 +299,7 @@ sub _init_tableaux
 		close IN;
 	}
 
-	print STDERR "DEBUG: _init_tableau(): tableauxactifs = " . Dumper($self->{tableauxactifs}) if $DEBUGGING > 1;
+	print STDERR "DEBUG: _init_tableau(): tableauxactifs = " . Dumper($self->{tableauxactifs}) if $DEBUGGING > 2;
 }
 
 
@@ -315,15 +315,13 @@ sub _decode_tableau
 	my $item = {};
 	my @elements = split /[ \]]*\[/, $unparsed;
 
-	# print STDERR "DEBUG: new(): elements = @elements\n" if $DEBUGGING;
-
 	foreach (@elements)
 	{
 		my @keywords = qw/suite nom nom_etendu rang_premier_battu inactif taille/;
 
 		s/\]//;
 
-		print STDERR "DEBUG: _decode_tableau(): element = $_\n" if $DEBUGGING > 1;
+		print STDERR "DEBUG: _decode_tableau(): element = $_\n" if $DEBUGGING > 2;
 
 		foreach my $key (@keywords)
 		{
@@ -643,7 +641,7 @@ sub club
 sub tableau
 {
 	my $c = shift;
-	my $level = uc(shift);
+	my $level = shift;
 	my $decode = shift;
 
 	my $suite = substr($level,0,1);
@@ -658,13 +656,13 @@ sub tableau
 
 	if ($c->{tableau}->{$level})
 	{
-		print STDERR "DEBUG: tableau(): level $level exists\n" if $DEBUGGING > 1;
+		print STDERR "DEBUG: tableau(): level $level exists\n" if $DEBUGGING > 2;
 		$self = $c->{tableau}->{$level};
 		$old_mtime = $self->mtime();
 	}
 	else
 	{
-		print STDERR "DEBUG: tableau(): level $level does not exist yet\n" if $DEBUGGING > 1;
+		print STDERR "DEBUG: tableau(): level $level does not exist yet\n" if $DEBUGGING > 2;
 		$self = {};
 		$self->{file} = "$dir/tableau$level.txt";
 		$self->{nom} = $level;
@@ -680,7 +678,7 @@ sub tableau
 	$self->{mtime} = (stat("$self->{file}"))[9];
 	$self->{ctime} = (stat("$self->{file}"))[10];
 
-	print STDERR "DEBUG: tableau(): mtime = $self->{mtime}\n" if $DEBUGGING > 1;
+	print STDERR "DEBUG: tableau(): mtime = $self->{mtime}\n" if $DEBUGGING > 2;
 
 	if ($self->{mtime} && $self->{mtime} > $old_mtime)
 	{
@@ -1167,7 +1165,7 @@ sub tableaux
 
 	foreach my $key (keys %$ta)
 	{
-		print STDERR "DEBUG: tableaux(): current tableau = $key\n" if $DEBUGGING > 1;
+		print STDERR "DEBUG: tableaux(): current tableau = $key\n" if $DEBUGGING > 2;
 
 		my $tab = $self->tableau($key);
 
@@ -1175,16 +1173,24 @@ sub tableaux
 
 		my $etat = $tab->etat;
 
-		print STDERR "DEBUG: tableaux(): etat = $etat\n" if $DEBUGGING > 1;
+		print STDERR "DEBUG: tableaux(): etat = [$etat]\n" if $DEBUGGING > 2;
 
-		push @tableaux, $key if ($etat eq "en_cours" && $current);
-		push @tableaux, $key if ($etat eq "termine" &&  not $current);
+		if ($current)
+		{
+			push @tableaux, $key if ($etat eq "en_cours");
+		}
+		else
+		{
+			push @tableaux, $key if ($etat eq "termine");
+		}
+
+		print STDERR "DEBUG: tableaux(): tableaux = [@tableaux]\n" if $DEBUGGING > 2;
 	}
 
-	print STDERR "DEBUG: tableaux(): returning @tableaux\n" if $DEBUGGING;
 
 	my @result = sort {$ta->{$a}->{rang_premier_battu} <=> $ta->{$b}->{rang_premier_battu} } @tableaux;
 
+	print STDERR "DEBUG: tableaux(): returning reverse [@result]\n" if $DEBUGGING;
 	# print "TABLEAUX: result @result\n";
 
 	return reverse @result;
