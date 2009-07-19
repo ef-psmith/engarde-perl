@@ -641,7 +641,7 @@ sub club
 sub tableau
 {
 	my $c = shift;
-	my $level = shift;
+	my $level = uc(shift);
 	my $decode = shift;
 
 	my $suite = substr($level,0,1);
@@ -664,7 +664,7 @@ sub tableau
 	{
 		print STDERR "DEBUG: tableau(): level $level does not exist yet\n" if $DEBUGGING > 1;
 		$self = {};
-		$self->{file} = "$dir/tableau" . uc($level) . ".txt";
+		$self->{file} = "$dir/tableau$level.txt";
 		$self->{nom} = $level;
 		$self->{level} = $level;
 		$self->{nom_etendu} = $c->{tableauxactifs}->{$level}->{nom_etendu};
