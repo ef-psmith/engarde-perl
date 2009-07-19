@@ -675,8 +675,8 @@ sub tableau
 
 	print STDERR "DEBUG: tableau() cannot read " . $self->{file} unless -r $self->{file};
 
-	$self->{mtime} = (stat($self->{file}))[9];
-	$self->{ctime} = (stat($self->{file}))[10];
+	$self->{mtime} = (stat("$self->{file}"))[9];
+	$self->{ctime} = (stat("$self->{file}"))[10];
 
 	print STDERR "DEBUG: tableau(): mtime = $self->{mtime}\n" if $DEBUGGING > 1;
 
