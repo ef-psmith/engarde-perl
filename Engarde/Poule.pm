@@ -31,6 +31,8 @@ sub load
 
 	$self->{les_tir_cons} = \@tir;
 
+	$self->{size} = scalar @tir;
+
 	my $unparsed;
 
 	while (<IN>)
