@@ -29,6 +29,7 @@ sub load
 	chomp $taille;
 	$taille =~ s/\]//;
 	$taille =~ s/\[taille[ \t]*//;
+	$taille =~ s///g;
 
 	$self->{taille} = substr($taille,1);
 

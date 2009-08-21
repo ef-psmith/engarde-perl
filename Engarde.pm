@@ -1303,6 +1303,8 @@ sub _heure_to_time
 	my $in = shift;
 	my ($hr, $min) = ($in =~ m/(\d*):(\d*)/);
 
+	print STDERR "DEBUG: _heure_to_time(): in = $in, hr = $hr, min = $min\n" if $DEBUGGING > 1;
+
 	# since we only have a hh:mm string we need to convert this to a time value
 	# assuming the other values are "today"
 	
@@ -1310,11 +1312,12 @@ sub _heure_to_time
 	
 	my @tm = localtime;
 	# ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday) = localtime($TimeInSeconds); 
-	$tm[0] = 0;
+	$tm[0] = $0;
 	$tm[1] = $min;
 	$tm[2] = $hr;
 
 	my $out = timelocal(@tm);
+	print STDERR "DEBUG: _heure_to_time(): returning " . localtime($out) . "\n" if $DEBUGGING > 1;
 	return $out;
 }
 
@@ -1346,13 +1349,14 @@ sub piste_status
 
 			my $st = $p->start_time;
 			my $et = $p->end_time;
+			my $pistenum = $p->piste_no;
 			$status = $et < $now ? "late" : "ok";
 
-			$out->{$pn}->{'start_time'} = $st;
-			$out->{$pn}->{'end_time'} = $et;
-			$out->{$pn}->{'status'} = $status;
-			$out->{$pn}->{'what'} = "poule";
-			$out->{$pn}->{'count'} = $p->size;
+			$out->{$pistenum}->{'start_time'} = $st;
+			$out->{$pistenum}->{'end_time'} = $et;
+			$out->{$pistenum}->{'status'} = $status;
+			$out->{$pistenum}->{'what'} = "poule";
+			$out->{$pistenum}->{'count'} = $p->size;
 		}
 	}
 	elsif ($w[0] eq "tableau")
@@ -1364,6 +1368,9 @@ sub piste_status
 		foreach my $m (keys %$round)
 		{
 			next unless $m =~ /^\d*$/;
+			next unless ($round->{$m}->{idA} && $round->{$m}->{idB});
+
+			print STDERR "DEBUG: piste_status(): match = " . Dumper(\$round->{$m}) if $DEBUGGING > 1;
 
 			my $pn = $round->{$m}->{'piste'};
 

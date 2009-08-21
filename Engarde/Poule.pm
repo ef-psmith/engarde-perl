@@ -121,7 +121,7 @@ sub load
 	{
 		$self->{scores} =~ s/^\((\(.*\))\)$/$1/;
 		my @scores = Engarde::_unbracket($self->{scores});
-		# print "POULE: scores = " . Dumper(\@scores);
+		print STDERR "DEBUG: poule::scores = " . Dumper(\@scores) if $Engarde::DEBUGGING > 1;
 
 		# scores can be any of these
 		#  'e 4 691 3 0 8 15',
@@ -298,10 +298,13 @@ sub start_time
 	my $ctime = $self->ctime;
 	my $heure = $self->heure;
 
+	print STDERR "DEBUG: poule->start_time(): heure = $heure, ctime = " . localtime($ctime) . "\n" if $Engarde::DEBUGGING > 1;
+
 	my $start;
 
 	if ($heure)
 	{
+		print STDERR "DEBUG: poule->start_time(): returning heure = $heure\n" if $Engarde::DEBUGGING > 1;
 		return (Engarde::_heure_to_time($heure));
 	}
 	else
@@ -315,10 +318,12 @@ sub start_time
 
 		if (defined $close)
 		{
-			return (Engarde::_heure_to_time($heure) + 1800);
+			print STDERR "DEBUG: poule->start_time(): close = $close\n" if $Engarde::DEBUGGING > 1;
+			return (Engarde::_heure_to_time($close) + 1800);
 		}
 		else
 		{
+			print STDERR "DEBUG: poule->start_time(): returning ctime = $ctime + 1800\n" if $Engarde::DEBUGGING > 1;
 			return $ctime + 1800;
 		}
 	}
