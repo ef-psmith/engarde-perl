@@ -1163,9 +1163,10 @@ sub tableaux
 
 	print STDERR "DEBUG: tableaux(): tableauxactifs = " . Dumper(\$ta) if $DEBUGGING > 1;
 
+	my $initial;
 	my @tableaux;
 
-	foreach my $key (keys %$ta)
+	foreach my $key (reverse (sort {$ta->{$a}->{rang_premier_battu} <=> $ta->{$b}->{rang_premier_battu}} keys %$ta))
 	{
 		print STDERR "DEBUG: tableaux(): current tableau = $key\n" if $DEBUGGING > 1;
 
@@ -1179,15 +1180,20 @@ sub tableaux
 
 		push @tableaux, $key if ($etat eq "en_cours" && $current);
 		push @tableaux, $key if ($etat eq "termine" &&  not $current);
+		
+		$initial = $key if ($etat eq "termine" && not $initial);
 	}
 
-	print STDERR "DEBUG: tableaux(): returning @tableaux\n" if $DEBUGGING;
 
-	my @result = sort {$ta->{$a}->{rang_premier_battu} <=> $ta->{$b}->{rang_premier_battu} } @tableaux;
+	# my @result = sort {$ta->{$a}->{rang_premier_battu} <=> $ta->{$b}->{rang_premier_battu} } @tableaux;
 
+	$initial = $tableaux[0] unless $initial;
 	# print "TABLEAUX: result @result\n";
 
-	return reverse @result;
+	print STDERR "DEBUG: tableaux(): returning @tableaux, initial = $initial\n" if $DEBUGGING;
+	# return reverse @result unless $current == 2;
+	return @tableaux unless $current == 2;
+	return $initial if $current == 2;
 }
 
 
@@ -1224,9 +1230,11 @@ sub whereami
 		else
 		{
 			my @tab = $self->tableaux(1);
-			# print "current tab = $tab[0]\n";
+			my $initial = $self->tableaux(2);
+			print "DEBUG: whereami: current tab = @tab\n" if $DEBUGGING > 1;
+			print "DEBUG: whereami: initial = $initial\n" if $DEBUGGING > 1;
 
-			$result = "tableau $tab[0]";
+			$result = "tableau $tab[0] $initial";
 		}
 	}
 	elsif ($etat eq "debut")

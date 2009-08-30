@@ -38,6 +38,7 @@ sub load
 	while (<IN>)
 	{
 		chomp;
+		s///g;
 
 		# print "POULE: in = $_\n";
 
