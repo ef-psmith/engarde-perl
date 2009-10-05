@@ -391,6 +391,8 @@ sub match
 
 	my $tab = $c->tableau($t);
 
+	return undef unless $tab;
+
 	my $match = $tab->match($m);
 
 	# print "\nEngarde::match: t = $t, m = $m\n";
