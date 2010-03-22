@@ -261,12 +261,12 @@ sub grid
 
 		for ($i=0;$i<$poulesize;$i++)
 		{
-			# print "GRID: result = " . Dumper($res->{$f});
+			print "DEBUG: grid: result = " . Dumper($res->{$f}[$i]);
 
 			my $st = $res->{$f}[$i]->{status};
 			my $r = $res->{$f}[$i]->{result} || "";
-			my $s = $res->{$f}[$i]->{score} || 0;
-
+			my $s = $res->{$f}[$i]->{score} || "0";
+				
 			$r = "X" if $r eq "xx";
 			$r = "V" if $r eq "v" && $s == 5;
 			$r = "V$s" if $r eq "w";
@@ -276,14 +276,25 @@ sub grid
 			$r = $s if $r eq "d";
 
 			push @line, $r;
+			# print "DEBUG: grid: result = [$r]\n";
 		}
 
 		push @line, "";
+		
 
-		push @line, $scores->{$f}->{v} . "/" . $scores->{$f}->{m};
-		push @line, $scores->{$f}->{hs};
-		push @line, ($scores->{$f}->{hs} - $scores->{$f}->{hr});
-		push @line, $scores->{$f}->{position};
+		if ($line[4] || $line[4] eq 0 || $line[5] || $line[5] eq 0)  # there is a result
+		{
+			print "DEBUG: line[4] = [$line[4]], line[5] = [$line[5]]\n";
+			push @line, $scores->{$f}->{v} . "/" . $scores->{$f}->{m};
+			push @line, $scores->{$f}->{hs};
+			push @line, ($scores->{$f}->{hs} - $scores->{$f}->{hr});
+			push @line, $scores->{$f}->{position};
+		}
+		else
+		{
+			# print "DEBUG: grid: not printing line @line\n"; 
+			push @line, "", "", "", "";
+		}
 
 		push @out, \@line;
 	}

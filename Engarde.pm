@@ -620,7 +620,7 @@ sub club
 	$self->{mtime} = (stat($self->{file}))[9];
 	$self->{ctime} = (stat($self->{file}))[10];
 
-	if ($self->{mtime} > $old_mtime)
+	if ($self->{mtime} && $self->{mtime} > $old_mtime)
 	{
 		# print "Loading club data...\n";
 		$self->load();
@@ -703,7 +703,7 @@ sub tableau
 
 	foreach my $m (keys %$self)
 	{
-		if ($m =~ /\d+/)
+		if ($m =~ /\d*/)
 		{
 			my $match = $c->match($level, $m);
 
@@ -836,7 +836,7 @@ sub ranking
 
 		my @w = split / /, $where;
 
-		return undef unless ($w[1] >= $round || $w[0] eq "tableau");
+		return undef unless ($w[0] eq "tableau" || $w[1] >= $round);
 	}
 	
 
@@ -856,6 +856,8 @@ sub ranking
 		my $file = "$dir/claspou_fin_$current_round.txt";
 
 		# print "ranking: file = $file, round = $current_round\n";
+			
+		-s $file || return undef;
 
 		open RANKING, $file || return undef;
 
@@ -1066,13 +1068,15 @@ sub tireurs
 
 	foreach my $id (keys %$t)
 	{
-		next unless ($id > 0 && $id < 999);
+		#1067
+		next unless $id =~ /\d+/;
 
 		my $f = $c->tireur($id);
 
 		# print "tireurs: f = " . Dumper(\$f);
 
 		my $club = $f->club ? $c->club($f->club) : "";
+		#1075
 		my $nom = $f->nom;
 		my $serie = $f->serie;
 		my $nation = $f->nation ? $c->nation($f->nation) : "";
@@ -1097,7 +1101,7 @@ sub spreadsheet
 	return Engarde::Spreadsheet::writeL32($self, $name);
 }
 
-
+#1100
 
 sub load 
 {
@@ -1172,6 +1176,7 @@ sub tableaux
 	{
 		print STDERR "DEBUG: tableaux(): current tableau = $key\n" if $DEBUGGING > 1;
 
+		#1175
 		my $tab = $self->tableau($key);
 
 		next unless $tab;
@@ -1198,6 +1203,7 @@ sub tableaux
 	return $initial if $current == 2;
 }
 
+#1200
 
 sub whereami
 {
@@ -1322,7 +1328,7 @@ sub _heure_to_time
 	
 	my @tm = localtime;
 	# ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday) = localtime($TimeInSeconds); 
-	$tm[0] = $0;
+	$tm[0] = 0;
 	$tm[1] = $min;
 	$tm[2] = $hr;
 
