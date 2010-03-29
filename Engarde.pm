@@ -1345,8 +1345,8 @@ sub piste_status
 	my $out = {};
 
 	my @w = split / /, $where;
-
 	my $now = time;
+
 	if ($w[0] eq "poules" && $w[2] ne "finished")
 	{
 		shift @w;
@@ -1383,12 +1383,14 @@ sub piste_status
 
 		foreach my $m (keys %$round)
 		{
-			next unless $m =~ /^\d*$/;
+			next unless $m =~ /^\d+$/;
 			next unless ($round->{$m}->{idA} && $round->{$m}->{idB});
 
 			print STDERR "DEBUG: piste_status(): match = " . Dumper(\$round->{$m}) if $DEBUGGING > 1;
 
-			my $pn = $round->{$m}->{'piste'};
+			my $pn = $round->{$m}->{'piste'} || "unknown";
+
+			print STDERR "DEBUG: piste_status(): pn = [$pn]\n" if $DEBUGGING > 1;
 
 			$out->{$pn}->{'count'} += 1;
 			$out->{$pn}->{'what'} = "tableau " . $round->nom;
