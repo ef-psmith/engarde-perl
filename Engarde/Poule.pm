@@ -261,7 +261,7 @@ sub grid
 
 		for ($i=0;$i<$poulesize;$i++)
 		{
-			print "DEBUG: grid: result = " . Dumper($res->{$f}[$i]);
+			print "DEBUG: Poule::grid: result = " . Dumper($res->{$f}[$i]) if $Engarde::DEBUGGING > 1;
 
 			my $st = $res->{$f}[$i]->{status};
 			my $r = $res->{$f}[$i]->{result} || "";
@@ -284,7 +284,7 @@ sub grid
 
 		if ($line[4] || $line[4] eq 0 || $line[5] || $line[5] eq 0)  # there is a result
 		{
-			print "DEBUG: line[4] = [$line[4]], line[5] = [$line[5]]\n";
+			# print "DEBUG: line[4] = [$line[4]], line[5] = [$line[5]]\n";
 			push @line, $scores->{$f}->{v} . "/" . $scores->{$f}->{m};
 			push @line, $scores->{$f}->{hs};
 			push @line, ($scores->{$f}->{hs} - $scores->{$f}->{hr});
