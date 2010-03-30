@@ -1068,7 +1068,6 @@ sub tireurs
 
 	foreach my $id (keys %$t)
 	{
-		#1067
 		next unless $id =~ /\d+/;
 
 		my $f = $c->tireur($id);
@@ -1076,7 +1075,6 @@ sub tireurs
 		# print "tireurs: f = " . Dumper(\$f);
 
 		my $club = $f->club ? $c->club($f->club) : "";
-		#1075
 		my $nom = $f->nom;
 		my $serie = $f->serie;
 		my $nation = $f->nation ? $c->nation($f->nation) : "";
