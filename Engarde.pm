@@ -701,15 +701,19 @@ sub tableau
 
 	return $self unless $decode;
 
+	print STDERR "DEBUG: tableau(): decoding level $level\n" if $DEBUGGING > 1;
+	print STDERR "DEBUG: tableau(): level $level = " , Dumper(\$self) if $DEBUGGING > 1;
+
 	foreach my $m (keys %$self)
 	{
-		if ($m =~ /\d*/)
+		if ($m =~ /\d+/)
 		{
+			print STDERR "DEBUG: tableau(): decoding $level match $m\n" if $DEBUGGING > 1;
 			my $match = $c->match($level, $m);
 
 			# print "m = $m\n";
 			# print "old match = " . Dumper(\$self->{$m});
-			# print "new match = " . Dumper(\$match);
+			# print STDERR "new match = " . Dumper(\$match);
 
 			$self->{$m} = $match;
 		}
@@ -1054,6 +1058,73 @@ sub fpp
 
 ###################################################
 #
+#	creates a list of outstanding matches
+#
+###################################################
+sub matchlist 
+{
+	my $c = shift;
+
+	my $raw = shift || 0;
+
+	my $output = {};
+
+	my @ta = $c->tableaux(1);
+
+	# print STDERR "DEBUG: matchlist(): tableaux = " . Dumper(\@ta) if $DEBUGGING;
+
+	foreach my $t (@ta)
+	{
+		my $tab = $c->tableau($t, 1);
+
+		print STDERR "DEBUG: matchlist(): tab = " . Dumper(\$tab) if $DEBUGGING > 2;
+
+		foreach my $id (keys %$tab)
+		{
+			my $match = $tab->{$id};
+
+			next unless $id =~ /\d+/;
+
+			next if $match->{'winner'};
+
+
+			print STDERR "DEBUG: matchlist(): *****************************************************\n" if $DEBUGGING > 1;
+			print STDERR "DEBUG: matchlist(): processing id $id\n" if $DEBUGGING > 1;
+
+
+			unless ($raw)
+			{
+				next unless $match->{'fencerA'} && $match->{'fencerB'};
+
+				print STDERR "DEBUG: matchlist(): waiting for match = " . Dumper($match) if $DEBUGGING > 1;
+
+				my $where = {};
+				$where->{'round'} = $t;
+				$where->{'piste'} = $match->{'piste'};
+				$where->{'time'} = $match->{'time'};
+
+				print STDERR "DEBUG: matchlist(): where = " . Dumper(\$where) if $DEBUGGING > 1;
+
+				$output->{$match->{'fencerB'}} = \$where;
+				$output->{$match->{'fencerA'}} = \$where;
+
+				print STDERR "DEBUG: matchlist(): output = " . Dumper(\$output) if $DEBUGGING > 1;
+
+			}
+			else
+			{
+				# $output->{$t}->{$id} = $match ;
+			}
+		}
+	}
+
+	return $output;
+}
+
+
+
+###################################################
+#
 #	creates a de-referenced list of entries
 #
 ###################################################
@@ -1099,7 +1170,6 @@ sub spreadsheet
 	return Engarde::Spreadsheet::writeL32($self, $name);
 }
 
-#1100
 
 sub load 
 {
@@ -1195,13 +1265,12 @@ sub tableaux
 	$initial = $tableaux[0] unless $initial;
 	# print "TABLEAUX: result @result\n";
 
-	print STDERR "DEBUG: tableaux(): returning @tableaux, initial = $initial\n" if $DEBUGGING;
+	print STDERR "DEBUG: tableaux(): returning " . @tableaux || "" . ", initial = $initial\n" if $DEBUGGING;
 	# return reverse @result unless $current == 2;
 	return @tableaux unless $current == 2;
 	return $initial if $current == 2;
 }
 
-#1200
 
 sub whereami
 {
@@ -1334,6 +1403,8 @@ sub _heure_to_time
 	print STDERR "DEBUG: _heure_to_time(): returning " . localtime($out) . "\n" if $DEBUGGING > 1;
 	return $out;
 }
+
+
 
 sub piste_status
 {
