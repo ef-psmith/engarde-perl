@@ -424,6 +424,9 @@ sub match
 	$out->{fencerA} = $fa->nom if $fa->{nom};
 	$out->{fencerB} = $fb->nom if $fb->{nom};
 
+	$out->{fencerA_court} = $fa->nom_court if $fa->{nom};
+	$out->{fencerB_court} = $fb->nom_court if $fb->{nom};
+
 	$out->{winner} = $winner->nom if $winner;
 	$out->{scoreA} = $match->{scoreA};
 	$out->{scoreB} = $match->{scoreB};
@@ -1098,15 +1101,10 @@ sub matchlist
 
 				print STDERR "DEBUG: matchlist(): waiting for match = " . Dumper($match) if $DEBUGGING > 1;
 
-				my $where = {};
-				$where->{'round'} = $t;
-				$where->{'piste'} = $match->{'piste'};
-				$where->{'time'} = $match->{'time'};
+				$t =~ s/[A-Z]*//;
 
-				print STDERR "DEBUG: matchlist(): where = " . Dumper(\$where) if $DEBUGGING > 1;
-
-				$output->{$match->{'fencerB'}} = \$where;
-				$output->{$match->{'fencerA'}} = \$where;
+				$output->{$match->{'fencerA_court'}} = { 'round'=>$t, 'piste'=> $match->{'piste'}, 'time'=>$match->{'time'} };
+				$output->{$match->{'fencerB_court'}} = { 'round'=>$t, 'piste'=> $match->{'piste'}, 'time'=>$match->{'time'} };
 
 				print STDERR "DEBUG: matchlist(): output = " . Dumper(\$output) if $DEBUGGING > 1;
 

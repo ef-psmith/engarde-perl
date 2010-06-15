@@ -84,8 +84,14 @@ sub decode
 sub nom
 {
 	my $self = shift;
-
 	return "$self->{nom} $self->{prenom}";
+}
+
+
+sub nom_court
+{
+	my $self = shift;
+	return "$self->{nom} " . substr($self->{prenom}, 0, 1);
 }
 
 
