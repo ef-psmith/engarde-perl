@@ -1090,10 +1090,8 @@ sub matchlist
 
 			next if $match->{'winner'};
 
-
 			print STDERR "DEBUG: matchlist(): *****************************************************\n" if $DEBUGGING > 1;
 			print STDERR "DEBUG: matchlist(): processing id $id\n" if $DEBUGGING > 1;
-
 
 			unless ($raw)
 			{
@@ -1111,7 +1109,7 @@ sub matchlist
 			}
 			else
 			{
-				# $output->{$t}->{$id} = $match ;
+				$output->{$t}->{$id} = $match ;
 			}
 		}
 	}
