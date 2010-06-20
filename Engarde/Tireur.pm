@@ -4,6 +4,7 @@ use vars qw($VERSION @ISA);
 @ISA = qw(Engarde);
 
 use Data::Dumper;
+use HTML::Entities;
 
 sub decode
 {
@@ -84,14 +85,14 @@ sub decode
 sub nom
 {
 	my $self = shift;
-	return "$self->{nom} $self->{prenom}";
+	return encode_entities("$self->{nom} $self->{prenom}");
 }
 
 
 sub nom_court
 {
 	my $self = shift;
-	return "$self->{nom} " . substr($self->{prenom}, 0, 1);
+	return encode_entities("$self->{nom} " . substr($self->{prenom}, 0, 1));
 }
 
 

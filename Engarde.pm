@@ -27,6 +27,7 @@ use Engarde::Tableau;
 use Engarde::Poule;
 use Engarde::Arbitre;
 use Time::Local;
+use HTML::Entities;;
 our $DEBUGGING = 0;
 
 use vars qw($VERSION @ISA);
