@@ -1,3 +1,4 @@
+# vim: ts=4 sw=4 noet:
 package Engarde;
 
 ###############################################################################
@@ -30,7 +31,7 @@ use Time::Local;
 use HTML::Entities;;
 our $DEBUGGING = 0;
 
-use vars qw($VERSION @ISA);
+use vars qw($VERSION @ISA $ta);
 @ISA = qw(Exporter);
 
 $VERSION = '0.90'; 
@@ -320,7 +321,7 @@ sub _decode_tableau
 
 	foreach (@elements)
 	{
-		my @keywords = qw/suite nom nom_etendu rang_premier_battu inactif taille/;
+		my @keywords = qw/suite nom nom_etendu rang_premier_battu inactif taille destination_vainqueurs destination_battus/;
 
 		s/\]//;
 
@@ -342,6 +343,7 @@ sub _decode_tableau
 	}
 
 	$item->{nom} = uc($item->{nom});
+	$item->{destination_vainqueurs} = uc($item->{destination_vainqueurs});
 
 	return $item;
 }
@@ -677,11 +679,18 @@ sub tableau
 		$self->{level} = $level;
 		$self->{nom_etendu} = $c->{tableauxactifs}->{$level}->{nom_etendu};
 		$self->{rang_premier_battu} = $c->{tableauxactifs}->{$level}->{rang_premier_battu};
+		$self->{destination_vainqueurs} = $c->{tableauxactifs}->{$level}->{destination_vainqueurs};
 		$self->{taille} = $c->{tableauxactifs}->{$level}->{taille};
 		bless $self, "Engarde::Tableau";
+
+		$self->parent($c);
 	}
 
-	print STDERR "DEBUG: tableau() cannot read " . $self->{file} unless -r $self->{file};
+	unless (-r $self->{file})
+	{
+		print STDERR "DEBUG: tableau() cannot read " . $self->{file} . "\n" if $DEBUGGING;
+		return undef;
+	}
 
 	$self->{mtime} = (stat("$self->{file}"))[9];
 	$self->{ctime} = (stat("$self->{file}"))[10];
@@ -1232,18 +1241,17 @@ sub tableaux
 	# if set to 1 returns just the current stage(s)
 	my $current = shift || 0;
 
-	my $ta = $self->tableauxactifs;
+	local $ta = $self->tableauxactifs;
 
 	print STDERR "DEBUG: tableaux(): tableauxactifs = " . Dumper(\$ta) if $DEBUGGING > 1;
 
 	my $initial;
 	my @tableaux;
 
-	foreach my $key (reverse (sort {$ta->{$a}->{rang_premier_battu} <=> $ta->{$b}->{rang_premier_battu}} keys %$ta))
+	foreach my $key (sort tableaux_sort keys %$ta)
 	{
 		print STDERR "DEBUG: tableaux(): current tableau = $key\n" if $DEBUGGING > 1;
 
-		#1175
 		my $tab = $self->tableau($key);
 
 		next unless $tab;
@@ -1254,20 +1262,54 @@ sub tableaux
 
 		push @tableaux, $key if ($etat eq "en_cours" && $current);
 		push @tableaux, $key if ($etat eq "termine" &&  not $current);
+		push @tableaux, $key if ($etat eq "vide" &&  not $current);
 		
 		$initial = $key if ($etat eq "termine" && not $initial);
 	}
 
 
-	# my @result = sort {$ta->{$a}->{rang_premier_battu} <=> $ta->{$b}->{rang_premier_battu} } @tableaux;
-
 	$initial = $tableaux[0] unless $initial;
 	# print "TABLEAUX: result @result\n";
 
-	print STDERR "DEBUG: tableaux(): returning " . @tableaux || "" . ", initial = $initial\n" if $DEBUGGING;
 	# return reverse @result unless $current == 2;
 	return @tableaux unless $current == 2;
 	return $initial if $current == 2;
+}
+
+
+sub tableaux_sort 
+{
+
+	my $rang_a = $ta->{$a}->{rang_premier_battu};
+	my $rang_b = $ta->{$b}->{rang_premier_battu};
+	my $dest_a = uc $ta->{$a}->{destination_battus};
+	my $dest_b = uc $ta->{$b}->{destination_battus};
+
+
+	print STDERR "DEBUG: taleaux_sort(): BEFORE: \n\ta = $a, \n\tb = $b, \n\trang_a = $rang_a, \n\trang_b = $rang_b, \n\tdest_a = $dest_a, \n\tdest_b = $dest_b\n";
+	# print STDERR "DEBUG: taleaux_sort(): BEFORE: next_dest_a = " . $ta->{$dest_a}->{rang_premier_battu} . "\n";
+	# print STDERR "DEBUG: taleaux_sort(): BEFORE: next_dest_b = " . $ta->{$dest_b}->{rang_premier_battu} . "\n";
+
+	$rang_a = $ta->{$dest_a}->{rang_premier_battu} + 1 unless $rang_a;
+	$rang_b = $ta->{$dest_b}->{rang_premier_battu} + 1 unless $rang_b;
+
+	print STDERR "DEBUG: taleaux_sort(): AFTER: rang_a = $rang_a, rang_b = $rang_b, dest_a = $dest_a, dest_b = $dest_b\n";
+
+	# my $series_a = substr($a,0,1);
+	# my $series_b = substr($b,0,1);
+
+	print STDERR "DEBUG: tableaux_sort(): $a $b $dest_a $dest_b\n" if $DEBUGGING > 1;
+
+	return $rang_b <=> $rang_a;
+}
+
+sub next_tableau
+{
+	my $self=shift;
+	my $level = shift;
+	my $tab = $self->tableau($level);
+
+	return $tab->destination_vainqueurs;
 }
 
 

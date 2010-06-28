@@ -161,6 +161,23 @@ sub match
 }
 
 
+###########################################################
+#
+#  returns the next tableau name
+#
+#  this is for convenience and readability mainly
+#  as it allows you to call $tableau->next rather than $comp->next_tableau($tableau->level)
+#
+###########################################################
+
+sub next 
+{
+	my $self = shift;
+	my $comp = $self->parent;
+	return $comp->next_tableau($self->level);
+}
+
+
 1;
 
 
