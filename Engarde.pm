@@ -681,6 +681,7 @@ sub tableau
 		$self->{rang_premier_battu} = $c->{tableauxactifs}->{$level}->{rang_premier_battu};
 		$self->{destination_vainqueurs} = $c->{tableauxactifs}->{$level}->{destination_vainqueurs};
 		$self->{taille} = $c->{tableauxactifs}->{$level}->{taille};
+		$self->{suite} = uc($c->{tableauxactifs}->{$level}->{suite});
 		bless $self, "Engarde::Tableau";
 
 		$self->parent($c);
@@ -1243,7 +1244,7 @@ sub tableaux
 
 	local $ta = $self->tableauxactifs;
 
-	print STDERR "DEBUG: tableaux(): tableauxactifs = " . Dumper(\$ta) if $DEBUGGING > 1;
+	print STDERR "DEBUG: tableaux(): tableauxactifs = " . Dumper(\$ta) if $DEBUGGING > 2;
 
 	my $initial;
 	my @tableaux;
@@ -1260,7 +1261,7 @@ sub tableaux
 
 		print STDERR "DEBUG: tableaux(): etat = $etat\n" if $DEBUGGING > 1;
 
-		push @tableaux, $key if ($etat eq "en_cours" && $current);
+		push @tableaux, $key if ($etat eq "en_cours");
 		push @tableaux, $key if ($etat eq "termine" &&  not $current);
 		push @tableaux, $key if ($etat eq "vide" &&  not $current);
 		
@@ -1285,31 +1286,61 @@ sub tableaux_sort
 	my $dest_a = uc $ta->{$a}->{destination_battus};
 	my $dest_b = uc $ta->{$b}->{destination_battus};
 
-
-	print STDERR "DEBUG: taleaux_sort(): BEFORE: \n\ta = $a, \n\tb = $b, \n\trang_a = $rang_a, \n\trang_b = $rang_b, \n\tdest_a = $dest_a, \n\tdest_b = $dest_b\n";
+	print STDERR "DEBUG: taleaux_sort(): BEFORE: \n\ta = $a, \n\tb = $b, \n\trang_a = $rang_a, \n\trang_b = $rang_b, \n\tdest_a = $dest_a, \n\tdest_b = $dest_b\n" 
+		if $DEBUGGING > 2;;
 	# print STDERR "DEBUG: taleaux_sort(): BEFORE: next_dest_a = " . $ta->{$dest_a}->{rang_premier_battu} . "\n";
 	# print STDERR "DEBUG: taleaux_sort(): BEFORE: next_dest_b = " . $ta->{$dest_b}->{rang_premier_battu} . "\n";
 
 	$rang_a = $ta->{$dest_a}->{rang_premier_battu} + 1 unless $rang_a;
 	$rang_b = $ta->{$dest_b}->{rang_premier_battu} + 1 unless $rang_b;
 
-	print STDERR "DEBUG: taleaux_sort(): AFTER: rang_a = $rang_a, rang_b = $rang_b, dest_a = $dest_a, dest_b = $dest_b\n";
+	print STDERR "DEBUG: taleaux_sort(): AFTER: rang_a = $rang_a, rang_b = $rang_b, dest_a = $dest_a, dest_b = $dest_b\n" if $DEBUGGING > 2;
 
 	# my $series_a = substr($a,0,1);
 	# my $series_b = substr($b,0,1);
 
-	print STDERR "DEBUG: tableaux_sort(): $a $b $dest_a $dest_b\n" if $DEBUGGING > 1;
+	print STDERR "DEBUG: tableaux_sort(): $a $b $dest_a $dest_b\n" if $DEBUGGING > 2;
 
 	return $rang_b <=> $rang_a;
 }
 
 sub next_tableau
 {
-	my $self=shift;
+	my $self = shift;
 	my $level = shift;
 	my $tab = $self->tableau($level);
 
 	return $tab->destination_vainqueurs;
+}
+
+
+sub next_tableau_in_suite
+{
+	my $self = shift;
+	my $level = shift;
+
+	my $tab = $self->tableau($level);
+	my $suite = $tab->suite;
+
+	my @tab = $self->tableaux();
+
+	print STDERR "DEBUG: next_tableau_in_suite(): tab = [@tab]\n" if $DEBUGGING > 2;
+
+	while ($tab[0] ne $level)
+	{
+		shift (@tab);
+	}
+	shift(@tab);
+
+	foreach my $t (@tab)
+	{
+		my $next_tab = $self->tableau($t);
+		my $next_suite = $next_tab->suite; 
+
+		return $t if $next_suite eq $suite;
+	}
+
+	return undef;
 }
 
 

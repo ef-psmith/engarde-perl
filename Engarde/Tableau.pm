@@ -1,3 +1,4 @@
+# vim: ts=4 sw=4 noet:
 package Engarde::Tableau;
 
 use strict;
@@ -175,6 +176,14 @@ sub next
 	my $self = shift;
 	my $comp = $self->parent;
 	return $comp->next_tableau($self->level);
+}
+
+
+sub next_in_suite 
+{
+	my $self = shift;
+	my $comp = $self->parent;
+	return $comp->next_tableau_in_suite($self->level);
 }
 
 
