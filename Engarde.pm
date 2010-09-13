@@ -17,7 +17,7 @@ use strict;
 # use File::Basename;
 # use Storable qw(dclone);
 use Data::Dumper;
-use Carp;
+use Carp qw(croak cluck);
 use Scalar::Util qw(weaken);
 
 use Engarde::Tireur;
@@ -72,8 +72,7 @@ our $AUTOLOAD;
 sub AUTOLOAD 
 {
 	my $self = shift;
-	my $type = ref($self)
-		    or croak "$self is not an object";
+	my $type = ref($self) or croak "$self is not an object";
 
 	my $name = $AUTOLOAD;
 	$name =~ s/.*://;   # strip fully-qualified portion
@@ -662,7 +661,7 @@ sub tableau
 	my $self;
 	my $old_mtime = 0;
 
-	print STDERR "DEBUG: tableau(): procesing $level\n" if $DEBUGGING;
+	print STDERR "DEBUG: tableau(): procesing $level\n" if $DEBUGGING > 1;
 
 	if ($c->{tableau}->{$level})
 	{
@@ -955,13 +954,23 @@ sub ranking
 		{
 			my $round = $c->tableau($t);
 
+			my $etat = $round->etat;
+
+			print STDERR "DEBUG: ranking(): round $t, etat = $etat\n" if $DEBUGGING > 1;
+
+			next unless $etat eq "termine";
+
 			# print "RANKING: round = " . Dumper(\$round);
 
 			my $taille = $round->taille;
 
 			my $eliminated = $round->eliminated;
 
+			# print STDERR "DEBUG: ranking(): eliminated = " . Dumper(\$eliminated);
+
 			my $next_rang = $round->rang_premier_battu;
+
+			next unless $next_rang;
 
 			my $elim = {};	# eliminated this round
 
@@ -986,7 +995,7 @@ sub ranking
 
 			foreach my $e (sort { $elim->{$a}->{rangpou} <=> $elim->{$b}->{rangpou}} keys(%$elim))
 			{
-				# print "e = " . Dumper(\$e);
+				# print STDERR "ranking: e = " . Dumper(\$e);
 
 				my $rangpou = $elim->{$e}->{rangpou};
 
@@ -1001,14 +1010,14 @@ sub ranking
 
 			if ($taille == 2)
 			{
-				# print "RANKING: getting winner\n";
+				cluck "RANKING: getting winner\n";
 
 				my $m = $c->match($t,1);
 				# my $m = $round->match(1);
 
-				# print "RANKING: match 1 = " . Dumper(\$m);
+				print "RANKING: match 1 = " . Dumper(\$m);
 
-				my $nom = $m->{winner};
+				my $nom = $m->{winner} || "";
 
 				my $nation = $nom eq $m->{fencerA} ? $m->{nationA} : $m->{nationB};
 				my $club = $nom eq $m->{fencerA} ? $m->{clubA} : $m->{clubB};
@@ -1404,6 +1413,7 @@ sub whereami
 		$result = "poules $nutour $waiting";
 	}
 
+	print "DEBUG: whereami: result = $result\n" if $DEBUGGING > 1;
 	return $result; 
 }
 

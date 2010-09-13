@@ -84,6 +84,9 @@ sub load
 		($item->{'fencerA'},$item->{'fencerB'},$item->{'scoreA'},$item->{'scoreB'},$item->{'winner'},$item->{'seedA'},$item->{'seedB'})
 			= $matches[$i] =~ m/^\((.*) (.*) (.*) (.*) (.*) ([0-9]*) ([0-9]*)\)/;
 
+		$item->{'fencerA'} = "" if $item->{'fencerA'} =~ /\(\)/;
+		$item->{'fencerB'} = "" if $item->{'fencerB'} =~ /\(\)/;
+
 		if ($matches[$i] =~ /heure/)
 		{
 			($item->{'piste'}, $item->{'time'}) = $matches[$i] =~ m/.*\[piste_no (.*)\]*.*\[heure "~(.*)\"/;
@@ -121,18 +124,22 @@ sub load
 
 		if ($item->{'winner'})
 		{
+			# print STDERR "winner = [$item->{'winner'}]\n";
 			$item->{'winner'} = "" if ($item->{'winner'} eq "()" || $item->{'winner'} eq " ");
+			# print STDERR "winner2 = [$item->{'winner'}]\n";
 
 			# push loser
 			my $id = $item->{'winner'} eq $item->{'fencerA'} ? $item->{'fencerB'} : $item->{'fencerA'};
 
 			# $level = $self->level;
 
-			# print "level = $level, id = $id\n";
-			push @eliminated, $id unless $id eq "nobody";
+			# print STDERR "id = $id\n";
+			push @eliminated, $id unless ($id eq "nobody" || $id eq "");
 		}
 
 		bless $item, "Engarde::Match";
+
+		# print STDERR "item = " . Dumper(\$item);
 		$self->{$i} = $item;
 
 		$self->{'eliminated'} = \@eliminated;
