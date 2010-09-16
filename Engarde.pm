@@ -1068,6 +1068,8 @@ sub fpp
 
 		my $tir = $p->les_tir_cons;
 
+		my $dom = $c->domaine_compe;
+
 		foreach my $id (@$tir)
 		{
 			my $f = $c->tireur($id);
@@ -1080,11 +1082,14 @@ sub fpp
 			my $nation = $f->nation ? $c->nation($f->nation) : "";
 			my $heure = $p->heure;
 			my $piste_no = $p->piste_no;
+		
+			my $aff = $dom eq "national" ? "$club" : "$nation";
 
 			# print "FPP: id = $id, club = $club " . Dumper($f);
 			
-			$output->{$id} = { nom=>$nom, club=>$club, serie=>$serie, nation=>$nation, poule=>$i, heure=>$heure, piste_no=>$piste_no };
+			$output->{$id} = { nom=>$nom, club=>$aff, serie=>$serie, nation=>$nation, poule=>$i, heure=>$heure, piste_no=>$piste_no };
 		}
+
 		$i++;
 	}
 
@@ -1132,7 +1137,7 @@ sub matchlist
 
 				print STDERR "DEBUG: matchlist(): waiting for match = " . Dumper($match) if $DEBUGGING > 1;
 
-				$t =~ s/[A-Z]*//;
+				#$t =~ s/[A-Z]*//;
 
 				$output->{$match->{'fencerA_court'}} = { 'round'=>$t, 'piste'=> $match->{'piste'}, 'time'=>$match->{'time'} };
 				$output->{$match->{'fencerB_court'}} = { 'round'=>$t, 'piste'=> $match->{'piste'}, 'time'=>$match->{'time'} };
