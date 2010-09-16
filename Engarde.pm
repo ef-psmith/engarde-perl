@@ -343,6 +343,7 @@ sub _decode_tableau
 
 	$item->{nom} = uc($item->{nom});
 	$item->{destination_vainqueurs} = uc($item->{destination_vainqueurs});
+	$item->{destination_battus} = uc($item->{destination_battus});
 
 	return $item;
 }
@@ -679,8 +680,18 @@ sub tableau
 		$self->{nom_etendu} = $c->{tableauxactifs}->{$level}->{nom_etendu};
 		$self->{rang_premier_battu} = $c->{tableauxactifs}->{$level}->{rang_premier_battu};
 		$self->{destination_vainqueurs} = $c->{tableauxactifs}->{$level}->{destination_vainqueurs};
+
+		if ( $c->{tableauxactifs}->{$level}->{destination_battus})
+		{
+			print STDERR "DEBUG: destination_battus = " . $c->{tableauxactifs}->{$level}->{destination_battus} . "\n";
+			$self->{destination_battus} = $c->{tableauxactifs}->{$level}->{destination_battus};
+			$c->{tableauxactifs}->{$self->{destination_battus}}->{is_rep} = 1;
+		}
+
 		$self->{taille} = $c->{tableauxactifs}->{$level}->{taille};
 		$self->{suite} = uc($c->{tableauxactifs}->{$level}->{suite});
+		$self->{is_rep} = $c->{tableauxactifs}->{$level}->{is_rep};
+
 		bless $self, "Engarde::Tableau";
 
 		$self->parent($c);
@@ -1292,8 +1303,8 @@ sub tableaux_sort
 
 	my $rang_a = $ta->{$a}->{rang_premier_battu};
 	my $rang_b = $ta->{$b}->{rang_premier_battu};
-	my $dest_a = uc $ta->{$a}->{destination_battus};
-	my $dest_b = uc $ta->{$b}->{destination_battus};
+	my $dest_a = $ta->{$a}->{destination_battus};
+	my $dest_b = $ta->{$b}->{destination_battus};
 
 	print STDERR "DEBUG: taleaux_sort(): BEFORE: \n\ta = $a, \n\tb = $b, \n\trang_a = $rang_a, \n\trang_b = $rang_b, \n\tdest_a = $dest_a, \n\tdest_b = $dest_b\n" 
 		if $DEBUGGING > 2;;
