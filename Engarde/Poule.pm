@@ -212,6 +212,11 @@ sub grid
 	my @out;
 	my $domain = $c->domaine_compe;
 
+	$domain = "international" unless $domain;
+
+	$domain = "international" if $domain eq "championnat";
+
+
 	my $poulesize =  scalar @$tir;
 
 	# print "GRID: poulesize = $poulesize\n";
