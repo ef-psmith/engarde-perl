@@ -1070,6 +1070,11 @@ sub fpp
 
 		my $dom = $c->domaine_compe;
 
+		$dom = "international" unless $dom;
+
+		$dom = "international" if $dom eq "championnat";
+
+
 		foreach my $id (@$tir)
 		{
 			my $f = $c->tireur($id);
