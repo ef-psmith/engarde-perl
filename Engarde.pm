@@ -28,7 +28,7 @@ use Engarde::Tableau;
 use Engarde::Poule;
 use Engarde::Arbitre;
 use Time::Local;
-use HTML::Entities;;
+use HTML::Entities;
 our $DEBUGGING = 0;
 
 use vars qw($VERSION @ISA $ta);
@@ -1021,12 +1021,12 @@ sub ranking
 
 			if ($taille == 2)
 			{
-				cluck "RANKING: getting winner\n";
+				# cluck "RANKING: getting winner\n";
 
 				my $m = $c->match($t,1);
 				# my $m = $round->match(1);
 
-				print "RANKING: match 1 = " . Dumper(\$m);
+				# print "RANKING: match 1 = " . Dumper(\$m);
 
 				my $nom = $m->{winner} || "";
 

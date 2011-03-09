@@ -190,7 +190,10 @@ sub grid
 {
 	my $self = shift;
 	my $c = $self->parent;
+	my $xml = shift || 0;
 
+	my %xml_results;
+	
 	my $tir = $self->les_tir_cons;
 
 	# print "GRID: les_tir_cons = " . Dumper(\$tir);
@@ -240,7 +243,9 @@ sub grid
 	# print "GRID: titles = " . Dumper(\@titles);
 
 	push @out, \@titles;
- 
+
+	my $rownum = 1;
+	
 	foreach my $f (@$tir)
 	{
 		my $fencer = $c->tireur($f);
@@ -263,6 +268,8 @@ sub grid
 		push @line, "";
 
 		my $i;
+		
+		my @xmlr;
 
 		for ($i=0;$i<$poulesize;$i++)
 		{
@@ -271,7 +278,7 @@ sub grid
 			my $st = $res->{$f}[$i]->{status};
 			my $r = $res->{$f}[$i]->{result} || "";
 			my $s = $res->{$f}[$i]->{score} || "0";
-				
+
 			$r = "X" if $r eq "xx";
 			$r = "V" if $r eq "v" && $s == 5;
 			$r = "V$s" if $r eq "w";
@@ -281,11 +288,14 @@ sub grid
 			$r = $s if $r eq "d";
 
 			push @line, $r;
+		
+			push @xmlr, {score => $r, id => $i+1};
 			# print "DEBUG: grid: result = [$r]\n";
 		}
-
-		push @line, "";
 		
+		$xml_results{$rownum} = [@xmlr];
+		
+		push @line, "";
 
 		if ($line[4] || $line[4] eq 0 || $line[5] || $line[5] eq 0)  # there is a result
 		{
@@ -302,9 +312,43 @@ sub grid
 		}
 
 		push @out, \@line;
+		$rownum++;
 	}
 
-	return @out;
+	if ($xml)
+	{	
+		my $xmlout = {};
+		$xmlout->{fencer} = [];
+		$xmlout->{count} = @out - 1;
+		
+		my $sequence = 0;
+		foreach my $line (@out)
+		{
+			if ($sequence > 0)
+			{
+				# $out{sequence} = $sequence;
+				push @{$xmlout->{fencer}}, { id => $sequence, 
+						name => $$line[1], 
+						affiliation => $$line[2], 
+						result => $xml_results{$sequence},
+						vm => $$line[-4],
+						hs => $$line[-3],
+						ind => $$line[-2],
+						pl => $$line[-1]
+				};
+			}
+			$sequence++;
+		}
+		
+		# print Dumper(\%out);
+		
+		# print Dumper(\@xmlout);
+		return $xmlout;
+	}
+	else
+	{
+		return @out;
+	}
 }
 
 
