@@ -1030,8 +1030,8 @@ sub ranking
 
 				my $nom = $m->{winner} || "";
 
-				my $nation = $nom eq $m->{fencerA} ? $m->{nationA} : $m->{nationB};
-				my $club = $nom eq $m->{fencerA} ? $m->{clubA} : $m->{clubB};
+				my $nation = defined($m->{fencerA}) && $nom eq $m->{fencerA} ? $m->{nationA} : $m->{nationB};
+				my $club = defined($m->{fencerB}) && $nom eq $m->{fencerA} ? $m->{clubA} : $m->{clubB};
 
 				$seeds->{1} = {nom=>$nom, nation=>$nation, club=>$club, seed=>1, group=>"elim_0"}; 
 
