@@ -398,8 +398,8 @@ sub match
 
 	my $match = $tab->match($m);
 
-	# print "\nEngarde::match: t = $t, m = $m\n";
-	# print "Engarde::match: tab match data = " . Dumper(\$match);
+	#print "\nEngarde::match: t = $t, m = $m\n";
+	#cluck ("Engarde::match: tab match data = " . Dumper(\$match));
 
 	my $out = {};
 
@@ -1026,7 +1026,7 @@ sub ranking
 				my $m = $c->match($t,1);
 				# my $m = $round->match(1);
 
-				# print "RANKING: match 1 = " . Dumper(\$m);
+				print "RANKING: match 1 = " . Dumper(\$m);
 
 				my $nom = $m->{winner} || "";
 
@@ -1388,8 +1388,8 @@ sub whereami
 	# etattour is either en_cours or constitution
 	my $nutour = $self->nutour;	
 
-	#print "whereami: etat = $etat\n";
-	#print "whereami: etattour = $etattour\n";
+	print "whereami: etat = $etat\n";
+	print "whereami: etattour = $etattour\n";
 
 	if ($etat eq "termine")
 	{
@@ -1411,7 +1411,13 @@ sub whereami
 			print "DEBUG: whereami: current tab = @tab\n" if $DEBUGGING > 1;
 			print "DEBUG: whereami: initial = $initial\n" if $DEBUGGING > 1;
 
-			$result = "tableau $tab[0] $initial";
+			print "DEBUG: whereami: current tab = @tab\n";
+			print "DEBUG: whereami: initial = $initial\n";
+
+			$result = "tableau";
+
+			$result = "tableau $initial $tab[0]" unless $tab[0] eq $initial;
+			$result = "tableau @tab" if $tab[0] eq $initial;
 		}
 	}
 	elsif ($etat eq "debut")
@@ -1435,6 +1441,7 @@ sub whereami
 	}
 
 	print "DEBUG: whereami: result = $result\n" if $DEBUGGING > 1;
+	print "DEBUG: whereami: result = $result\n";
 	return $result; 
 }
 
