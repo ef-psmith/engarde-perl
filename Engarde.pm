@@ -1416,6 +1416,7 @@ sub whereami
 
 			$result = "tableau";
 
+			# $result = "tableau $initial $tab[0]";
 			$result = "tableau $initial $tab[0]" unless $tab[0] eq $initial;
 			$result = "tableau @tab" if $tab[0] eq $initial;
 		}
