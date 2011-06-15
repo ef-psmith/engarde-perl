@@ -403,8 +403,8 @@ sub match
 
 	my $out = {};
 
-	my $fa = $c->tireur($match->{fencerA}) if $match->{fencerA};
-	my $fb = $c->tireur($match->{fencerB}) if $match->{fencerB};
+	my $fa = $c->tireur($match->{idA}) if $match->{idA};
+	my $fb = $c->tireur($match->{idB}) if $match->{idB};
 
 	# print "match: fa = " . Dumper (\$fa);
 	# print "match: fb = " . Dumper (\$fb);
@@ -439,8 +439,8 @@ sub match
 	$out->{clubB} = $cb if $cb;
 	$out->{nationA} = $na if $na;
 	$out->{nationB} = $nb if $nb;
-	$out->{idA} = $match->{fencerA} if $match->{fencerA};
-	$out->{idB} = $match->{fencerB} if $match->{fencerB};
+	$out->{idA} = $match->{idA} if $match->{idA};
+	$out->{idB} = $match->{idB} if $match->{idB};
 
 	if (defined $match->{'time'})
 	{
@@ -1030,8 +1030,8 @@ sub ranking
 
 				my $nom = $m->{winner} || "";
 
-				my $nation = defined($m->{fencerA}) && $nom eq $m->{fencerA} ? $m->{nationA} : $m->{nationB};
-				my $club = defined($m->{fencerB}) && $nom eq $m->{fencerA} ? $m->{clubA} : $m->{clubB};
+				my $nation = defined($m->{idA}) && $nom eq $m->{fencerA} ? $m->{nationA} : $m->{nationB};
+				my $club = defined($m->{idB}) && $nom eq $m->{fencerA} ? $m->{clubA} : $m->{clubB};
 
 				$seeds->{1} = {nom=>$nom, nation=>$nation, club=>$club, seed=>1, group=>"elim_0"}; 
 
@@ -1117,7 +1117,7 @@ sub matchlist
 
 	my @ta = $c->tableaux(1);
 
-	# print STDERR "DEBUG: matchlist(): tableaux = " . Dumper(\@ta) if $DEBUGGING;
+	print STDERR "DEBUG: matchlist(): tableaux = " . Dumper(\@ta) if $DEBUGGING > 1;
 
 	foreach my $t (@ta)
 	{
@@ -1127,18 +1127,19 @@ sub matchlist
 
 		foreach my $id (keys %$tab)
 		{
-			my $match = $tab->{$id};
-
 			next unless $id =~ /\d+/;
+
+			my $match = $tab->match($id);
 
 			next if $match->{'winner'};
 
 			print STDERR "DEBUG: matchlist(): *****************************************************\n" if $DEBUGGING > 1;
 			print STDERR "DEBUG: matchlist(): processing id $id\n" if $DEBUGGING > 1;
+			print STDERR "DEBUG: matchlist(): match = " . Dumper(\$match) if $DEBUGGING > 1;
 
 			unless ($raw)
 			{
-				next unless $match->{'fencerA'} && $match->{'fencerB'};
+				next unless $match->{'idA'} && $match->{'idB'};
 
 				print STDERR "DEBUG: matchlist(): waiting for match = " . Dumper($match) if $DEBUGGING > 1;
 

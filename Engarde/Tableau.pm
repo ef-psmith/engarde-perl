@@ -81,11 +81,11 @@ sub load
 		# 
 		print STDERR "DEBUG: Tableau::decode(): match $i = " . Dumper(\$matches[$i]) if $Engarde::DEBUGGING > 2;
 		
-		($item->{'fencerA'},$item->{'fencerB'},$item->{'scoreA'},$item->{'scoreB'},$item->{'winner'},$item->{'seedA'},$item->{'seedB'})
+		($item->{'idA'},$item->{'idB'},$item->{'scoreA'},$item->{'scoreB'},$item->{'winner'},$item->{'seedA'},$item->{'seedB'})
 			= $matches[$i] =~ m/^\((.*) (.*) (.*) (.*) (.*) ([0-9]*) ([0-9]*)\)/;
 
-		$item->{'fencerA'} = "" if $item->{'fencerA'} =~ /\(\)/;
-		$item->{'fencerB'} = "" if $item->{'fencerB'} =~ /\(\)/;
+		$item->{'idA'} = "" if $item->{'idA'} =~ /\(\)/;
+		$item->{'idB'} = "" if $item->{'idB'} =~ /\(\)/;
 
 		if ($matches[$i] =~ /heure/)
 		{
@@ -129,7 +129,7 @@ sub load
 			# print STDERR "winner2 = [$item->{'winner'}]\n";
 
 			# push loser
-			my $id = $item->{'winner'} eq $item->{'fencerA'} ? $item->{'fencerB'} : $item->{'fencerA'};
+			my $id = $item->{'winner'} eq $item->{'idA'} ? $item->{'idB'} : $item->{'idA'};
 
 			# $level = $self->level;
 
