@@ -1140,6 +1140,7 @@ sub matchlist
 			unless ($raw)
 			{
 				next unless $match->{'idA'} && $match->{'idB'};
+				next if $match->{'idA'} eq 'nobody' || $match->{'idB'} eq 'nobody';
 
 				print STDERR "DEBUG: matchlist(): waiting for match = " . Dumper($match) if $DEBUGGING > 1;
 
