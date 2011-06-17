@@ -334,7 +334,8 @@ sub grid
 						vm => $$line[-4],
 						hs => $$line[-3],
 						ind => $$line[-2],
-						pl => $$line[-1]
+						pl => $$line[-1],
+						fencerid => $$line[0]
 				};
 			}
 			$sequence++;
