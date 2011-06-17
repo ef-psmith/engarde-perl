@@ -1285,7 +1285,7 @@ sub tableaux
 
 	foreach my $key (sort tableaux_sort keys %$ta)
 	{
-		print STDERR "DEBUG: tableaux(): current tableau = $key\n" if $DEBUGGING;
+		print STDERR "DEBUG: tableaux(): current tableau = $key\n" if $DEBUGGING > 1;
 
 		my $tab = $self->tableau($key);
 
