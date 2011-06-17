@@ -139,8 +139,7 @@ sub new {
 	{
 		chomp;
 
-		s/
-//g;
+		s///g;
 
 		if ((/^\(def ma_competition/ || /^\(def ma_formule/ || $inside))
 		{
@@ -210,8 +209,7 @@ sub _init_poules
 			chomp;
 			# print "NEW: $_\n";
 			#
-			s/
-//g;
+			s///g;
 
 			if ( /nombre_poules/ )
 			{
@@ -263,8 +261,7 @@ sub _init_tableaux
 		{
 			chomp;
 
-			s/
-//g;
+			s///g;
 
 			print STDERR "DEBUG: _init_tableaux(): _ = $_\n" if $DEBUGGING > 1;
 
@@ -899,8 +896,7 @@ sub ranking
 			# q;1;160;6;6;30;8;
 			
 			chomp;
-			s/
-//g;
+			s///g;
 	
 			my @result = split /;/, $_;
 	
@@ -941,8 +937,7 @@ sub ranking
 			# q;1;160;6;6;30;8;
 			
 			chomp;
-			s/
-//g;
+			s///g;
 	
 			my @result = split /;/, $_;
 	
@@ -1234,8 +1229,7 @@ sub load
 	{
 		chomp;
 
-		s/
-//g;
+		s///g;
 
 		# print "load: $_\n";
 	
@@ -1291,7 +1285,7 @@ sub tableaux
 
 	foreach my $key (sort tableaux_sort keys %$ta)
 	{
-		print STDERR "DEBUG: tableaux(): current tableau = $key\n" if $DEBUGGING > 1;
+		print STDERR "DEBUG: tableaux(): current tableau = $key\n" if $DEBUGGING;
 
 		my $tab = $self->tableau($key);
 
@@ -1305,9 +1299,9 @@ sub tableaux
 		push @tableaux, $key if ($etat eq "termine" &&  not $current);
 		push @tableaux, $key if ($etat eq "vide" &&  not $current);
 		
-		$initial = $key if ($etat eq "termine" && not $initial);
+		$initial = $key if $etat eq "termine";
+		# print STDERR "DEBUG: tableaux(): initial tableau = $initial\n" if $DEBUGGING;
 	}
-
 
 	$initial = $tableaux[0] unless $initial;
 	# print "TABLEAUX: result @result\n";
@@ -1398,7 +1392,7 @@ sub whereami
 	# etattour is either en_cours or constitution
 	my $nutour = $self->nutour;	
 
-	print "whereami: etat = $etat\n";
+	# print "whereami: etat = $etat\n";
 	# print "whereami: etattour = $etattour\n";
 
 	if ($etat eq "termine")
@@ -1427,8 +1421,8 @@ sub whereami
 			$result = "tableau";
 
 			# $result = "tableau $initial $tab[0]";
-			$result = "tableau $initial $tab[0]" if $tab[0] eq $initial;
-			$result = "tableau @tab" unless $tab[0] eq $initial;
+			$result = "tableau $initial $tab[0]" unless $tab[0] eq $initial;
+			$result = "tableau @tab" if $tab[0] eq $initial;
 		}
 	}
 	elsif ($etat eq "debut")
