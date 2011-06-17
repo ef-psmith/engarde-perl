@@ -409,10 +409,10 @@ sub match
 	# print "match: fa = " . Dumper (\$fa);
 	# print "match: fb = " . Dumper (\$fb);
 
-	my $winner = $c->tireur($match->{winner}) if $match->{winner};
+	my $winner = $c->tireur($match->{winnerid}) if $match->{winnerid};
 
-	# print "match: winner = $match->{winner}\n";
-	# print "match: winner = " . Dumper(\$winner);
+	#print "match: winner = $match->{winnerid}\n";
+	#print "match: winner = " . Dumper(\$winnerid);
 
 	my $ca = $c->club($fa->{club1}) if $fa->{club1};
 	my $cb = $c->club($fb->{club1}) if $fb->{club1};
@@ -420,7 +420,7 @@ sub match
 	my $na = $c->nation($fa->{nation1}) if $fa->{nation1};
 	my $nb = $c->nation($fb->{nation1}) if $fb->{nation1};
 
-	# print "MATCH: winner [$winner] = " . Dumper($winner);
+	# print "MATCH: winner [$winnerid] = " . Dumper($winner);
 
 	# print "fencer A = " . Dumper ($fa);
 
@@ -430,7 +430,8 @@ sub match
 	$out->{fencerA_court} = $fa->nom_court if $fa->{nom};
 	$out->{fencerB_court} = $fb->nom_court if $fb->{nom};
 
-	$out->{winner} = $winner->nom if $winner;
+	$out->{winnername} = $winner->nom if $winner;
+	$out->{winnerid} = $match->{winnerid};
 	$out->{scoreA} = $match->{scoreA};
 	$out->{scoreB} = $match->{scoreB};
 	$out->{piste} = $match->{piste};
@@ -1028,7 +1029,7 @@ sub ranking
 
 				print "RANKING: match 1 = " . Dumper(\$m);
 
-				my $nom = $m->{winner} || "";
+				my $nom = $m->{winnername} || "";
 
 				my $nation = defined($m->{idA}) && $nom eq $m->{fencerA} ? $m->{nationA} : $m->{nationB};
 				my $club = defined($m->{idB}) && $nom eq $m->{fencerA} ? $m->{clubA} : $m->{clubB};
@@ -1129,9 +1130,10 @@ sub matchlist
 		{
 			next unless $id =~ /\d+/;
 
-			my $match = $tab->match($id);
+			# my $match = $tab->match($id);
+			my $match = $c->match($t, $id);
 
-			next if $match->{'winner'};
+			next if $match->{'winnerid'};
 
 			print STDERR "DEBUG: matchlist(): *****************************************************\n" if $DEBUGGING > 1;
 			print STDERR "DEBUG: matchlist(): processing id $id\n" if $DEBUGGING > 1;

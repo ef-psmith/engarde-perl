@@ -81,7 +81,7 @@ sub load
 		# 
 		print STDERR "DEBUG: Tableau::decode(): match $i = " . Dumper(\$matches[$i]) if $Engarde::DEBUGGING > 2;
 		
-		($item->{'idA'},$item->{'idB'},$item->{'scoreA'},$item->{'scoreB'},$item->{'winner'},$item->{'seedA'},$item->{'seedB'})
+		($item->{'idA'},$item->{'idB'},$item->{'scoreA'},$item->{'scoreB'},$item->{'winnerid'},$item->{'seedA'},$item->{'seedB'})
 			= $matches[$i] =~ m/^\((.*) (.*) (.*) (.*) (.*) ([0-9]*) ([0-9]*)\)/;
 
 		$item->{'idA'} = "" if $item->{'idA'} =~ /\(\)/;
@@ -122,14 +122,14 @@ sub load
 			$item->{'scoreB'} = 0;
 		}
 
-		if ($item->{'winner'})
+		if ($item->{'winnerid'})
 		{
-			# print STDERR "winner = [$item->{'winner'}]\n";
-			$item->{'winner'} = "" if ($item->{'winner'} eq "()" || $item->{'winner'} eq " ");
-			# print STDERR "winner2 = [$item->{'winner'}]\n";
+			# print STDERR "winner = [$item->{'winnerid'}]\n";
+			$item->{'winnerid'} = "" if ($item->{'winnerid'} eq "()" || $item->{'winnerid'} eq " ");
+			# print STDERR "winner2 = [$item->{'winnerid'}]\n";
 
 			# push loser
-			my $id = $item->{'winner'} eq $item->{'idA'} ? $item->{'idB'} : $item->{'idA'};
+			my $id = $item->{'winnerid'} eq $item->{'idA'} ? $item->{'idB'} : $item->{'idA'};
 
 			# $level = $self->level;
 
@@ -139,7 +139,7 @@ sub load
 
 		bless $item, "Engarde::Match";
 
-		# print STDERR "item = " . Dumper(\$item);
+		#print STDERR "item = " . Dumper(\$item);
 		$self->{$i} = $item;
 
 		$self->{'eliminated'} = \@eliminated;
