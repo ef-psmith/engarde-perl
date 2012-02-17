@@ -28,7 +28,7 @@ use Engarde::Tableau;
 use Engarde::Poule;
 use Engarde::Arbitre;
 use Time::Local;
-use HTML::Entities;
+# use HTML::Entities;
 our $DEBUGGING = 0;
 
 use vars qw($VERSION @ISA $ta);
@@ -1415,8 +1415,8 @@ sub whereami
 			print "DEBUG: whereami: current tab = @tab\n" if $DEBUGGING > 1;
 			print "DEBUG: whereami: initial = $initial\n" if $DEBUGGING > 1;
 
-			print "DEBUG: whereami: current tab = @tab\n";
-			print "DEBUG: whereami: initial = $initial\n";
+			print "DEBUG: whereami: current tab = @tab\n" if $DEBUGGING;
+			print "DEBUG: whereami: initial = $initial\n" if $DEBUGGING;
 
 			$result = "tableau";
 
