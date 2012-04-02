@@ -1418,9 +1418,6 @@ sub whereami
 			print "DEBUG: whereami: current tab = @tab\n" if $DEBUGGING > 1;
 			print "DEBUG: whereami: initial = $initial\n" if $DEBUGGING > 1;
 
-			print "DEBUG: whereami: current tab = @tab\n" if $DEBUGGING;
-			print "DEBUG: whereami: initial = $initial\n" if $DEBUGGING;
-
 			$result = "tableau";
 
 			# $result = "tableau $initial $tab[0]";
@@ -1449,7 +1446,6 @@ sub whereami
 	}
 
 	print "DEBUG: whereami: result = $result\n" if $DEBUGGING > 1;
-	print "DEBUG: whereami: result = $result\n";
 	return $result; 
 }
 
