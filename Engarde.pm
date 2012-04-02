@@ -7,7 +7,7 @@ package Engarde;
 #
 # Engarde - Provides an OO interface to Engarde competition files
 #
-# Copyright 2007-2008, Peter Smith, psmith@rekar.co.uk
+# Copyright 2007-2012, Peter Smith, psmith@rekar.co.uk
 #
 
 # use Exporter;
@@ -342,8 +342,8 @@ sub _decode_tableau
 	}
 
 	$item->{nom} = uc($item->{nom});
-	$item->{destination_vainqueurs} = uc($item->{destination_vainqueurs});
-	$item->{destination_battus} = uc($item->{destination_battus});
+	$item->{destination_vainqueurs} = uc($item->{destination_vainqueurs}) if $item->{destination_vainqueurs};
+	$item->{destination_battus} = uc($item->{destination_battus}) if $item->{destination_battus};
 
 	return $item;
 }
@@ -1291,11 +1291,14 @@ sub tableaux
 
 		next unless $tab;
 
+		# print STDERR "DEBUG: tableaux(): tab = " . Dumper(\$tab) if $DEBUGGING > 1;
+
 		my $etat = $tab->etat;
 
 		print STDERR "DEBUG: tableaux(): etat = $etat\n" if $DEBUGGING > 1;
 
 		push @tableaux, $key if ($etat eq "en_cours");
+		push @tableaux, $key if ($etat eq "tableaux");
 		push @tableaux, $key if ($etat eq "termine" &&  not $current);
 		push @tableaux, $key if ($etat eq "vide" &&  not $current);
 		
