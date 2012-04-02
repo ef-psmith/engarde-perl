@@ -255,7 +255,7 @@ sub grid
 		my $affiliation;
 	   
 		$affiliation = $c->nation($fencer->nation) if $domain eq "international" && $fencer->nation;
-		$affiliation = $c->club($fencer->club) if $domain eq "national";
+		$affiliation = $c->club($fencer->club) if $domain eq "national" && $fencer->club;
 
 		# print "GRID: f = $f, fencer = " . Dumper(\$fencer);
 		# print "GRID: affiliation = $affiliation\n\n";
