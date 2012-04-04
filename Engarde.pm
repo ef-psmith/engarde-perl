@@ -656,7 +656,7 @@ sub tableau
 	my $decode = shift;
 
 	my $suite = substr($level,0,1);
-	my $num = substr($level,1);
+	my $num = substr($level,1) || cluck();
 
 	my $dir = $c->dir();
 
@@ -1291,7 +1291,7 @@ sub tableaux
 
 		next unless $tab;
 
-		# print STDERR "DEBUG: tableaux(): tab = " . Dumper(\$tab) if $DEBUGGING > 1;
+		print STDERR "DEBUG: tableaux(): tab = " . Dumper(\$tab) if $DEBUGGING > 2;
 
 		my $etat = $tab->etat;
 
