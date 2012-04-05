@@ -139,8 +139,7 @@ sub new {
 	{
 		chomp;
 
-		s/
-//g;
+		s///g;
 
 		if ((/^\(def ma_competition/ || /^\(def ma_formule/ || $inside))
 		{
@@ -210,8 +209,7 @@ sub _init_poules
 			chomp;
 			# print "NEW: $_\n";
 			#
-			s/
-//g;
+			s///g;
 
 			if ( /nombre_poules/ )
 			{
@@ -263,8 +261,7 @@ sub _init_tableaux
 		{
 			chomp;
 
-			s/
-//g;
+			s///g;
 
 			print STDERR "DEBUG: _init_tableaux(): _ = $_\n" if $DEBUGGING > 1;
 
@@ -899,8 +896,7 @@ sub ranking
 			# q;1;160;6;6;30;8;
 			
 			chomp;
-			s/
-//g;
+			s///g;
 	
 			my @result = split /;/, $_;
 	
@@ -941,8 +937,7 @@ sub ranking
 			# q;1;160;6;6;30;8;
 			
 			chomp;
-			s/
-//g;
+			s///g;
 	
 			my @result = split /;/, $_;
 	
@@ -1233,9 +1228,8 @@ sub load
 	while (<IN>)
 	{
 		chomp;
+		s///g;
 
-		s/
-//g;
 
 		# print "load: $_\n";
 	
