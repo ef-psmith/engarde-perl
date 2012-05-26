@@ -24,6 +24,7 @@ sub decode
 	if ($in =~ /nation1/)
 	{
 		($item->{nom},$item->{nation},$cle) = $in =~ m/.*\[nom \"(.*)\"\] \[nation1 (.*)\] \[cle (.*)\]\}$/;
+		#print STDERR "DEBUG: Club::decode: item = " . Dumper(\$item);
 	}
 	else
 	{

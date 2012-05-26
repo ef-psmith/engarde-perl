@@ -1027,7 +1027,7 @@ sub ranking
 				my $m = $c->match($t,1);
 				# my $m = $round->match(1);
 
-				print "RANKING: match 1 = " . Dumper(\$m);
+				# print "RANKING: match 1 = " . Dumper(\$m);
 
 				my $nom = $m->{winnername} || "";
 

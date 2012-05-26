@@ -257,7 +257,7 @@ sub grid
 		if ($domain eq "international")
 		{
 			$affiliation = $c->nation($fencer->nation) if $fencer->nation;
-			$affiliation .= " " . $c->club($fencer->club) if $fencer->club;
+			$affiliation = "$affiliation " . $c->club($fencer->club) if $fencer->club;
 		}
 		
 		$affiliation = $c->club($fencer->club) if $domain eq "national" && $fencer->club;
