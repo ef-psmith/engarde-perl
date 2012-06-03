@@ -865,7 +865,7 @@ sub ranking
 
 		my @w = split / /, $where;
 
-		return undef unless ($w[0] eq "tableau" || (defined($w[1]) && $w[1] >= $round));
+		return undef unless ($w[0] eq "tableau" || (defined($w[1]) && $w[1] >= $round) || $w[0] eq "termine");
 	}
 	
 
