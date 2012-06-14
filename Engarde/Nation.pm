@@ -9,6 +9,7 @@ sub decode
 {
 	my $self = shift;
 	my $in = shift;
+	my $max = $self->{max} || 0;
 
 	# {[classe nation] [nom "GBR"] [nom_etendu "Grande-Bretagne"] [cle 1]}	
 	my $item = {};
@@ -43,8 +44,11 @@ sub decode
 		}
 	}
 
+	$max = $cle if $cle > $max;
+
 	bless $item, "Engarde::Nation";
 	$self->{$cle} = $item;
+	$self->{max} = $max;
 }
 
 

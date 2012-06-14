@@ -20,6 +20,9 @@ sub decode
 	
 	my $item = {};
 	my $cle;
+	my $max = $self->{max} || 0;
+	my $present = $self->{present} || 0;
+	my $absent = $self->{absent} || 0;
 
 	my @elements = split /[ \]]*\[/, $in;
 
@@ -66,11 +69,23 @@ sub decode
 
 	$cle = $item->{cle};
 
+	$max = $cle if $cle > $max;
+
 	if ($item->{presence} eq "present")
 	{
-		bless $item, "Engarde::Tireur";
-		$self->{$cle} = $item;
+		$present += 1;
 	}
+	else
+	{
+		$absent += 1;
+	}
+
+	bless $item, "Engarde::Tireur";
+	$self->{$cle} = $item;
+
+	$self->{max} = $max;
+	$self->{present} = $present;
+	$self->{absent} = $absent;
 
 }
 
