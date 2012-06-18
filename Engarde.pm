@@ -19,6 +19,7 @@ use strict;
 use Data::Dumper;
 use Carp qw(croak cluck);
 use Scalar::Util qw(weaken);
+use Fcntl qw(:flock);
 
 use Engarde::Tireur;
 use Engarde::Nation;
@@ -34,7 +35,7 @@ our $DEBUGGING = 0;
 use vars qw($VERSION @ISA $ta);
 @ISA = qw(Exporter);
 
-$VERSION = '0.90'; 
+$VERSION = '0.95'; 
 
 my %order = ( 
 			128 => [undef, 	1, 128, 65, 64, 33, 96, 97, 32, 17, 112, 81, 48, 49, 80, 113, 16, 
@@ -65,6 +66,7 @@ my %order = (
 			4 => [undef, 	1, 4, 3, 2],
 			2 => [undef, 	1, 2]
 		);
+
 
 
 our $AUTOLOAD;
