@@ -35,32 +35,16 @@ sub readStatus {
 }
 
 sub HTMLdie {
-  my ($msg,$title) = @_;
   
-  $title || ($title = "Error");
+	my ($msg,$title) = @_;
+  
+  	$title || ($title = "Error");
     
-  print header(),
-        start_html(
-          -title => 'Error',
-          -lang => 'en-GB',
-          -style => {'src' => '/styles/bift.css'},
-          -text => '#000000',
-          -vlink => '#000000',
-          -alink => '#999900',
-          -link => '#000000',
-        ),
-        table({border => 0, cellspacing=>0, cellpadding=>0},
-          Tr(
-            td([
-              img({-src => '/graphics/bift_logo_small.gif', -alt=>'Fencers', -height => 100, -width => 150}),
-              img({-src => '/graphics/bift_title.gif', -alt => 'Birmingham International', -height => 100, -width => 490})
-            ])
-          )
-        );
-  print h1($msg);
-  print end_html();
-       
-  exit;
+	_std_header(undef, "Error");
+
+  	print h1($msg);
+  	print end_html();
+  	exit;
 }
 
 sub update_status {
@@ -120,26 +104,8 @@ sub control {
 	my $config = shift;
 
 	my $JSCRIPT="function doLoad() {\n  setTimeout('window.location.reload()',".$$config->{statusTimeout}.");\n}";
-	print header(),
-	start_html(
-		-title => 'Control',
-		-lang => 'en-GB',
-		-style => {'src' => '/styles/bift.css'},
-		-text => "#000000",
-		-vlink => "#000000",
-		-alink => "#999900",
-		-link => "#000000",
-		-script => $JSCRIPT,
-		-onload => 'doLoad()'
-	),
-	table({border => 0, cellspacing=>0, cellpadding=>0},
-		Tr(
-			td([
-				img({-src => '/graphics/bift_logo_small.gif', -alt=>'Fencers', -height => 100, -width => 150}),
-				img({-src => '/graphics/bift_title.gif', -alt => 'Birmingham International', -height => 100, -width => 490})
-			])
-		)
-	);
+
+	_std_header(undef, "Error", $JSCRIPT, "doLoad()");
   
 	print "<br><br><table border=0 cellspacing=0 cellpadding=0 width=720>\n";
 	print "<tr><td></td><th align=left>Status</th><th align=left></th><th align=left>Action</th><th align=left></th></tr>\n" ;
@@ -357,49 +323,30 @@ sub desk {
 
 	my $JSCRIPT="function doLoad() {\n  setTimeout('window.location.reload()',".$$config->{checkinTimeout}.");\n}";
 
-	print header(),
-        start_html(
-          -title => 'Check-in Desk',
-          -lang => 'en-GB',
-          -style => {'src' => '/styles/bift.css'},
-          -text => "#000000",
-          -vlink => "#000000",
-          -alink => "#999900",
-          -link => "#000000",
-          -script => $JSCRIPT,
-          -onload => 'doLoad()'
-		),
-		table({border => 0, cellspacing=>0, cellpadding=>0},
-			Tr(
-				td([
-              		img({-src => '/graphics/bift_logo_small.gif', -alt=>'Fencers', -height => 100, -width => 150}),
-              		img({-src => '/graphics/bift_title.gif', -alt => 'Birmingham International', -height => 100, -width => 490})
-            	])
-          	)
-        );
+	_std_header($config, "Check In Desk", $JSCRIPT, "doLoad()");
   
-		print "<table border=0 cellspacing=0 cellpadding=0 width=640>";
-		print "<tr><td align=center><h2>Check-in Desk</h2></td></tr><tr><th align=left>Please choose a weapon/competition.</th></tr>";
+	print "<table border=0 cellspacing=0 cellpadding=0 width=640>";
+	print "<tr><td align=center><h2>Check-in Desk</h2></td></tr><tr><th align=left>Please choose a weapon/competition.</th></tr>";
 
 
-		my $weapons = $$config->{competition};
+	my $weapons = $$config->{competition};
 
-		foreach my $cid (sort keys %$weapons) 
-		{
-			my $w = $weapons->{$cid};
-			next unless $w->{enabled} eq "true";
+	foreach my $cid (sort keys %$weapons) 
+	{
+		my $w = $weapons->{$cid};
+		next unless $w->{enabled} eq "true";
 
-			my $state = $w->{'state'};
+		my $state = $w->{'state'};
 
-			next if $state eq "hidden";
+		next if $state eq "hidden";
 
-			my $c = Engarde->new($w->{source} . "/competition.egw");
-      		print "<tr><td align=left><a href=".url()."?wp=$cid> $cid - ".$c->titre_reduit."</a></td></tr>" ;
-  		}
+		my $c = Engarde->new($w->{source} . "/competition.egw");
+   		print "<tr><td align=left><a href=".url()."?wp=$cid> $cid - ".$c->titre_reduit."</a></td></tr>" ;
+  	}
 
-  		print "</table><br><a href=\"index.html\">Back</a>\n" ;
-  		print end_html();
-	}
+  	print "</table><br><a href=\"index.html\">Back</a>\n" ;
+  	print end_html();
+}
 
 
 sub displayList {
@@ -413,27 +360,8 @@ sub displayList {
 	my $row = 0;
 	my $state = $$config->{competition}->{$cid}->{state};
 
-	print header(),
-	start_html(
-       	-title => 'Check-in',
-       	-lang => 'en-GB',
-      	-style => {'src' => '/styles/bift.css'},
-       	-text => "#000000",
-       	-vlink => "#000000",
-       	-alink => "#999900",
-       	-link => "#000000",
-       	-script => $JSCRIPT,
-       	-onload => 'doLoad()'
-	),
-	table({border => 0, cellspacing=>0, cellpadding=>0},
-		Tr(
-           	td([
-           		img({-src => '/graphics/bift_logo_small.gif', -alt=>'Fencers', -height => 100, -width => 150}),
-           		img({-src => '/graphics/bift_title.gif', -alt => 'Birmingham International', -height => 100, -width => 490})
-           	])
-       	)
-	);
-  
+	_std_header($config, "Check-in", $JSCRIPT, "doLoad();");
+
 	my $present = $::fencers->{present};
 	my $total = $present + $::fencers->{absent};
 	my $showall = param("showall") || 0;
@@ -550,22 +478,22 @@ sub editItem
 {
 	my $weaponPath = shift;
 	my $config = shift;
+	my $comp = shift;
 
 	my ($name, $first, $club, $nation, $licence, $presence, $owing, $nva);
 	my $state = $$config->{competition}->{$weaponPath}->{state};
 
-	# HTMLdie($state);
+	# HTMLdie(Dumper($::fencers));
 	if (param('Item') != -1) 
 	{
-		$name     = $::additions{param('Item')}->{'surname'} ;
-		$name     =~ s/"//g ;
-		$first    = $::additions{param('Item')}->{'name'} ;
-		$first    =~ s/"//g ;
-		$licence  = $::fencers{param('Item')}->{'licence'} ;
-		$licence  =~ s/"//g ;
-		$presence = $::fencers{param('Item')}->{'presence'} ;
-		$owing    = $::additions{param('Item')}->{'owing'} || 0;
-		$nva      = $::additions{param('Item')}->{'nva'} || 0;
+		my $f = $::fencers->{param('Item')};
+
+		$name     = $f->{'nom'} ;
+		$first    = $f->{'prenom'} ;
+		$licence  = $f->{'licence'} ;
+		$presence = $f->{'presence'} ;
+		$owing    = $f->{'owing'} || 0;
+		$nva      = $f->{'nva'} || 0;
 	} else {
 		$name     = "";
 		$first    = "";
@@ -575,25 +503,8 @@ sub editItem
     	$nva      = 0;
   	}
   
-  	print header(),
-		start_html(
-			-title => 'Edit Fencer',
-			-lang => 'en-GB',
-			-style => {'src' => '/styles/bift.css'},
-			-text => "#000000",
-			-vlink => "#000000",
-			-alink => "#999900",
-			-link => "#000000"
-		),
-		table({border => 0, cellspacing=>0, cellpadding=>0},
-			Tr(
-            	td([
-              		img({-src => '/graphics/bift_logo_small.gif', -alt=>'Fencers', -height => 100, -width => 150}),
-              		img({-src => '/graphics/bift_title.gif', -alt => 'Birmingham International', -height => 100, -width => 490})
-            	])
-          	)
-        );
-  
+	_std_header($config, "Edit Item", undef, undef);
+
 	print start_form(
           -method=>'POST',
           -action=>url()
@@ -616,64 +527,47 @@ sub editItem
 
 	print "<fieldset><legend>Fencer Information</legend>\n";
 	print table({border => 0, cellspacing=>2, cellpadding=>0},
-          Tr({},
-          [
-            td(["Surname :",textfield(-name=>'nom',-value=>$name,-size=>32,-maxlength=>32)]),
-            td(["Forename :",textfield(-name=>'prenom',-value=>$first,-size=>32,-maxlength=>32)]),
-            td(["Licence No :",textfield(-name=>'licence',-value=>$licence,-size=>32,-maxlength=>32)])
-          ]
-          )
-        );
-  print "</fieldset>\n";
-  print "<fieldset><legend>Affilliation</legend>\n";
-  my %clubnames = ();
-  my %nationnames = ();
-  my $selclub   = -1;
-  my $selnation = -1;
-  my (@ckeys,@nkeys);
-  #
-  # Generate Club List
-  #
-  @ckeys = sort {uc($::clubs{$a}->{'nom'}) cmp uc($::clubs{$b}->{'nom'})} (keys(%::clubs));
-  foreach (@ckeys) {
-    $club   = $::addclubs{$_}->{'nom'} ;
-    $club   =~ s/"//g ;
-    $clubnames{$_} = $club;
-    if (param('Item') != -1) {
-      if ($_ == $::fencers{param('Item')}->{'club1'}) {
-        $selclub = $_;
-      }
-    } else {
-      if ($selclub == -1) {
-        $selclub = $_;
-      }
-    }
-  }
-  push (@ckeys, '-1');
-  $clubnames{'-1'} = 'Other';
-  #
-  # Generate Nation List
-  #
-  @nkeys = sort {uc($::nations{$a}->{'nom'}) cmp uc($::nations{$b}->{'nom'})} (keys(%::nations));
-  foreach (@nkeys) {
-    $nation   = $::nations{$_}->{'nom'} ;
-    $nation   =~ s/"//g ;
-    $nationnames{$_} = $nation;
-    if (param('Item') != -1) {
-      if ($_ == $::fencers{param('Item')}->{'nation1'}) {
-        $selnation = $_;
-      }
-    } else {
-      if ($nation eq $::defaultNation) {
-        $selnation = $_;
-      }
-    }
-  }
-  push (@nkeys, '-1');
-  $nationnames{'-1'} = 'Other';
-  print table({border => 0, cellspacing=>2, cellpadding=>0},
-          Tr({},
-          [
+		Tr({},
+		[
+			td(["Surname :",textfield(-name=>'nom',-value=>$name,-size=>32,-maxlength=>32)]),
+			td(["Forename :",textfield(-name=>'prenom',-value=>$first,-size=>32,-maxlength=>32)]),
+			td(["Licence No :",textfield(-name=>'licence',-value=>$licence,-size=>32,-maxlength=>32)])
+		])
+	);
+
+	print "</fieldset>\n";
+	print "<fieldset><legend>Affilliation</legend>\n";
+	my %clubnames = ();
+	my %nationnames = ();
+	my $selclub   = -1;
+	my $selnation = -1;
+	my (@ckeys,@nkeys);
+
+	_club_list($comp, \@ckeys, \%clubnames, \$selclub);
+
+  	#
+  	# Generate Nation List
+  	#
+  	@nkeys = sort {uc($::nations{$a}->{'nom'}) cmp uc($::nations{$b}->{'nom'})} (keys(%::nations));
+  	foreach (@nkeys) {
+    	$nation   = $::nations{$_}->{'nom'} ;
+    	$nation   =~ s/"//g ;
+    	$nationnames{$_} = $nation;
+    	if (param('Item') != -1) {
+      	if ($_ == $::fencers{param('Item')}->{'nation1'}) {
+        	$selnation = $_;
+      	}
+    	} else {
+      	if ($nation eq $::defaultNation) {
+        	$selnation = $_;
+      	}
+    	}
+  	}
+  	push (@nkeys, '-1');
+  	$nationnames{'-1'} = 'Other';
+  	print table({border => 0, cellspacing=>2, cellpadding=>0},
+          	Tr({},
+          	[
             td(["Club :",
                 popup_menu(-name=>'club',
                            -values=>\@ckeys,
@@ -732,27 +626,74 @@ sub _std_header
 	
 	my $config = shift;
 	my $title = shift || "Engarde.pm";
+	my $JSCRIPT = shift || "";
+	my $onload = shift || "";
 	
   	print header(),
-        start_html(
-          -title => $title,
-          -lang => 'en-GB',
-          -style => {'src' => '/styles/bift.css'},
-          -text => '#000000',
-          -vlink => '#000000',
-          -alink => '#999900',
-          -link => '#000000',
-        ),
-        table({border => 0, cellspacing=>0, cellpadding=>0},
-          Tr(
-            td([
-              img({-src => '/graphics/bift_logo_small.gif', -alt=>'Fencers', -height => 100, -width => 150}),
-              img({-src => '/graphics/bift_title.gif', -alt => 'Birmingham International', -height => 100, -width => 490})
-            ])
-          )
-        );
+	start_html(
+		-title => $title,
+		-lang => 'en-GB',
+		-style => {'src' => '/styles/bift.css'},
+		-text => '#000000',
+		-vlink => '#000000',
+		-alink => '#999900',
+		-link => '#000000',
+		-script => $JSCRIPT,
+		-onload => $onload
+	);
+
+	print table({border => 0, cellspacing=>0, cellpadding=>0},
+		Tr(
+			td([
+				img({-src => '/graphics/bift_logo_small.gif', -alt=>'Fencers', -height => 100, -width => 150}),
+				$$config->{title}
+				#img({-src => '/graphics/bift_title.gif', -alt => 'Logo', -height => 100, -width => 490})
+			])
+		)
+	);
+}
+
+
+sub _club_list
+{
+
+	my $comp = shift;
+
+	my $ckeys = shift;
+	my $clubnames = shift;
+	my $selclub = shift;
+
+	my $clubs = $comp->club;
+
+	print STDERR Dumper(\$clubs);
+
+	# Generate Club List
+
+	my $t =	$comp->tireur(param('Item')) if param('Item');
+
+	#HTMLdie(Dumper($clubs));
+
+	$$selclub=$t->club1 if $t;
+
+	HTMLdie(Dumper(keys %$clubs));
+
+	@$ckeys = sort {uc($clubs->{$a}->{'nom'}) cmp uc($clubs->{$b}->{'nom'})} (keys(%$clubs));
+
+	HTMLdie(Dumper($ckeys));
+
+	foreach (@$ckeys) {
+		$$clubnames{$_} = $clubs->{$_}->{'nom'} ;
+	}
+	push (@$ckeys, '-1');
+	$$clubnames{'-1'} = 'Other';
+}
+
+
+sub _nation_list
+{
 
 }
+
 1;
 
 __END__
