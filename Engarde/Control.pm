@@ -121,7 +121,7 @@ sub control {
 		# HTMLdie(Dumper($w));
 		my $state = $w->{'state'};
 
-		my $c = Engarde->new($w->{source} . "/competition.egw");
+		my $c = Engarde->new($w->{source} . "/competition.egw", 1);
 
 		# HTMLdie(Dumper(\$c));
  
@@ -325,6 +325,8 @@ sub desk {
 
 	_std_header($config, "Check In Desk", $JSCRIPT, "doLoad()");
   
+	my $t=localtime();
+	print "$t\n";
 	print "<table border=0 cellspacing=0 cellpadding=0 width=640>";
 	print "<tr><td align=center><h2>Check-in Desk</h2></td></tr><tr><th align=left>Please choose a weapon/competition.</th></tr>";
 
@@ -340,11 +342,13 @@ sub desk {
 
 		next if $state eq "hidden";
 
-		my $c = Engarde->new($w->{source} . "/competition.egw");
+		my $c = Engarde->new($w->{source} . "/competition.egw", 1);
    		print "<tr><td align=left><a href=".url()."?wp=$cid> $cid - ".$c->titre_reduit."</a></td></tr>" ;
   	}
 
   	print "</table><br><a href=\"index.html\">Back</a>\n" ;
+	$t=localtime();
+	print "$t\n";
   	print end_html();
 }
 

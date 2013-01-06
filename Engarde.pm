@@ -109,13 +109,14 @@ sub parent
 
 sub new {
 
-    my $class = shift;
+	my $class = shift;
 	my $file = shift;
+	my $quick = shift || 0;
 
 	# print "NEW: class = $class\n";
 	print STDERR "DEBUG: new(): processing file $file\n" if $DEBUGGING;
 
-    my $self  = {};
+	my $self  = {};
 
 	unless (-r $file)
 	{
@@ -180,7 +181,7 @@ sub new {
 
     bless  $self, $class;
 
-	$self->initialise;
+	$self->initialise unless $quick;
 
     return $self;
 }
