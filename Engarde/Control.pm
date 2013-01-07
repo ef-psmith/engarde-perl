@@ -48,21 +48,16 @@ sub HTMLdie {
 }
 
 sub update_status {
-  my ($path, $new_status) = @_;
-  if ($path) {
-    my $state = &readStatus($path);
-    if ($new_status) {
-      $state->{'status'} = $new_status;
-      sysopen(FH, "$path/weapon.status", O_WRONLY | O_CREAT, 0666) || HTMLdie("Could not open $path/weapon.status for writing\n$!");
-      flock(FH, LOCK_EX) || HTMLdie("Couldn't obtain exclusive lock on $path/weapon.status");
-      foreach (keys(%$state)) {
-        print FH "$_ $state->{$_}\n" ;
-      }
-      close(FH);
-    }
-  }
-  # reload the page with out the query string
-  print "Location: ".url()."\n\n" ;
+	my $config = shift;
+	my $cid = shift;
+	my $status = shift;
+	
+	$config->{competition}->{$cid}->{state} = $status;
+
+	write_config("/tmp/live2a.xml",$config);
+
+	# reload the page with out the query string
+	print "Location: ".url()."\n\n" ;
 }
 
 sub update_hidden {
@@ -105,16 +100,16 @@ sub control {
 
 	my $JSCRIPT="function doLoad() {\n  setTimeout('window.location.reload()',".$$config->{statusTimeout}.");\n}";
 
-	_std_header(undef, "Error", $JSCRIPT, "doLoad()");
+	_std_header(undef, "Control Panel", $JSCRIPT, "doLoad()");
   
-	print "<br><br><table border=0 cellspacing=0 cellpadding=0 width=720>\n";
-	print "<tr><td></td><th align=left>Status</th><th align=left></th><th align=left>Action</th><th align=left></th></tr>\n" ;
+	print "<br><table border=0 cellspacing=0 cellpadding=4 width=1080\n";
+	print "<tr><td></td><th align=left>Status</th><th></th><th align=left>Action</th><th></th></tr>\n" ;
 
 	my $comps = $$config->{competition};
 
 	# HTMLdie("xxx" . Dumper($comps));	
 
-	foreach my $cid (sort keys(%$comps)) 
+	foreach my $cid (sort { $a <=> $b } keys(%$comps)) 
 	{
 		my $w = $comps->{$cid};
 		next unless $w->{enabled} eq "true"; 
@@ -124,50 +119,35 @@ sub control {
 		my $c = Engarde->new($w->{source} . "/competition.egw", 1);
 
 		# HTMLdie(Dumper(\$c));
- 
-		my $name = $c->titre_reduit;
-    
-    	unless (defined $state) 
-		{
-			$w->{'state'} = "hidden";
-      		# &update_hidden($w->{'path'}, "true");
-    	}
 
-    	$name =~ s/"//g;
-    	print "<tr><th align=left>$name</th>" ;
-    
-    	if ((!defined $state) || ($state eq "hidden")) 
+		my $name = $c->titre_reduit;
+
+ 		#unless (defined $state) 
+		#{
+			#$w->{'state'} = "hidden";
+			# &update_hidden($w->{'path'}, "true");
+		#}
+
+		$name =~ s/"//g;
+		print "<tr><th align=left>$cid - $name</th>" ;
+
+		if ((!defined $state) || ($state eq "hidden")) 
 		{
-      		print "<td align=left>Check-in</td><td align=left>Not Ready</td><td align=left><a href=\"".url()."?wp=".$cid."&Action=update&Status=Ready\">Setup check-in</a></td><td>Hidden</td></tr>" ;
+			print "<td>Check-in</td><td>Not Ready</td><td><a href=\"".url()."?wp=".$cid."&Action=update&Status=Ready\">Setup check-in</a></td><td>Hidden</td></tr>" ;
 
 		} 
 		elsif ($state eq "check in") 
 		{
-      		print "<td align=left>Check-in</td><td align=left>Open</td><td align=left><a href=\"".url()."?wp=".$cid."&Action=update&Status=Running\">Close check-in</a></td><td>";
-
-      		if ($state ne "hidden") 
-			{
-        		print "<a href=\"".url()."?wp=".$cid."&Action=hide\">Hide</a>";
-      		} else {
-        		print "Hidden - <a href=\"".url()."?wp=".$cid."&Action=show\">Show</a>";
-      		}
-
-      		print "</td></tr>" ;
-  		} 
+			print "<td>Check-in</td><td>Open</td><td><a href=\"".url()."?wp=".$cid."&Action=update&Status=Running\">Close check-in</a></td>";
+			print "<td><a href=\"".url()."?wp=".$cid."&Action=hide\">Hide</a></td>";
+			print "</tr>" ;
+		} 
 		elsif ($state eq "ready") 
 		{
-
-      		print "<td align=left>Check-in</td><td align=left>Ready</td><td align=left><a href=\"".url()."?wp=".$cid."&Action=update&Status=Check%20in\">Open check-in</a></td><td>";
-
-      		if ($state ne "hidden") 
-			{
-        		print "<a href=\"".url()."?wp=".$cid."&Action=hide\">Hide</a>";
-      		} else {
-				print "Hidden - <a href=\"".url()."?wp=".$cid."&Action=show\">Show</a>";
-      		}
-     	 print "</td></tr>" ;
-
-    	} 
+			print "<td>Check-in</td><td>Ready</td><td><a href=\"".url()."?wp=".$cid."&Action=update&Status=Check%20in\">Open check-in</a></td>";
+			print "<td><a href=\"".url()."?wp=".$cid."&Action=hide\">Hide</a></td>";
+			print "</tr>";
+		} 
 		else 
 		{
 			my $where = $c->whereami;
@@ -178,123 +158,80 @@ sub control {
 			{
 				if ($etat eq "termine") 
 				{
-					print "<td align=left>Complete</td><td align=left></td><td><a href=\"".url()."?wp=".$w->{'path'}."&Action=details&Name=$name\">Details</a></td><td align=left>";
-					if ($state->{'hidden'} =~ /false/i) 
-					{
-            			print "<a href=\"".url()."?wp=".$w->{'path'}."&Action=hide\">Hide</a>";
-          			} else {
-           		 		print "Hidden - <a href=\"".url()."?wp=".$w->{'path'}."&Action=show\">Show</a>";
-					}
-
-					print "</td></tr>" ;
+					print "<td>Complete</td><td></td><td><a href=\"".url()."?wp=".$cid."&Action=details\">Details</a></td><td></td></tr>";
 					last SWITCH;
 				}
 
-        		if ($etat eq "debut") 
+ 				if ($etat eq "debut") 
 				{
-	  				print "<td align=left>Waiting</td><td align=left>Start</td><td><a href=\"".url()."?wp=".$w->{'path'}."&Action=details&Name=$name\">Details</a></td><td align=left>";
-
-          			if ($state->{'hidden'} =~ /false/i) 
-					{
-           		 		print "<a href=\"".url()."?wp=".$w->{'path'}."&Action=hide\">Hide</a>";
-          			} 
-					else 
-					{
-           				print "Hidden - <a href=\"".url()."?wp=".$w->{'path'}."&Action=show\">Show</a>";
-          			}
-
-          			print "</td></tr>" ;
+	  				print "<td>Waiting</td><td>Start</td><td><a href=\"".url()."?wp=".$w->{'path'}."&Action=details&Name=$name\">Details</a></td>";
+ 					print "<td><a href=\"".url()."?wp=".$w->{'path'}."&Action=hide\">Hide</a></td>";
+					print "</tr>" ;
 	  				last SWITCH;
 				}
 
-        		if ($etat eq "poules") 
+				if ($etat eq "poules") 
 				{
-				 	print "<td align=left>Poules</td><td align=left>Round $w[1] : " ;
-	
-	  				if ($w[2]) 
+					print "<td>Poules</td><td>Round $w[1] : " ;
+
+  					if ($w[2]) 
 					{
-	    				my @p = (@w);
+	 					my @p = (@w);
 						shift @p;
 						shift @p;
 
-	    				print scalar(@p)." poules running.</td><td><a href=\"".url()."?wp=".$cid."&Action=details&Name=$name\">Details</a></td><td align=left>";
-
-            			if ($state ne "hidden") 
-						{
-              				print "<a href=\"".url()."?wp=".$cid."&Action=hide\">Hide</a>";
-           		 		} 
-						else 
-						{
-           		   			print "Hidden - <a href=\"".url()."?wp=".$cid."&Action=show\">Show</a>";
-           		 		}
-
-           		 		print "</td></tr>" ;
+	 					print scalar(@p)." poules running.</td><td><a href=\"".url()."?wp=".$cid."&Action=details&Name=$name\">Details</a></td>";
+						print "<td><a href=\"".url()."?wp=".$cid."&Action=hide\">Hide</a></td>";
+ 						print "</tr>" ;
 	  				} 
 					else 
 					{
-	    				print "complete.</td><td><a href=\"".url()."?wp=".$cid."&Action=details&Name=$name\">Details</a></td><td align=left>";
-           		 		if ($state ne "hidden") 
-						{
-           		   			print "<a href=\"".url()."?wp=".$cid."&Action=hide\">Hide</a>";
-           		 		} 
-						else 
-						{
-           		   			print "Hidden - <a href=\"".url()."?wp=".$cid."&Action=show\">Show</a>";
-           		 		}
-
-           		 		print "</td></tr>" ;
-	  				}
+						print "complete.</td><td><a href=\"".url()."?wp=".$cid."&Action=details&Name=$name\">Details</a></td>";
+ 						print "<td><a href=\"".url()."?wp=".$cid."&Action=hide\">Hide</a></td>";
+ 						print "</tr>" ;
+ 					}
 
 	  				last SWITCH;
 				}
 
-        		if ($etat eq "tableaux") 
+				if ($etat eq "tableaux") 
 				{
-	  				print "<td align=left>D.E.</td><td align=left>" ;
+	 				print "<td>D.E.</td><td>" ;
 
-	  				if ($w[2]) 
+ 					if ($w[2]) 
 					{
-	    				shift @w;
+ 						shift @w;
 						shift @w;
 
-	    				foreach (@w) 
+	 					foreach (@w) 
 						{
 							print "$_ ";
-	      					#if ($_ > 8) 
+	 						#if ($_ > 8) 
 							#{
-	        					#print " Last $_ " ;
-              				#} 
+  							#print " Last $_ " ;
+							#} 
 							#elsif ($_ == 8) 
 							#{
-	        					#print " Quarter final ";
-              				#} 
+							#print " Quarter final ";
+ 							#} 
 							#elsif ($_ == 4) 
 							#{
-	        					#print " Semi final ";
-              				#} 
+	 						#print " Semi final ";
+ 							#} 
 							#else 
 							#{
-	       		 				#print " Final";
-	      					#}
-	    				}
-	  				}
-	
-	  				print "</td><td><a href=\"".url()."?wp=".$w->{'path'}."&Action=details&Name=$name\">Details</a></td><td align=left>";
+	 						#print " Final";
+							#}
+ 						}
+					}
 
-          			if ($state->{'hidden'} =~ /false/i) 
-					{
-           		 		print "<a href=\"".url()."?wp=".$w->{'path'}."&Action=hide\">Hide</a>";
-          			} 
-					else 
-				{
-       		     	print "Hidden - <a href=\"".url()."?wp=".$w->{'path'}."&Action=show\">Show</a>";
-       		   	}
+					print "</td><td><a href=\"".url()."?wp=".$w->{'path'}."&Action=details&Name=$name\">Details</a></td>";
+ 					print "<td><a href=\"".url()."?wp=".$w->{'path'}."&Action=hide\">Hide</a></td>";
+	 				print "</tr>";
+  					last SWITCH;
+				}
 
-   	  	   		print "</td></tr>";
-		  		last SWITCH;
-			}
-
-				print "<td align=left>Error</td><td align=left>Unknown</td><td align=left></td><td align=left></td></tr>" ;
+				print "<td>Error</td><td>Unknown</td><td></td><td></td></tr>" ;
 			}
 		}
 	}
@@ -325,30 +262,30 @@ sub desk {
 
 	_std_header($config, "Check In Desk", $JSCRIPT, "doLoad()");
   
-	my $t=localtime();
-	print "$t\n";
+	# my $t=localtime();
+	# print "$t\n";
 	print "<table border=0 cellspacing=0 cellpadding=0 width=640>";
-	print "<tr><td align=center><h2>Check-in Desk</h2></td></tr><tr><th align=left>Please choose a weapon/competition.</th></tr>";
+	print "<tr><th>Please choose a weapon/competition.</th></tr>";
 
 
 	my $weapons = $$config->{competition};
 
-	foreach my $cid (sort keys %$weapons) 
+	foreach my $cid (sort { $a <=> $b } keys %$weapons) 
 	{
 		my $w = $weapons->{$cid};
 		next unless $w->{enabled} eq "true";
 
 		my $state = $w->{'state'};
 
-		next if $state eq "hidden";
+		next unless $state eq "check in";
 
 		my $c = Engarde->new($w->{source} . "/competition.egw", 1);
-   		print "<tr><td align=left><a href=".url()."?wp=$cid> $cid - ".$c->titre_reduit."</a></td></tr>" ;
+   		print "<tr><td><a href=".url()."?wp=$cid>$cid - ".$c->titre_reduit."</a></td></tr>";
   	}
 
   	print "</table><br><a href=\"index.html\">Back</a>\n" ;
-	$t=localtime();
-	print "$t\n";
+	# $t=localtime();
+	# print "$t\n";
   	print end_html();
 }
 
@@ -371,7 +308,7 @@ sub displayList {
 	my $showall = param("showall") || 0;
 
 	print "<table border=0 cellspacing=0 cellpadding=0><tr><td align=center>\n" ;
-	print "<table border=0 cellspacing=5 cellpadding=0 width=100%><tr><td align=left><a href=".url().">Check-in Desk</a></td><td align=center>Fencers Present : ".$present."/".$total."</td><td>Show all <input type='checkbox' name='showall' value=".$showall."></td><td align=right>";
+	print "<table border=0 cellspacing=5 cellpadding=0 width=100%><tr><td><a href=".url().">Check-in Desk</a></td><td align=center>Fencers Present : ".$present."/".$total."</td><td>Show all <input type='checkbox' name='showall' value=".$showall."></td><td align=right>";
 	print "<a href=javascript:edit('-1')>Add Fencer</a>" unless ($state ne "check in");
 	print "</td></tr></table>\n" ;
 	print "<table border=1 cellspacing=0 cellpadding=2>\n" ;
@@ -468,12 +405,12 @@ sub write_config
         my $cf = shift;
         my $data = shift;
 
-        sysopen(FH, "$cf" . ".tmp", "O_WRONLY") || cluck ("Could not open $cf for writing\n$!");
-        flock(FH, LOCK_EX) || die ("Couldn't obtain exclusive lock on $cf");
+        #sysopen(FH, "$cf" . ".tmp", "O_WRONLY") || HTMLdie ("Could not open $cf.tmp for writing: $!");
+        #flock(FH, LOCK_EX) || HTMLdie ("Couldn't obtain exclusive lock on $cf");
 
         XMLout($data, KeyAttr=>'id', AttrIndent=>1, RootName=>'config', OutputFile=>$cf);
 
-        rename("$cf" . ".tmp", "$cf");
+        #rename("$cf" . ".tmp", "$cf");
 }
 
 
@@ -637,7 +574,7 @@ sub _std_header
 	start_html(
 		-title => $title,
 		-lang => 'en-GB',
-		-style => {'src' => '/styles/bift.css'},
+		-style => {'src' => '/styles/std.css'},
 		-text => '#000000',
 		-vlink => '#000000',
 		-alink => '#999900',
@@ -646,13 +583,11 @@ sub _std_header
 		-onload => $onload
 	);
 
-	print table({border => 0, cellspacing=>0, cellpadding=>0},
+	print table({border => 0, cellspacing=>2, cellpadding=>0},
 		Tr(
-			td([
-				img({-src => '/graphics/bift_logo_small.gif', -alt=>'Fencers', -height => 100, -width => 150}),
-				$$config->{title}
-				#img({-src => '/graphics/bift_title.gif', -alt => 'Logo', -height => 100, -width => 490})
-			])
+			td( img({-src => '/graphics/logo_small.jpg', -alt=>'Logo', -height=>100, -width=>150})),
+			td("&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"),
+			td("<h1>$title</h1>")
 		)
 	);
 }
@@ -679,11 +614,11 @@ sub _club_list
 
 	$$selclub=$t->club1 if $t;
 
-	HTMLdie(Dumper(keys %$clubs));
+	#HTMLdie(Dumper(keys %$clubs));
 
 	@$ckeys = sort {uc($clubs->{$a}->{'nom'}) cmp uc($clubs->{$b}->{'nom'})} (keys(%$clubs));
 
-	HTMLdie(Dumper($ckeys));
+	#HTMLdie(Dumper($ckeys));
 
 	foreach (@$ckeys) {
 		$$clubnames{$_} = $clubs->{$_}->{'nom'} ;
