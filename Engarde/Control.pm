@@ -8,8 +8,12 @@ use vars qw($VERSION @ISA);
 our @EXPORT = qw(control read_config update_status show_weapon hide_weapon loadFencerData HTMLdie desk displayList editItem);
 
 use Data::Dumper;
+use Cwd;
+use DBI;
 
+use CGI::Carp qw(fatalsToBrowser warningsToBrowser);
 use CGI::Pretty qw(:standard *table -no_xhtml);
+    
 use Fcntl qw(:DEFAULT :flock);
 
 use XML::Simple;
@@ -102,9 +106,14 @@ sub control {
 
 	_std_header(undef, "Control Panel", $JSCRIPT, "doLoad()");
   
-	print "<br><table border=0 cellspacing=0 cellpadding=4 width=1080\n";
-	print "<tr><td></td><th align=left>Status</th><th></th><th align=left>Action</th><th></th></tr>\n" ;
+	print "<br><table border=1 cellspacing=0 cellpadding=4 width=1080\n";
+	print "<tr><td></td><th colspan=2 align=left>Status</th><th colspan=2 align=left>Actions</th></tr>\n" ;
 
+	my $u = "escrime";
+	my $p = "escrime";
+	
+	my $dbh = DBI->connect("DBI:mysql:escrime:127.0.0.1", $u, $p);
+	
 	my $comps = $$config->{competition};
 
 	# HTMLdie("xxx" . Dumper($comps));	
@@ -117,10 +126,21 @@ sub control {
 		my $state = $w->{'state'};
 
 		my $c = Engarde->new($w->{source} . "/competition.egw", 1);
-
+	
+		next unless $c;
+		
+		my $path = $c->dir();
+		
+		sysopen(ETAT, "$path/etat.txt", O_RDWR | O_CREAT) || HTMLdie("Could not open etat.txt\n$!");
+		my $lockstat = flock(ETAT,LOCK_EX);
+		
+		sysopen(FH, "$path/weapon.status", O_WRONLY | O_CREAT, 0666) || HTMLdie("Could not open $path/weapon.status for writing\n$!");
+		flock(FH, LOCK_EX) || HTMLdie("Couldn't obtain exclusive lock on $path/weapon.status");
+		
+		
 		# HTMLdie(Dumper(\$c));
 
-		my $name = $c->titre_reduit;
+		my $name = $c->titre_ligne;
 
  		#unless (defined $state) 
 		#{
@@ -128,7 +148,7 @@ sub control {
 			# &update_hidden($w->{'path'}, "true");
 		#}
 
-		$name =~ s/"//g;
+		#$name =~ s/"//g;
 		print "<tr><th align=left>$cid - $name</th>" ;
 
 		if ((!defined $state) || ($state eq "hidden")) 
@@ -164,8 +184,8 @@ sub control {
 
  				if ($etat eq "debut") 
 				{
-	  				print "<td>Waiting</td><td>Start</td><td><a href=\"".url()."?wp=".$w->{'path'}."&Action=details&Name=$name\">Details</a></td>";
- 					print "<td><a href=\"".url()."?wp=".$w->{'path'}."&Action=hide\">Hide</a></td>";
+	  				print "<td>Waiting</td><td>Start</td><td><a href=\"".url()."?wp=". $cid ."&Action=details&Name=$name\">Details</a></td>";
+ 					print "<td><a href=\"".url()."?wp=".$cid ."&Action=hide\">Hide</a></td>";
 					print "</tr>" ;
 	  				last SWITCH;
 				}
@@ -182,7 +202,7 @@ sub control {
 
 	 					print scalar(@p)." poules running.</td><td><a href=\"".url()."?wp=".$cid."&Action=details&Name=$name\">Details</a></td>";
 						print "<td><a href=\"".url()."?wp=".$cid."&Action=hide\">Hide</a></td>";
- 						print "</tr>" ;
+ 						print "</tr>";
 	  				} 
 					else 
 					{
@@ -196,6 +216,7 @@ sub control {
 
 				if ($etat eq "tableaux") 
 				{
+					# need to amend this - should print "poules" if $w[2] == "constitution"
 	 				print "<td>D.E.</td><td>" ;
 
  					if ($w[2]) 
@@ -225,8 +246,8 @@ sub control {
  						}
 					}
 
-					print "</td><td><a href=\"".url()."?wp=".$w->{'path'}."&Action=details&Name=$name\">Details</a></td>";
- 					print "<td><a href=\"".url()."?wp=".$w->{'path'}."&Action=hide\">Hide</a></td>";
+					print "</td><td><a href=\"".url()."?wp=".$cid."&Action=details&Name=$name\">Details</a></td>";
+ 					print "<td><a href=\"".url()."?wp=".$cid."&Action=hide\">Hide</a></td>";
 	 				print "</tr>";
   					last SWITCH;
 				}
@@ -280,6 +301,7 @@ sub desk {
 		next unless $state eq "check in";
 
 		my $c = Engarde->new($w->{source} . "/competition.egw", 1);
+		next unless defined $c;
    		print "<tr><td><a href=".url()."?wp=$cid>$cid - ".$c->titre_reduit."</a></td></tr>";
   	}
 
@@ -396,6 +418,15 @@ sub displayList {
 sub read_config
 {
         my $cf = shift;
+		
+		unless ($cf)
+		{
+			my $dir = cwd();
+			
+			$cf = "$dir/live.xml" if ( -r "$dir/live.xml" && not $cf);
+			$cf = "$dir/../live.xml" if ( -r "$dir/../live.xml" && not $cf);
+		}
+		
         my $data = XMLin($cf, KeyAttr=>'id', ForceArray=>qr/competition/);
         return $data;
 }
@@ -574,7 +605,7 @@ sub _std_header
 	start_html(
 		-title => $title,
 		-lang => 'en-GB',
-		-style => {'src' => '/styles/std.css'},
+		-style => {'src' => './styles/std.css'},
 		-text => '#000000',
 		-vlink => '#000000',
 		-alink => '#999900',
@@ -585,11 +616,13 @@ sub _std_header
 
 	print table({border => 0, cellspacing=>2, cellpadding=>0},
 		Tr(
-			td( img({-src => '/graphics/logo_small.jpg', -alt=>'Logo', -height=>100, -width=>150})),
+			td( img({-src => './graphics/logo_small.jpg', -alt=>'Logo', -height=>100, -width=>150})),
 			td("&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"),
 			td("<h1>$title</h1>")
 		)
 	);
+	
+	warningsToBrowser(1);
 }
 
 
