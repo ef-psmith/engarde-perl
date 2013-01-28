@@ -7,15 +7,12 @@ package Engarde;
 #
 # Engarde - Provides an OO interface to Engarde competition files
 #
-# Copyright 2007-2012, Peter Smith, psmith@rekar.co.uk
+# Copyright 2007-2013, Peter Smith, peter.smith@englandfencing.org.uk
 #
 
 # use Exporter;
 
 use strict;
-# use File::Stat;
-# use File::Basename;
-# use Storable qw(dclone);
 use Data::Dumper;
 use Carp qw(croak cluck);
 use Scalar::Util qw(weaken);
@@ -181,6 +178,8 @@ sub new {
 
     bless  $self, $class;
 
+	$self->_init_tableaux;	
+	$self->_init_poules;
 	$self->initialise unless $quick;
 
     return $self;
@@ -362,8 +361,8 @@ sub initialise
 {
 	my $c = shift;
 
-	$c->_init_poules;
-	$c->_init_tableaux;	
+	# $c->_init_poules;
+	# $c->_init_tableaux;	
 
 	$c->tireur;
 	$c->nation;
@@ -1392,7 +1391,8 @@ sub whereami
 
 	my $result = "unknown";
 	my $etat = $self->etat;
-	my $etattour = $self->etattour;
+	
+	my $etattour = $self->etattour || "";
 
 	# nutour is the current round
 	# etattour is either en_cours or constitution
@@ -1408,22 +1408,24 @@ sub whereami
 	elsif ($etat eq "tableaux")
 	{
 		# poules are finished, so we are in the DE now need to find out where
-
+		
 		if ($etattour eq "constitution")
 		{
 			# All poules are entered and final ranking produced but tableaux not yet drawn
-			$result = "poules " . $self->nombre_tour . " finished";
+			$result = "poules " . $self->nombre_poules . " finished";
 		}
 		else
 		{
 			my @tab = $self->tableaux(1);
 			my $initial = $self->tableaux(2);
+			
 			print "DEBUG: whereami: current tab = @tab\n" if $DEBUGGING > 1;
 			print "DEBUG: whereami: initial = $initial\n" if $DEBUGGING > 1;
 
 			$result = "tableau";
 
 			# $result = "tableau $initial $tab[0]";
+			
 			$result = "tableau $initial $tab[0]" unless $tab[0] eq $initial;
 			$result = "tableau @tab" if $tab[0] eq $initial;
 		}
