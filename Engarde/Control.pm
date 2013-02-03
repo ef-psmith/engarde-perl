@@ -5,7 +5,7 @@ require Exporter;
 use strict;
 use vars qw($VERSION @ISA);
 @ISA = qw(Engarde Exporter);
-our @EXPORT = qw(control read_config update_status show_weapon hide_weapon loadFencerData HTMLdie desk displayList editItem);
+our @EXPORT = qw(control read_config show_weapon hide_weapon loadFencerData HTMLdie desk displayList editItem update_config);
 
 use Data::Dumper;
 use Cwd;
@@ -14,10 +14,10 @@ use DBI;
 use CGI::Carp qw(fatalsToBrowser warningsToBrowser);
 use CGI::Pretty qw(:standard *table -no_xhtml);
     
-use Fcntl qw(:DEFAULT :flock);
+use Fcntl qw(:flock :DEFAULT);
 
 use XML::Simple;
-
+use XML::Dumper;
 
 sub readStatus {
   my $data ;
@@ -51,18 +51,7 @@ sub HTMLdie {
   	exit;
 }
 
-sub update_status {
-	my $config = shift;
-	my $cid = shift;
-	my $status = shift;
-	
-	$config->{competition}->{$cid}->{state} = $status;
 
-	write_config("/tmp/live2a.xml",$config);
-
-	# reload the page with out the query string
-	print "Location: ".url()."\n\n" ;
-}
 
 sub update_hidden {
   my ($path, $new_status) = @_;
@@ -70,7 +59,7 @@ sub update_hidden {
     my $state = &readStatus($path);
     if ($new_status) {
       $state->{'hidden'} = $new_status;
-      sysopen(FH, "$path/weapon.status", O_WRONLY | O_CREAT, 0666) || HTMLdie("Could not open $path/weapon.status for writing\n$!");
+      open(FH, "$path/weapon.status") || HTMLdie("Could not open $path/weapon.status for writing\n$!");
       flock(FH, LOCK_EX) || HTMLdie("Couldn't obtain exclusive lock on $path/weapon.status");
       foreach (keys(%$state)) {
         print FH "$_ $state->{$_}\n" ;
@@ -99,10 +88,25 @@ sub show_weapon {
 }
 
 
+sub update_config
+{
+	my $id = shift;
+	my $key = shift;
+	my $value = shift;
+	
+	# return unless ($id && $key && $value);
+	
+	my $config = read_config();
+	$config->{competition}->{$id}->{$key} = $value;
+	write_config($config);
+	print "Location: ".url()."\n\n" ;
+}
+
+
 sub control {
 	my $config = shift;
 
-	my $JSCRIPT="function doLoad() {\n  setTimeout('window.location.reload()',".$$config->{statusTimeout}.");\n}";
+	my $JSCRIPT="function doLoad() {\n  setTimeout('window.location.reload()',".$config->{statusTimeout}.");\n}";
 
 	_std_header(undef, "Control Panel", $JSCRIPT, "doLoad()");
   
@@ -114,7 +118,7 @@ sub control {
 	
 	my $dbh = DBI->connect("DBI:mysql:escrime:127.0.0.1", $u, $p);
 	
-	my $comps = $$config->{competition};
+	my $comps = $config->{competition};
 
 	# HTMLdie("xxx" . Dumper($comps));	
 
@@ -131,11 +135,15 @@ sub control {
 		
 		my $path = $c->dir();
 		
-		sysopen(ETAT, "$path/etat.txt", O_RDWR | O_CREAT) || HTMLdie("Could not open etat.txt\n$!");
-		my $lockstat = flock(ETAT,LOCK_EX);
+		my $lockstat = 0;
 		
-		sysopen(FH, "$path/weapon.status", O_WRONLY | O_CREAT, 0666) || HTMLdie("Could not open $path/weapon.status for writing\n$!");
-		flock(FH, LOCK_EX) || HTMLdie("Couldn't obtain exclusive lock on $path/weapon.status");
+		open(ETAT, "$path/etat.txt"); 
+		$lockstat = flock(ETAT,LOCK_EX);
+
+		# print "lockstat = $lockstat<br>";
+		
+		#open(FH, "$path/weapon.status") || HTMLdie("Could not open $path/weapon.status for writing\n$!");
+		#flock(FH, LOCK_EX) || HTMLdie("Couldn't obtain exclusive lock on $path/weapon.status");
 		
 		
 		# HTMLdie(Dumper(\$c));
@@ -150,23 +158,25 @@ sub control {
 
 		#$name =~ s/"//g;
 		print "<tr><th align=left>$cid - $name</th>" ;
+		print "<td>";
+		print "<img src='./graphics/unlock-small.png' alt='Engarde not Running'/>" if $lockstat;
+		print "<img src='./graphics/lock-small.png' alt='Engarde Running'/>" unless $lockstat;
+		print "</td>";
 
 		if ((!defined $state) || ($state eq "hidden")) 
 		{
-			print "<td>Check-in</td><td>Not Ready</td><td><a href=\"".url()."?wp=".$cid."&Action=update&Status=Ready\">Setup check-in</a></td><td>Hidden</td></tr>" ;
+			print "<td>Check-in</td><td>Not Ready</td><td><a href=\"".url()."?wp=".$cid."&Action=update&Status=Ready\">Setup check-in</a></td><td>Hidden</td>" ;
 
 		} 
 		elsif ($state eq "check in") 
 		{
 			print "<td>Check-in</td><td>Open</td><td><a href=\"".url()."?wp=".$cid."&Action=update&Status=Running\">Close check-in</a></td>";
 			print "<td><a href=\"".url()."?wp=".$cid."&Action=hide\">Hide</a></td>";
-			print "</tr>" ;
 		} 
 		elsif ($state eq "ready") 
 		{
 			print "<td>Check-in</td><td>Ready</td><td><a href=\"".url()."?wp=".$cid."&Action=update&Status=Check%20in\">Open check-in</a></td>";
 			print "<td><a href=\"".url()."?wp=".$cid."&Action=hide\">Hide</a></td>";
-			print "</tr>";
 		} 
 		else 
 		{
@@ -174,11 +184,12 @@ sub control {
 			my @w = split (/\s+/,$where);
 			my $etat = $c->etat;
       
+			# print "<td>" . Dumper(\@w) . "</td>";
 			SWITCH: 
 			{
 				if ($etat eq "termine") 
 				{
-					print "<td>Complete</td><td></td><td><a href=\"".url()."?wp=".$cid."&Action=details\">Details</a></td><td></td></tr>";
+					print "<td>Complete</td><td></td><td><a href=\"".url()."?wp=".$cid."&Action=details\">Details</a></td><td></td>";
 					last SWITCH;
 				}
 
@@ -186,7 +197,6 @@ sub control {
 				{
 	  				print "<td>Waiting</td><td>Start</td><td><a href=\"".url()."?wp=". $cid ."&Action=details&Name=$name\">Details</a></td>";
  					print "<td><a href=\"".url()."?wp=".$cid ."&Action=hide\">Hide</a></td>";
-					print "</tr>" ;
 	  				last SWITCH;
 				}
 
@@ -200,15 +210,13 @@ sub control {
 						shift @p;
 						shift @p;
 
-	 					print scalar(@p)." poules running.</td><td><a href=\"".url()."?wp=".$cid."&Action=details&Name=$name\">Details</a></td>";
+	 					print scalar(@p)." poules running.<br>@p</td><td><a href=\"".url()."?wp=".$cid."&Action=details&Name=$name\">Details</a></td>";
 						print "<td><a href=\"".url()."?wp=".$cid."&Action=hide\">Hide</a></td>";
- 						print "</tr>";
 	  				} 
 					else 
 					{
 						print "complete.</td><td><a href=\"".url()."?wp=".$cid."&Action=details&Name=$name\">Details</a></td>";
  						print "<td><a href=\"".url()."?wp=".$cid."&Action=hide\">Hide</a></td>";
- 						print "</tr>" ;
  					}
 
 	  				last SWITCH;
@@ -216,45 +224,72 @@ sub control {
 
 				if ($etat eq "tableaux") 
 				{
-					# need to amend this - should print "poules" if $w[2] == "constitution"
-	 				print "<td>D.E.</td><td>" ;
-
- 					if ($w[2]) 
+					# need to amend this - should print "poules" if $w[2] == "finished"
+					
+					if ($w[2] eq "finished")
 					{
- 						shift @w;
-						shift @w;
+						print "<td>Poules</td><td>Finished" ;
+						
+					}
+					elsif ($w[2])
+					{
+						print "<td>D.E.</td><td>" ;
+					
+						# shift @w;
+						# shift @w;
 
-	 					foreach (@w) 
+						my @levels = split / /, $c->tableaux_en_cours;
+						
+						my $matchlist = $c->matchlist(1);
+						
+	 					#foreach my $level (@levels) 
+						#{
+							# my $t = $c->tableau($level);	
+							# print "[$level] " . Dumper(\$t);
+ 						#}
+						
+						# print Dumper(\$matchlist);
+						
+						foreach my $l (keys %$matchlist)
 						{
-							print "$_ ";
-	 						#if ($_ > 8) 
-							#{
-  							#print " Last $_ " ;
-							#} 
-							#elsif ($_ == 8) 
-							#{
-							#print " Quarter final ";
- 							#} 
-							#elsif ($_ == 4) 
-							#{
-	 						#print " Semi final ";
- 							#} 
-							#else 
-							#{
-	 						#print " Final";
-							#}
- 						}
+							my $ll = $$matchlist{$l};
+							
+							print "<font size=+2><b>$l</b></font> ";
+
+							foreach my $m (sort keys %$ll)
+							{
+								print "$m ";
+							}
+							print "<br>";
+							# print Dumper(\$ll);
+						}
+						
+						print "</td>";
 					}
 
-					print "</td><td><a href=\"".url()."?wp=".$cid."&Action=details&Name=$name\">Details</a></td>";
+					print "<td><a href=\"".url()."?wp=".$cid."&Action=details&Name=$name\">Details</a></td>";
  					print "<td><a href=\"".url()."?wp=".$cid."&Action=hide\">Hide</a></td>";
-	 				print "</tr>";
+					
   					last SWITCH;
 				}
 
-				print "<td>Error</td><td>Unknown</td><td></td><td></td></tr>" ;
+				print "<td>Error</td><td>Unknown</td><td></td><td></td>" ;
 			}
 		}
+
+		my $hold = $w->{hold} || 0;
+		
+		if ($hold)
+		{
+			print "<td><a href=\"".url()."?wp=".$cid."&Action=play\"><img src='./graphics/play.png' /></a></td>";
+		}
+		else
+		{
+			print "<td><a href=\"".url()."?wp=".$cid."&Action=pause\"><img src='./graphics/pause.png' /></a></td>";
+		}
+		
+		print "<td><img src='./graphics/twitter.png' /></td>";
+	 	print "</tr>";
 	}
 
 	print "</table><br><a href=\"index.html\">Back</a>\n" ;
@@ -428,22 +463,41 @@ sub read_config
 		}
 		
         my $data = XMLin($cf, KeyAttr=>'id', ForceArray=>qr/competition/);
+		
+		my $debug = $data->{debug};
+		
+		$Engarde::DEBUGGING = $debug;
+		# HTMLdie "debug = " . $Engarde::DEBUGGING;
+		
+		# $Engarde::DEBUGGING = $data->{debug};
+		
         return $data;
 }
 
 sub write_config
 {
-        my $cf = shift;
-        my $data = shift;
+	my $data = shift;
+	my $cf = shift;
 
-        #sysopen(FH, "$cf" . ".tmp", "O_WRONLY") || HTMLdie ("Could not open $cf.tmp for writing: $!");
-        #flock(FH, LOCK_EX) || HTMLdie ("Couldn't obtain exclusive lock on $cf");
+	unless ($cf)
+	{
+		my $dir = cwd();
+			
+		$cf = "$dir/live.xml" if ( -w "$dir/live.xml" && not $cf);
+		$cf = "$dir/../live.xml" if ( -w "$dir/../live.xml" && not $cf);
+	}
+		
+	open my $FH, ">$cf" . ".tmp" or HTMLdie ("Could not open $cf.tmp for writing: $!");
+	flock($FH, LOCK_EX) || HTMLdie ("Couldn't obtain exclusive lock on $cf");
 
-        XMLout($data, KeyAttr=>'id', AttrIndent=>1, RootName=>'config', OutputFile=>$cf);
+	my $out = "<?xml version=\"1.0\"?>\n";
+	$out .= XMLout($data, KeyAttr=>'id', AttrIndent=>1, RootName=>'config');
 
-        #rename("$cf" . ".tmp", "$cf");
+	print $FH "$out";
+	close $FH;
+	
+	rename "$cf.tmp", $cf or HTMLDie("rename failed: $!");
 }
-
 
 
 sub editItem 

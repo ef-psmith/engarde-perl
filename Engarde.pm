@@ -1280,7 +1280,7 @@ sub tableaux
 
 	local $ta = $self->tableauxactifs;
 
-	print STDERR "DEBUG: tableaux(): tableauxactifs = " . Dumper(\$ta) if $DEBUGGING > 2;
+	print STDERR "DEBUG: tableaux(): tableauxactifs = " . Dumper(\$ta) if $DEBUGGING > 1;
 
 	my $initial;
 	my @tableaux;
@@ -1412,7 +1412,7 @@ sub whereami
 		if ($etattour eq "constitution")
 		{
 			# All poules are entered and final ranking produced but tableaux not yet drawn
-			$result = "poules " . $self->nombre_poules . " finished";
+			$result = "poules " . $self->nutour . " finished";
 		}
 		else
 		{
@@ -1450,7 +1450,7 @@ sub whereami
 		$result = "poules $nutour $waiting";
 	}
 
-	print "DEBUG: whereami: result = $result\n" if $DEBUGGING > 1;
+	print STDERR "DEBUG: whereami: result = $result\n" if $DEBUGGING;
 	return $result; 
 }
 
