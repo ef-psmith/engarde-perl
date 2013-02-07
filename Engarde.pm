@@ -130,7 +130,7 @@ sub new {
 
 	$self->{dir} = $dir;
 
-	open IN, "$file" || die $!;
+	open IN, "$file" or die $!;
 
 	my $unparsed;
 	my $inside;
@@ -140,7 +140,7 @@ sub new {
 		chomp;
 
 		s///g;
-
+		
 		if ((/^\(def ma_competition/ || /^\(def ma_formule/ || $inside))
 		{
 			if (/^\)$/)
@@ -845,9 +845,10 @@ sub arbitre
 }
 
 
-
-
-
+# 
+# Currently this is not multi-round safe
+# It needs to process clas_fin_poules.txt if all rounds of poules are finished
+#
 sub ranking
 {
 	# need to load clastab_initial.txt since it includes fencers with byes
@@ -1450,7 +1451,7 @@ sub whereami
 		$result = "poules $nutour $waiting";
 	}
 
-	print STDERR "DEBUG: whereami: result = $result\n" if $DEBUGGING;
+	print STDERR "DEBUG: whereami: result = $result\n" if $DEBUGGING > 1;
 	return $result; 
 }
 

@@ -4,6 +4,7 @@ use vars qw($VERSION @ISA);
 @ISA = qw(Engarde);
 
 use Data::Dumper;
+use Fcntl qw(:flock :DEFAULT);
 #use HTML::Entities;
 
 sub decode
@@ -27,8 +28,8 @@ sub decode
 	my @elements = split /[ \]]*\[/, $in;
 
 
-	my @keywords1 = qw/nom prenom licence/;
-   	my @keywords2 = qw/club1 nation1 presence serie cle/;
+	my @keywords1 = qw/nom prenom licence mobile licence_fie mode date_nais/;
+   	my @keywords2 = qw/club1 nation1 presence serie cle sexe/;
 
 	# print Dumper(@elements);
 
@@ -136,6 +137,47 @@ sub rangpou
 	{
 		return $self->{rangpou};
 	}
+}
+
+
+sub to_text
+{
+	my $self = shift;
+	my $file = $self->{file};
+	
+	open my $FH, "> $file" . ".tmp";
+	flock($FH, LOCK_EX) || return undef;
+	
+	open my $FH2, "+< $file";
+	flock($FH2, LOCK_EX) || return undef;
+
+	my $seq = 1;
+	
+	# {[classe tireur] [presence present] [sexe masculin] [status normal] [nom "ALEXANDER"]
+	#	[prenom "Kevin"] [serie 290] [club1 3] [licence "31529"] [points 0.00] [cle 55]}
+	#
+	# {[classe tireur] [presence present] [sexe masculin] [status normal] [nom "APCAR"]
+	#	[prenom "Saka"] [points 0.00] [cle 54] [serie 999] [date_nais "~1962"] [licence
+	#	"123456"] [licence_fie "201301015"] [mobile "07802 312401"] [paiement 9.98] [mode
+	#	"mode"]}
+
+	# {[classe tireur] [presence present] [sexe feminin] [status normal] [nom "ARMSTRONG"]
+	#	[prenom "Neil"] [club1 12] [licence "103878"] [points 0.00] [cle 53] [date_nais
+	#	"~1/2/1975"]}
+	#
+	
+	foreach my $id (sort {$a <=> $b} grep /\d+/,keys %$self)
+	{
+		# print "$id: " . Dumper($self->{$id});
+		
+		print $FH "{[classe tireur] [presence " . $self->{$id}->{presence} . "] [sexe " . $self->{$id}->{sexe} . "] ";
+		print $FH "[status normal] [nom \"" . $self->{$id}->{nom} . "\"\n" ;
+		print $FH "[prenom \"$self->{$id}->{prenom}\"] [cle $id] [points 0.00] ";
+		print $FH "[ licence \"" . $self->{$id}->{licence} . "\"] " if defined $self->{$id}->{licence};
+		
+		print $FH "}\n";
+	}
+	
 }
 
 1;

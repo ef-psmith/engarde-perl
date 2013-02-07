@@ -17,7 +17,7 @@ use CGI::Pretty qw(:standard *table -no_xhtml);
 use Fcntl qw(:flock :DEFAULT);
 
 use XML::Simple;
-use XML::Dumper;
+# use XML::Dumper;
 
 sub readStatus {
   my $data ;
@@ -137,7 +137,7 @@ sub control {
 		
 		my $lockstat = 0;
 		
-		open(ETAT, "$path/etat.txt"); 
+		open(ETAT, "+< $path/etat.txt"); 
 		$lockstat = flock(ETAT,LOCK_EX);
 
 		# print "lockstat = $lockstat<br>";
@@ -314,7 +314,7 @@ sub desk {
 	
 	my $config = shift;
 
-	my $JSCRIPT="function doLoad() {\n  setTimeout('window.location.reload()',".$$config->{checkinTimeout}.");\n}";
+	my $JSCRIPT="function doLoad() {\n  setTimeout('window.location.reload()',".$config->{checkinTimeout}.");\n}";
 
 	_std_header($config, "Check In Desk", $JSCRIPT, "doLoad()");
   
@@ -324,7 +324,7 @@ sub desk {
 	print "<tr><th>Please choose a weapon/competition.</th></tr>";
 
 
-	my $weapons = $$config->{competition};
+	my $weapons = $config->{competition};
 
 	foreach my $cid (sort { $a <=> $b } keys %$weapons) 
 	{
@@ -719,6 +719,9 @@ sub _nation_list
 {
 
 }
+
+
+
 
 1;
 
