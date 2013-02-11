@@ -5,11 +5,13 @@ require Exporter;
 use strict;
 use vars qw($VERSION @ISA);
 @ISA = qw(Engarde Exporter);
-our @EXPORT = qw(control read_config show_weapon hide_weapon loadFencerData HTMLdie desk displayList editItem update_config);
+our @EXPORT = qw(control config_read weapon_add weapon_delete loadFencerData HTMLdie desk displayList editItem config_update screen_config_grid config_form config_trash);
 
 use Data::Dumper;
-use Cwd;
-use DBI;
+use Cwd qw/abs_path cwd/;
+#use DBI;
+use File::Find;
+use File::Basename;
 
 use CGI::Carp qw(fatalsToBrowser warningsToBrowser);
 use CGI::Pretty qw(:standard *table -no_xhtml);
@@ -18,25 +20,9 @@ use Fcntl qw(:flock :DEFAULT);
 
 use XML::Simple;
 # use XML::Dumper;
+my @available_comps;
 
-sub readStatus {
-  my $data ;
-  my $opt ;
-  my %status = ();
-  my $path = shift;
 
-  if (-e $path .  "/weapon.status") {
-    open(FH,"< $path/weapon.status") || HTMLdie("Couldn't open $path/weapon.status");
-    LINE: while (<FH>) {
-      chomp;
-      next LINE if ($_ eq "");
-      ($opt, $data) = split(/\s+/,$_,2);
-      $status{$opt} = $data;
-    }
-    close(FH);
-  }
-  return \%status;
-}
 
 sub HTMLdie {
   
@@ -52,43 +38,77 @@ sub HTMLdie {
 }
 
 
-
-sub update_hidden {
-  my ($path, $new_status) = @_;
-  if ($path) {
-    my $state = &readStatus($path);
-    if ($new_status) {
-      $state->{'hidden'} = $new_status;
-      open(FH, "$path/weapon.status") || HTMLdie("Could not open $path/weapon.status for writing\n$!");
-      flock(FH, LOCK_EX) || HTMLdie("Couldn't obtain exclusive lock on $path/weapon.status");
-      foreach (keys(%$state)) {
-        print FH "$_ $state->{$_}\n" ;
-      }
-      close(FH);
-    }
-  }
-}
-
-sub hide_weapon {
-  my ($path) = @_;
-  if ($path) {
-    &update_hidden($path, "true");
-  }
-  # reload the page with out the query string
-  print "Location: ".url()."\n\n" ;
-}
-
-sub show_weapon {
-  my ($path) = @_;
-  if ($path) {
-    &update_hidden($path, "false");
-  }
-  # reload the page with out the query string
-  print "Location: ".url()."\n\n" ;
+sub weapon_add
+{
+	my $config = config_read();
+	
+	my $path = shift;
+	
+	$config->{competition} = {} unless ref $config->{competition} eq "HASH";
+	
+	my $comps = $config->{competition};
+	
+	my $nextid = 1;
+	
+	while (defined $comps->{$nextid})
+	{
+		$nextid++;
+	}
+	
+	$comps->{$nextid}->{source} = $path;
+	$comps->{$nextid}->{enabled} = 'true';
+	$comps->{$nextid}->{nif} = 0;
+	$comps->{$nextid}->{background} = 'FF000000';
+	$comps->{$nextid}->{state} = 'active';
+	
+	config_write($config);
+	
+	# load the scrrens page
+	print "Location: screens.cgi\n\n" ;
 }
 
 
-sub update_config
+sub weapon_delete
+{
+	my $config = config_read();
+	my $cid = shift;
+	
+	my $seriescomps = _series_by_comp($config);
+	
+	#my $msg;
+	
+	foreach my $s (0..11)
+	{
+		# skip non-existant series
+		next unless ${$seriescomps->{$cid}}[$s];
+		
+		#$msg .= "cid $cid: " . Dumper($seriescomps->{$cid}) . "<br>";
+		
+		#$msg .= "series comps pre $s: " . Dumper($config->{series}->{$s+1}->{competition}) . "<br>";
+		
+		my @result = grep { $_ ne $cid } @{$config->{series}->{$s+1}->{competition}};
+		
+		$config->{series}->{$s+1}->{competition} = \@result;
+		
+		#$msg .= "series comps post $s: " . Dumper($config->{series}->{$s+1}->{competition}) . "<br><br>";
+	}
+	
+	# HTMLdie($msg);
+	
+	delete $config->{competition}->{$cid};
+	config_write($config);
+	
+	print "Location: " . url() . "\n\n" ;
+	
+}
+
+sub weapon_series_update
+{
+	my $id = shift;
+	my $sid = shift;
+}
+
+sub config_update
 {
 	my $id = shift;
 	my $key = shift;
@@ -96,10 +116,32 @@ sub update_config
 	
 	# return unless ($id && $key && $value);
 	
-	my $config = read_config();
+	my $config = config_read();
 	$config->{competition}->{$id}->{$key} = $value;
-	write_config($config);
+	config_write($config);
 	print "Location: ".url()."\n\n" ;
+}
+
+
+sub config_trash
+{
+	# WARNING - Here be dragons!
+	#
+	# Make sure you've done an "are you sure" prompt before calling this
+	
+	my $config = {};
+	
+	$config->{statusTimeout} = 20000;
+	$config->{checkinTimeout} = 20000;
+	$config->{restrictIP} = "false";
+	$config->{debug} = 0;
+	$config->{targetLocation} = "/share/Qweb";
+	$config->{log} = "./out.txt";
+	
+	foreach my $s (1..12)
+	{
+		$config->{series}->{$s}->{enabled} = "true";
+	}
 }
 
 
@@ -113,13 +155,15 @@ sub control {
 	print "<br><table border=1 cellspacing=0 cellpadding=4 width=1080\n";
 	print "<tr><td></td><th colspan=2 align=left>Status</th><th colspan=2 align=left>Actions</th></tr>\n" ;
 
-	my $u = "escrime";
-	my $p = "escrime";
+#	my $u = "escrime";
+#	my $p = "escrime";
 	
-	my $dbh = DBI->connect("DBI:mysql:escrime:127.0.0.1", $u, $p);
+#	my $dbh = DBI->connect("DBI:mysql:escrime:127.0.0.1", $u, $p);
 	
 	my $comps = $config->{competition};
 
+	$comps = {} unless ref $comps eq "HASH";
+	
 	# HTMLdie("xxx" . Dumper($comps));	
 
 	foreach my $cid (sort { $a <=> $b } keys(%$comps)) 
@@ -296,6 +340,264 @@ sub control {
 	print end_html();
 }
 
+sub screen_config_grid
+{
+	my $config = config_read();
+
+	my $JSCRIPT="function doLoad() {\n  setTimeout('window.location.reload()',".$config->{statusTimeout}.");\n}";
+
+	#_std_header(undef, "Configuration", $JSCRIPT, "doLoad()");
+	_std_header(undef, "Screen Configuration");
+  
+	print "<br><table border=1 cellspacing=0 cellpadding=4 width=1080\n";
+	print "<tr><th align=left>Competition</th><th></th><th colspan=12 align=left>Screens</th><th></th><th></th></tr>\n" ;
+
+	print "<tr><th></th><th></th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th><th>9</th><th>10</th><th>11</th><th>12</th><th></th><th></th></tr>";
+	
+	my $comps = $config->{competition};
+
+	$comps = {} unless ref $comps eq "HASH";
+	
+	my $series = $config->{series};
+	my $seriescomps = _series_by_comp($config);
+		
+	# print "<tr><td>" . Dumper(\$seriescomps) . "</td></tr>";
+		
+	foreach my $cid (sort { $a <=> $b } keys(%$comps)) 
+	{
+		print "<tr><th align='left'>$cid - " . $comps->{$cid}->{source} . "</th>";
+		print "<td><a href=\"".url()."?wp=".$cid."&Action=delete\"><img src='./graphics/red-cross-icon.png' /></a></td>";		
+		
+		# my @values = (1..12);
+		# my @defaults;
+		
+		for my $i (0..11)
+		{
+			print "<td>" . checkbox(-name=>$cid, -checked=>${$seriescomps->{$cid}}[$i], -label=>"") . "</td>";
+		}
+		
+		print "<td><a href=\"".url()."?wp=".$cid."&Action=update\"><img src='./graphics/green-disk-icon.png' /></a></td>";
+
+
+		my $enabled = $comps->{$cid}->{enabled} || "false";
+		
+		if ($enabled eq "true")
+		{
+			print "<td><a href=\"".url()."?wp=".$cid."&Action=disable\"><img src='./graphics/green-document-icon.png' /></a></td>";
+		}
+		else
+		{
+			print "<td><a href=\"".url()."?wp=".$cid."&Action=enable\"><img src='./graphics/blue-document-cross-icon.png' /></a></td>";
+		}
+		
+		# print "<td colspan=12>" . checkbox_group(-name=>$cid, -values=>\@values, -default=>\$seriescomps->{$cid}, -linebreak=>'false') . "</td>";
+		#print checkbox_group(-name=>'group_name',
+        #                        -values=>['eenie','meenie','minie','moe'],
+        #                        -default=>['eenie','moe'],
+	    #                    -linebreak=>'true',
+	    #                    -labels=>\%labels);
+		
+		
+		print "</tr>";
+	}
+
+	
+	print "</table>\n";
+	
+	print "<br><a href=\"config.cgi\">General Configuration</a>\n";
+	
+	print "<br><a href=\"index.html\">Back</a>\n";
+	
+	print end_html();
+}
+
+
+sub config_form
+{
+	my $config = config_read();
+	
+	# <config checkinTimeout="20000"
+    #    debug="1"
+    #    log="./out.txt"
+    #    restrictIP="false"
+    #    statusTimeout="20000"
+    #    targetlocation="C:/Users/peter/Documents/Insync/prs2712@gmail.com/escrime/eng-live/web"
+    #    title="Competition Admin Portal">
+	#
+	# <controlIP>172.20.30.10</controlIP>
+	# <controlIP>172.20.30.11</controlIP>
+	# etc
+	
+	my @hints = (	"How often the check in screen will auto-refresh in seconds",
+					"How often the status screen will auto-refresh in seconds",
+					"The level of debug output - WARNING 2 may crash the web server!",
+					"Restrict access to the check in and status pages?",
+					"For the QNAP this should be /share/Qweb",
+					"Output from the writexml.pl script"
+				);
+				
+	my $gap = '&nbsp;&nbsp;&nbsp;';
+				
+	_std_header($config, "Configuration");
+  
+	print start_form(
+          -method=>'POST',
+          -action=>url()
+        );
+
+	print "<br><fieldset><legend>Basic Configuration</legend>\n";
+	print table({border => 0, cellspacing=>6, cellpadding=>2},
+		Tr({},
+		[
+			td(["Check In Timeout :",radio_group(-name=>'checkintimeout', -values=>[10, 20, 30, 40], -default=>$config->{checkinTimeout} / 1000, -linebreak=>'false'),$gap,$hints[0]]),
+			td(["Status Timeout :",radio_group(-name=>'statustimeout', -values=>[10, 20, 30, 40], -default=>$config->{statusTimeout} / 1000, -linebreak=>'false'),$gap,$hints[1]]),
+			td(["Debug Level :",radio_group(-name=>'debuglevel', -values=>[0, 1, 2], -default=>$config->{debug}, -linebreak=>'false'),'', $gap, $hints[2]]),
+			td(["Restrict IP :",radio_group(-name=>'restrictip', -values=>['true', 'false'], -default=>$config->{restrictIP}, -linebreak=>'false'),'','',$gap,$hints[3]]),
+			#("<td>Target Location :</td><td colspan=5>" . textfield(-name=>'targetlocation',-value=>$config->{targetlocation},-size=>80,-maxlength=>132)] . "</td>")
+			# td(["Licence No :",textfield(-name=>'licence',-value=>'',-size=>32,-maxlength=>32)])
+		])
+	);
+
+	print submit(-name=>'basic', -label=>'Update');
+	
+	print end_form();
+	
+	print "</fieldset>\n";
+
+	print start_form();
+	print "<fieldset><legend>Output</legend>\n";
+	print start_table({border => 0, cellspacing=>6, cellpadding=>2});
+	print "<tr><td>Target Location :</td><td>" . textfield(-name=>'targetlocation',-value=>$config->{targetlocation},-size=>80,-maxlength=>132) . "</td><td>$hints[4]</td></tr>";
+	print "<tr><td>Debug Output :</td><td>" . textfield(-name=>'log',-value=>$config->{log},-size=>80,-maxlength=>132) . "</td><td>$hints[5]</td></tr>";
+	print end_table();
+	
+	
+	print submit(-name=>'output', -label=>'Update');
+	
+	print end_form();
+	
+	print "</fieldset>\n";
+
+	print start_form();
+	
+	print "<fieldset><legend>Control IP Addresses</legend>\n";
+	print start_table({border => 0, cellspacing=>2, cellpadding=>0});
+	
+	foreach my $x (0..2)
+	{
+		print "<tr>";
+		
+		foreach my $y (0..3)
+		{
+			my $j = ($x*4)+$y;
+			print "<td></td><td>" . textfield(-name=>"ip_$j", -value=>${$config->{controlIP}}[$j], -size=>20, -maxlength=>20) . "</td>";
+		}
+		print "</tr>\n";
+	}
+	print end_table();
+	
+	print submit(-name=>'controlip', -label=>'Update');
+	
+	print end_form();
+	
+	print "</fieldset>\n";
+	
+	print start_form(-name=>"form_add");
+	
+	print "<fieldset><legend>Add a Competition</legend>\n";
+	
+	print start_table({border => 0, cellspacing=>2, cellpadding=>0});
+	
+	_find_comps();
+	print Tr(td( popup_menu(-name=>'newcomp', -values=>\@available_comps)), td("<a href='javascript: document.form_add.submit();'><img src='./graphics/green-plus-icon.png' /></a>"));
+	
+	print end_table();
+	print end_form();
+
+	print "</fieldset>\n";
+	
+	print start_form();
+	
+	print "<fieldset><legend>Set to Defaults	</legend>\n";
+	
+	print start_table({border => 0, cellspacing=>2, cellpadding=>0});
+
+	print "<tr><td><img src = './graphics/trash-icon-48.png' /></td><td>Set to Defaults - *** WARNING *** THIS CANNOT BE UNDONE!</td></tr>";
+	print end_table();
+	
+	print end_form();
+	print "</fieldset>\n";
+
+	print "<br><a href=\"screens.cgi\">Screen Configuration</a>\n";
+	print "<br><a href=\"index.html\">Back</a>\n";
+	
+	print end_html();
+}
+
+sub _find_comps
+{
+	undef @available_comps;
+	
+	my @possibledirs = ("../../data/examples", "../../data/current");
+	my @dirs;
+
+	foreach (@possibledirs)
+	{
+        push @dirs, $_ if -d;
+	}
+	
+	find (\&_wanted, @dirs);
+}
+
+sub _wanted
+{
+	unless ($File::Find::dir =~ /.*AUX/)
+	{
+		if ($_ eq "competition.egw")
+		{
+			# abs_path doesn't work on directories for some reason
+			push @available_comps, dirname(abs_path($_));
+		}
+	}
+}
+
+sub _series_by_comp
+{
+	my $config = shift;
+	
+	my $series = $config->{series};
+	
+	#HTMLdie(Dumper\$series);
+	my $comps = $config->{competition};
+	
+	# HTMLdie(ref($comps));
+	return undef unless ref $comps eq "HASH";
+	
+	my $out = {};
+	
+	
+	# build an empty array
+	foreach my $cid (keys %$comps)
+	{
+		my @row = (0,0,0,0,0,0,0,0,0,0,0,0);
+		$out->{$cid} = \@row;
+	}
+	
+	# now populate by iterating onver the series
+	foreach my $sid (1..12)
+	{
+		my $c = $series->{$sid}; #->{competition};
+		
+		next unless $c;
+		
+		foreach my $cid (@{$c->{competition}})
+		{
+			${$out->{$cid}}[$sid - 1] = 1;
+		}
+		# print "$sid - " . Dumper($series->{$sid}->{competition}) . "<br>";
+	}
+	return $out;
+}
 
 sub loadFencerData
 {
@@ -450,7 +752,7 @@ sub displayList {
 }
 
 
-sub read_config
+sub config_read
 {
         my $cf = shift;
 		
@@ -474,7 +776,7 @@ sub read_config
         return $data;
 }
 
-sub write_config
+sub config_write
 {
 	my $data = shift;
 	my $cf = shift;
@@ -491,7 +793,7 @@ sub write_config
 	flock($FH, LOCK_EX) || HTMLdie ("Couldn't obtain exclusive lock on $cf");
 
 	my $out = "<?xml version=\"1.0\"?>\n";
-	$out .= XMLout($data, KeyAttr=>'id', AttrIndent=>1, RootName=>'config');
+	$out .= XMLout($data, KeyAttr=>'id', AttrIndent=>1, SuppressEmpty => undef, RootName=>'config');
 
 	print $FH "$out";
 	close $FH;
@@ -719,8 +1021,6 @@ sub _nation_list
 {
 
 }
-
-
 
 
 1;
