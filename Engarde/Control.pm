@@ -538,7 +538,7 @@ sub _find_comps
 {
 	undef @available_comps;
 	
-	my @possibledirs = ("../../data/examples", "../../data/current");
+	my @possibledirs = ("../../data/examples", "/share/Public/data/current");
 	my @dirs;
 
 	foreach (@possibledirs)
