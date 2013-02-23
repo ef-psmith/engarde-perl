@@ -5,7 +5,12 @@ require Exporter;
 use strict;
 use vars qw($VERSION @ISA);
 @ISA = qw(Engarde Exporter);
-our @EXPORT = qw(control config_read weapon_add weapon_delete loadFencerData HTMLdie desk displayList editItem config_update screen_config_grid config_form config_trash);
+our @EXPORT = qw(	control 
+					config_read config_update_basic config_update_output config_update_ip config_trash
+					weapon_add weapon_delete weapon_disable weapon_enable weapon_series_update weapon_config_update 
+					fencer_checkin
+					HTMLdie desk displayList editItem 
+					screen_config_grid config_form );
 
 use Data::Dumper;
 use Cwd qw/abs_path cwd/;
@@ -15,6 +20,7 @@ use File::Basename;
 
 use CGI::Carp qw(fatalsToBrowser warningsToBrowser);
 use CGI::Pretty qw(:standard *table -no_xhtml);
+use CGI::Cookie;
     
 use Fcntl qw(:flock :DEFAULT);
 
@@ -30,7 +36,7 @@ sub HTMLdie {
   
   	$title || ($title = "Error");
     
-	_std_header(undef, "Error");
+	_std_header("Error");
 
   	print h1($msg);
   	print end_html();
@@ -38,12 +44,20 @@ sub HTMLdie {
 }
 
 
+#########################################################
+#
+# subs to update the competition (weapon) related entries
+# in the config file
+#
+#########################################################
+
 sub weapon_add
 {
 	my $config = config_read();
 	
 	my $path = shift;
 	
+	# initialise the hash if this is the first comp added
 	$config->{competition} = {} unless ref $config->{competition} eq "HASH";
 	
 	my $comps = $config->{competition};
@@ -102,13 +116,58 @@ sub weapon_delete
 	
 }
 
-sub weapon_series_update
+sub weapon_disable
 {
-	my $id = shift;
-	my $sid = shift;
+	my $cid = shift;
+	my $config = config_read();
+	
+	$config->{competition}->{$cid}->{enabled} = 'false';
+	
+	config_write($config);
+		
+	print "Location: " . url() . "\n\n" ;
 }
 
-sub config_update
+
+sub weapon_enable
+{
+	my $cid = shift;
+	my $config = config_read();
+	
+	$config->{competition}->{$cid}->{enabled} = 'true';
+	
+	config_write($config);
+		
+	print "Location: " . url() . "\n\n" ;
+}
+
+
+sub weapon_series_update
+{
+	my $cid = shift;
+	my @screens = param("screens");
+	
+	my %screens = map {$_ => 1 } @screens;
+	
+	my $config=config_read();
+	
+	foreach my $s (0..11)
+	{	
+		# remove the comp from the list - leave everything else intact
+		my @result = grep { $_ ne $cid } @{$config->{series}->{$s+1}->{competition}};
+		
+		# now add back the required screens
+		push @result, $cid if exists $screens{$s};
+		
+		$config->{series}->{$s+1}->{competition} = \@result;
+	}	
+	
+	config_write($config);
+	
+	print "Location: " . url() . "\n\n" ;
+}
+
+sub weapon_config_update
 {
 	my $id = shift;
 	my $key = shift;
@@ -118,6 +177,94 @@ sub config_update
 	
 	my $config = config_read();
 	$config->{competition}->{$id}->{$key} = $value;
+	config_write($config);
+	print "Location: ".url()."\n\n" ;
+}
+#########################################################
+#
+# subs to update fencers and clubs
+#
+#########################################################
+
+sub fencer_checkin
+{
+	# HTMLdie(Dump());
+	
+	my $cid = param("wp");
+	my $fid = param("Item");
+	my $paid = shift;
+	my $config=config_read();
+	
+	#HTMLdie(Dumper($config->{competition}->{$cid}));
+	
+	my $c = Engarde->new($config->{competition}->{$cid}->{source} . "/competition.egw", 1);
+	
+	#HTMLdie(Dumper($c));
+	
+	HTMLdie("invald compeition $cid") unless $c;
+	
+	my $f = $c->tireur;
+	
+	$f->{$fid}->{presence} = "present";
+	
+	$f->to_text;
+
+	displayList($cid);
+}
+
+#########################################################
+#
+# subs to update the non-competition related entries
+# in the config file
+#
+#########################################################
+sub config_update_basic
+{
+	my $config = config_read();
+	
+	my $checkintimeout = param("checkintimeout");
+	my $statustimeout = param("statustimeout");
+	my $debuglevel = param("debuglevel");
+	my $restrictip = param("restrictip");
+	
+	$config->{checkinTimeout} = $checkintimeout * 1000;
+	$config->{statusTimeout} = $statustimeout * 1000;
+	$config->{debug} = $debuglevel;
+	$config->{restrictIP} = $restrictip;
+	
+	config_write($config);
+	print "Location: ".url()."\n\n" ;
+	
+}
+
+sub config_update_output
+{
+	my $config = config_read();
+	
+	my $targetlocation = param("targetlocation");
+	my $log = param("log");
+	
+	$config->{targetlocation} = $targetlocation;
+	$config->{log} = $log;
+	
+	config_write($config);
+	print "Location: ".url()."\n\n" ;
+}
+
+
+sub config_update_ip
+{
+	my $config = config_read();
+	
+	my @ips;
+	
+	for (0..11)
+	{
+		push @ips, param("ip_" . $_) if param("ip_" . $_);
+	}
+	
+	$config->{controlIP} = \@ips;
+	
 	config_write($config);
 	print "Location: ".url()."\n\n" ;
 }
@@ -145,12 +292,67 @@ sub config_trash
 }
 
 
+sub config_read
+{
+        my $cf = shift;
+		
+		unless ($cf)
+		{
+			my $dir = cwd();
+			
+			$cf = "$dir/live.xml" if ( -r "$dir/live.xml" && not $cf);
+			$cf = "$dir/../live.xml" if ( -r "$dir/../live.xml" && not $cf);
+		}
+		
+        my $data = XMLin($cf, KeyAttr=>'id', ForceArray=>qr/competition/);
+		
+		my $debug = $data->{debug};
+		
+		$Engarde::DEBUGGING = $debug;
+		# HTMLdie "debug = " . $Engarde::DEBUGGING;
+		
+		# $Engarde::DEBUGGING = $data->{debug};
+		
+        return $data;
+}
+
+sub config_write
+{
+	my $data = shift;
+	my $cf = shift;
+
+	unless ($cf)
+	{
+		my $dir = cwd();
+			
+		$cf = "$dir/live.xml" if ( -w "$dir/live.xml" && not $cf);
+		$cf = "$dir/../live.xml" if ( -w "$dir/../live.xml" && not $cf);
+	}
+		
+	open my $FH, ">$cf" . ".tmp" or HTMLdie ("Could not open $cf.tmp for writing: $!");
+	flock($FH, LOCK_EX) || HTMLdie ("Couldn't obtain exclusive lock on $cf");
+
+	my $out = "<?xml version=\"1.0\"?>\n";
+	$out .= XMLout($data, KeyAttr=>'id', AttrIndent=>1, SuppressEmpty => undef, RootName=>'config');
+
+	print $FH "$out";
+	close $FH;
+	
+	rename "$cf.tmp", $cf or HTMLDie("rename failed: $!");
+}
+
+#########################################################
+#
+# subs for the configuration and data input screens
+#
+#########################################################
+
 sub control {
-	my $config = shift;
+	my $config = config_read();
 
 	my $JSCRIPT="function doLoad() {\n  setTimeout('window.location.reload()',".$config->{statusTimeout}.");\n}";
 
-	_std_header(undef, "Control Panel", $JSCRIPT, "doLoad()");
+	_std_header("Control Panel", $JSCRIPT, "doLoad()");
   
 	print "<br><table border=1 cellspacing=0 cellpadding=4 width=1080\n";
 	print "<tr><td></td><th colspan=2 align=left>Status</th><th colspan=2 align=left>Actions</th></tr>\n" ;
@@ -200,126 +402,135 @@ sub control {
 			# &update_hidden($w->{'path'}, "true");
 		#}
 
+		# if (!locked)
+		#	check state
+		#	if (state = ??)
+		#		show open/close check in
+		#	end
+		
+		
 		#$name =~ s/"//g;
 		print "<tr><th align=left>$cid - $name</th>" ;
-		print "<td>";
-		print "<img src='./graphics/unlock-small.png' alt='Engarde not Running'/>" if $lockstat;
-		print "<img src='./graphics/lock-small.png' alt='Engarde Running'/>" unless $lockstat;
-		print "</td>";
-
-		if ((!defined $state) || ($state eq "hidden")) 
+		
+		#if ((!defined $state) || ($state eq "hidden")) 
+		#{
+			# print "<td>Check-in</td><td>Not Ready</td><td><a href=\"".url()."?wp=".$cid."&Action=update&Status=Ready\">Setup check-in</a></td><td>Hidden</td>" ;
+		#} 
+		
+		if ($lockstat)
 		{
-			print "<td>Check-in</td><td>Not Ready</td><td><a href=\"".url()."?wp=".$cid."&Action=update&Status=Ready\">Setup check-in</a></td><td>Hidden</td>" ;
-
-		} 
-		elsif ($state eq "check in") 
-		{
-			print "<td>Check-in</td><td>Open</td><td><a href=\"".url()."?wp=".$cid."&Action=update&Status=Running\">Close check-in</a></td>";
-			print "<td><a href=\"".url()."?wp=".$cid."&Action=hide\">Hide</a></td>";
-		} 
-		elsif ($state eq "ready") 
-		{
-			print "<td>Check-in</td><td>Ready</td><td><a href=\"".url()."?wp=".$cid."&Action=update&Status=Check%20in\">Open check-in</a></td>";
-			print "<td><a href=\"".url()."?wp=".$cid."&Action=hide\">Hide</a></td>";
-		} 
+			print "<td><img src='./graphics/unlock-small.png' /></td>";
+		}
 		else 
 		{
-			my $where = $c->whereami;
-			my @w = split (/\s+/,$where);
-			my $etat = $c->etat;
-      
-			# print "<td>" . Dumper(\@w) . "</td>";
-			SWITCH: 
-			{
-				if ($etat eq "termine") 
-				{
-					print "<td>Complete</td><td></td><td><a href=\"".url()."?wp=".$cid."&Action=details\">Details</a></td><td></td>";
-					last SWITCH;
-				}
-
- 				if ($etat eq "debut") 
-				{
-	  				print "<td>Waiting</td><td>Start</td><td><a href=\"".url()."?wp=". $cid ."&Action=details&Name=$name\">Details</a></td>";
- 					print "<td><a href=\"".url()."?wp=".$cid ."&Action=hide\">Hide</a></td>";
-	  				last SWITCH;
-				}
-
-				if ($etat eq "poules") 
-				{
-					print "<td>Poules</td><td>Round $w[1] : " ;
-
-  					if ($w[2]) 
-					{
-	 					my @p = (@w);
-						shift @p;
-						shift @p;
-
-	 					print scalar(@p)." poules running.<br>@p</td><td><a href=\"".url()."?wp=".$cid."&Action=details&Name=$name\">Details</a></td>";
-						print "<td><a href=\"".url()."?wp=".$cid."&Action=hide\">Hide</a></td>";
-	  				} 
-					else 
-					{
-						print "complete.</td><td><a href=\"".url()."?wp=".$cid."&Action=details&Name=$name\">Details</a></td>";
- 						print "<td><a href=\"".url()."?wp=".$cid."&Action=hide\">Hide</a></td>";
- 					}
-
-	  				last SWITCH;
-				}
-
-				if ($etat eq "tableaux") 
-				{
-					# need to amend this - should print "poules" if $w[2] == "finished"
-					
-					if ($w[2] eq "finished")
-					{
-						print "<td>Poules</td><td>Finished" ;
-						
-					}
-					elsif ($w[2])
-					{
-						print "<td>D.E.</td><td>" ;
-					
-						# shift @w;
-						# shift @w;
-
-						my @levels = split / /, $c->tableaux_en_cours;
-						
-						my $matchlist = $c->matchlist(1);
-						
-	 					#foreach my $level (@levels) 
-						#{
-							# my $t = $c->tableau($level);	
-							# print "[$level] " . Dumper(\$t);
- 						#}
-						
-						# print Dumper(\$matchlist);
-						
-						foreach my $l (keys %$matchlist)
-						{
-							my $ll = $$matchlist{$l};
-							
-							print "<font size=+2><b>$l</b></font> ";
-
-							foreach my $m (sort keys %$ll)
-							{
-								print "$m ";
-							}
-							print "<br>";
-							# print Dumper(\$ll);
-						}
-						
-						print "</td>";
-					}
-
-					print "<td><a href=\"".url()."?wp=".$cid."&Action=details&Name=$name\">Details</a></td>";
- 					print "<td><a href=\"".url()."?wp=".$cid."&Action=hide\">Hide</a></td>";
-					
-  					last SWITCH;
-				}
-
-				print "<td>Error</td><td>Unknown</td><td></td><td></td>" ;
-			}
+			print "<td><img src='./graphics/lock-small.png' /></td>";
 		}
+
+		my $where = $c->whereami;
+		my @w = split (/\s+/,$where);
+		my $etat = $c->etat;
+      
+		# print "<td>" . Dumper(\@w) . "</td>";
+		SWITCH: 
+		{
+			if ($etat eq "termine") 
+			{
+				#print "<td>Complete</td><td></td><td><a href=\"".url()."?wp=".$cid."&Action=details\">Details</a></td><td></td>";
+				last SWITCH;
+			}
+
+ 			if ($etat eq "debut") 
+			{
+				if ($state eq "check-in") 
+				{
+					# print "<td>Check-in</td>"; 
+					print "<td>Open</td>"; 
+					print "<td><a href=\"".url()."?wp=".$cid."&Action=update&Status=active\">Close check-in</a></td>";
+					# print "<td><a href=\"".url()."?wp=".$cid."&Action=hide\">Hide</a></td>";
+				} 
+				else 
+				{
+					# print "<td>Check-in</td>";
+					print "<td>Ready</td>";
+					print "<td><a href=\"".url()."?wp=".$cid."&Action=update&Status=check-in\">Open check-in</a> - $state</td>";
+					# print "<td><a href=\"".url()."?wp=".$cid."&Action=hide\">Hide</a></td>";
+				} 
+				
+  				# print "<td>Waiting</td><td>Start</td><td><a href=\"".url()."?wp=". $cid ."&Action=details&Name=$name\">Details</a></td>";
+					# print "<td><a href=\"".url()."?wp=".$cid ."&Action=hide\">Hide</a></td>";
+  				last SWITCH;
+			}
+				if ($etat eq "poules") 
+			{
+				print "<td>Poules</td><td>Round $w[1] : " ;
+  					if ($w[2]) 
+				{
+ 					my @p = (@w);
+					shift @p;
+					shift @p;
+	 					print scalar(@p)." poules running.<br>@p</td>";
+					# print "<td><a href=\"".url()."?wp=".$cid."&Action=details&Name=$name\">Details</a></td>";
+					# print "<td><a href=\"".url()."?wp=".$cid."&Action=hide\">Hide</a></td>";
+  				} 
+				else 
+				{
+					print "complete.</td>";
+					print "<td><a href=\"".url()."?wp=".$cid."&Action=details&Name=$name\">Details</a></td>";
+					# print "<td><a href=\"".url()."?wp=".$cid."&Action=hide\">Hide</a></td>";
+				}
+  				last SWITCH;
+			}
+
+			if ($etat eq "tableaux") 
+			{
+				# need to amend this - should print "poules" if $w[2] == "finished"
+				
+				if ($w[2] eq "finished")
+				{
+					print "<td>Poules</td><td>Finished" ;						
+				}
+				elsif ($w[2])
+				{
+					print "<td>D.E.</td><td>" ;
+				
+					# shift @w;
+					# shift @w;
+					my @levels = split / /, $c->tableaux_en_cours;
+					
+					my $matchlist = $c->matchlist(1);
+						
+ 					#foreach my $level (@levels) 
+					#{
+						# my $t = $c->tableau($level);	
+						# print "[$level] " . Dumper(\$t);
+					#}
+						
+					# print Dumper(\$matchlist);
+						
+					foreach my $l (keys %$matchlist)
+					{
+						my $ll = $$matchlist{$l};
+						
+						print "<font size=+2><b>$l</b></font> ";
+						foreach my $m (sort keys %$ll)
+						{
+							print "$m ";
+						}
+						print "<br>";
+						# print Dumper(\$ll);
+					}
+					
+					print "</td>";
+				}
+				print "<td><a href=\"".url()."?wp=".$cid."&Action=details&Name=$name\">Details</a></td>";
+				print "<td><a href=\"".url()."?wp=".$cid."&Action=hide\">Hide</a></td>";
+					
+				last SWITCH;
+			}
+
+			print "<td>Error</td><td>Unknown</td><td></td><td></td>" ;
+		}
+
 
 		my $hold = $w->{hold} || 0;
 		
@@ -344,10 +555,10 @@ sub screen_config_grid
 {
 	my $config = config_read();
 
-	my $JSCRIPT="function doLoad() {\n  setTimeout('window.location.reload()',".$config->{statusTimeout}.");\n}";
+	#my $JSCRIPT="function doLoad() {\n  setTimeout('window.location.reload()',".$config->{statusTimeout}.");\n}";
 
 	#_std_header(undef, "Configuration", $JSCRIPT, "doLoad()");
-	_std_header(undef, "Screen Configuration");
+	_std_header("Screen Configuration");
   
 	print "<br><table border=1 cellspacing=0 cellpadding=4 width=1080\n";
 	print "<tr><th align=left>Competition</th><th></th><th colspan=12 align=left>Screens</th><th></th><th></th></tr>\n" ;
@@ -368,16 +579,39 @@ sub screen_config_grid
 		print "<tr><th align='left'>$cid - " . $comps->{$cid}->{source} . "</th>";
 		print "<td><a href=\"".url()."?wp=".$cid."&Action=delete\"><img src='./graphics/red-cross-icon.png' /></a></td>";		
 		
-		# my @values = (1..12);
-		# my @defaults;
+		my @values = (1..12);
+		my @default;
+		
+		# my %labels = (
+		# 'red' => 'A Red One',
+		# 'green' => 'A Green One',
+		# 'blue' => 'A Blue One',
+		# 'yellow' => 'A Yellow One' );
+ 
+		# print checkbox_group(
+		# -name => 'color_choices',
+		# -values => ['red', 'green', 'blue', 'yellow'],
+		# -default => ['red', 'blue'],
+		# -labels => \%labels
+		# ); 
+		
+		# my %labels;
+	
+		print start_form(-name=>"screens_$cid");
+		print hidden(-name=>"wp", -value=>"$cid");
+		print hidden(-name=>"Action", -value=>"update");
 		
 		for my $i (0..11)
 		{
-			print "<td>" . checkbox(-name=>$cid, -checked=>${$seriescomps->{$cid}}[$i], -label=>"") . "</td>";
+			# push @default,$i if ${$seriescomps->{$cid}}[$i];
+			
+			print "<td>" . checkbox(-name=>"screens", -value=>$i, -checked=>${$seriescomps->{$cid}}[$i], -label=>"") . "</td>";
 		}
 		
-		print "<td><a href=\"".url()."?wp=".$cid."&Action=update\"><img src='./graphics/green-disk-icon.png' /></a></td>";
-
+		
+		# print "<td colspan=12>" . checkbox_group(-name => "screens", -values=> \@values, -default => \@default) . "</td>";
+		print "<td><a href=\"javascript: document.screens_$cid.submit();\"><img src='./graphics/green-disk-icon.png' /></a></td>";
+		print end_form();
 
 		my $enabled = $comps->{$cid}->{enabled} || "false";
 		
@@ -389,14 +623,6 @@ sub screen_config_grid
 		{
 			print "<td><a href=\"".url()."?wp=".$cid."&Action=enable\"><img src='./graphics/blue-document-cross-icon.png' /></a></td>";
 		}
-		
-		# print "<td colspan=12>" . checkbox_group(-name=>$cid, -values=>\@values, -default=>\$seriescomps->{$cid}, -linebreak=>'false') . "</td>";
-		#print checkbox_group(-name=>'group_name',
-        #                        -values=>['eenie','meenie','minie','moe'],
-        #                        -default=>['eenie','moe'],
-	    #                    -linebreak=>'true',
-	    #                    -labels=>\%labels);
-		
 		
 		print "</tr>";
 	}
@@ -438,7 +664,7 @@ sub config_form
 				
 	my $gap = '&nbsp;&nbsp;&nbsp;';
 				
-	_std_header($config, "Configuration");
+	_std_header("Configuration");
   
 	print start_form(
           -method=>'POST',
@@ -563,6 +789,8 @@ sub _wanted
 
 sub _series_by_comp
 {
+	# since this is a private sub, it makes sense to pass in $config instead or reloading it
+	# but it could be changed for consistency
 	my $config = shift;
 	
 	my $series = $config->{series};
@@ -574,7 +802,6 @@ sub _series_by_comp
 	return undef unless ref $comps eq "HASH";
 	
 	my $out = {};
-	
 	
 	# build an empty array
 	foreach my $cid (keys %$comps)
@@ -599,32 +826,20 @@ sub _series_by_comp
 	return $out;
 }
 
-sub loadFencerData
-{
-	my $c = shift;
-	$::fencers = $c->tireur;
-	$::clubs = $c->club;
-	$::nations = $c->nation;
 
-	$::maxfkey = $::fencers->{'max'};
-	$::maxckey = $::clubs->{'max'};
-	$::maxnkey = $::nations->{'max'};
-	
-}
 
 sub desk {
 	
-	my $config = shift;
+	my $config = config_read();
 
 	my $JSCRIPT="function doLoad() {\n  setTimeout('window.location.reload()',".$config->{checkinTimeout}.");\n}";
 
-	_std_header($config, "Check In Desk", $JSCRIPT, "doLoad()");
+	_std_header("Check In Desk", $JSCRIPT, "doLoad()");
   
 	# my $t=localtime();
 	# print "$t\n";
 	print "<table border=0 cellspacing=0 cellpadding=0 width=640>";
 	print "<tr><th>Please choose a weapon/competition.</th></tr>";
-
 
 	my $weapons = $config->{competition};
 
@@ -635,11 +850,11 @@ sub desk {
 
 		my $state = $w->{'state'};
 
-		next unless $state eq "check in";
+		next unless $state eq "check-in";
 
 		my $c = Engarde->new($w->{source} . "/competition.egw", 1);
 		next unless defined $c;
-   		print "<tr><td><a href=".url()."?wp=$cid>$cid - ".$c->titre_reduit."</a></td></tr>";
+   		print "<tr><td><a href=".url()."?wp=$cid&Action=list>$cid - ".$c->titre_ligne."</a></td></tr>";
   	}
 
   	print "</table><br><a href=\"index.html\">Back</a>\n" ;
@@ -651,54 +866,82 @@ sub desk {
 
 sub displayList {
 	my $cid = shift;
-	my $config = shift;
+	my $config = config_read();
+
+	my %cookies=CGI::Cookie->fetch;
+	
+	my $c = Engarde->new($config->{competition}->{$cid}->{source} . "/competition.egw");
+	HTMLdie("invalid competition") unless $c;
+
+	my $f = $c->tireur;
+	my $clubs = $c->club;
+	my $nations = $c->nation;
 	
 	my $JSCRIPT="function edit(item) {\n  eWin = window.open(\"".url()."?wp=$cid&Action=Edit&Item=\" + item,\"edit\",\"height=560,width=640\");\n}\n";
-	$JSCRIPT=$JSCRIPT."function check(item) {\n  cWin = window.open(\"".url()."?wp=$cid&Action=Check&Item=\" + item,\"check\",\"height=100,width=640\")\n}\n";
-	$JSCRIPT=$JSCRIPT."function doLoad() {\n  setTimeout('window.location.reload()',20000);\n}";
+	$JSCRIPT=$JSCRIPT."function check(item) {\n  window.location.href = \"".url()."?wp=$cid&Action=Check&Item=\" + item\n}\n";
+	$JSCRIPT=$JSCRIPT."function doLoad() {\n  setTimeout('window.location.reload()'," . $config->{checkinTimeout} . ");\n}\n\n";
+	$JSCRIPT=$JSCRIPT."function showAll(val) { \n alert(val); document.cookie='showAll='+val; window.location.reload();}";
 
 	my $row = 0;
-	my $state = $$config->{competition}->{$cid}->{state};
+	my $state = $config->{competition}->{$cid}->{state};
 
-	_std_header($config, "Check-in", $JSCRIPT, "doLoad();");
+	my $fencers = {};
+	
+	_std_header("Check-in", $JSCRIPT, "doLoad();");
+	
+	foreach my $fid (keys %$f)
+	{
+		next unless ($fid =~ /\d+$/);
+		$fencers->{$fid} = $f->{$fid};
+	}
+	
 
-	my $present = $::fencers->{present};
-	my $total = $present + $::fencers->{absent};
-	my $showall = param("showall") || 0;
+	my $present = $f->{present};
+	my $total = scalar keys %$fencers;
+	my $showall = "false";
+	$showall = $cookies{'showAll'}->value if $cookies{'showAll'};
+	
+	$showall = $showall eq "true" ? 1 : 0;
+	
+	print "showall = $showall<br>";
 
 	print "<table border=0 cellspacing=0 cellpadding=0><tr><td align=center>\n" ;
-	print "<table border=0 cellspacing=5 cellpadding=0 width=100%><tr><td><a href=".url().">Check-in Desk</a></td><td align=center>Fencers Present : ".$present."/".$total."</td><td>Show all <input type='checkbox' name='showall' value=".$showall."></td><td align=right>";
-	print "<a href=javascript:edit('-1')>Add Fencer</a>" unless ($state ne "check in");
-	print "</td></tr></table>\n" ;
+	print "<table border=0 cellspacing=5 cellpadding=0 width=100%><tr><td><a href=".url().">Check-in Desk</a></td>";
+	print "<td align=center>Fencers Present : ".$present."/".$total."</td>";
+	print "<td>Show all " . checkbox(-name=>'showAll', -checked=>$showall, -onClick=>'showAll(this.checked)', -label=>"") . "</td>";
+	print "<td align=right>";
+	print "<a href=javascript:edit('-1')>Add Fencer</a>" unless ($state ne "check-in");
+	print "</td>";
+	print "</tr></table>\n" ;
 	print "<table border=1 cellspacing=0 cellpadding=2>\n" ;
 	print "<tr><th>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</th><th>NAME</th><th>CLUB</th><th>NATION</th><th>LICENCE NO</th><th>NVA</th><th>OWING</th><th></th></tr>\n" ;
 
-	my $f = {};
 
-	foreach my $fid (keys %$::fencers)
+	# print Dumper(\$fencers);
+	
+	foreach my $fid (sort {$fencers->{$a}->{nom} cmp $fencers->{$b}->{nom}} keys %{$fencers})
 	{
-		next unless ($fid =~ /^\d+$/);
-		$f->{$fid} = $::fencers->{$fid};
-	}
-
-	foreach my $fid (sort {$f->{$a}->{nom} cmp $f->{$b}->{nom}} keys %$f)
-	{
+		# next unless ($fid =~ /^\d+$/);	
+		# print $fid . "<br>";
+	
 		if (!$showall)
-		{
-			next if $f->{$fid}->{presence} eq "present";
+		{	
+			next if $fencers->{$fid}->{presence} eq "present";
+			# print "<br>$fid [$fencers->{$fid}->{presence}]";
 		}
+		
 		my ($name, $first, $club, $nation, $licence, $owing, $nva);
 		my $bgcolour = "#ffffff" ;
    
-    	$owing  = $::additions{$fid}->{'owing'} || "";
+    	$owing  = $fencers->{$fid}->{paiement} || "";
 
-		$name = $f->{$fid}->{nom} . " " . $f->{$fid}->{prenom};
-		$club = $f->{$fid}->{club1};
-		$club = $::clubs->{$club}->{nom} if $club;
-		$nation = $f->{$fid}->{nation1};
-		$nation = $::nations->{$nation}->{nom} if $nation;
+		$name = $fencers->{$fid}->{nom} . " " . $fencers->{$fid}->{prenom};
+		$club = $fencers->{$fid}->{club1};
+		$club = $clubs->{$club}->{nom} if $club;
+		$nation = $fencers->{$fid}->{nation1};
+		$nation = $nations->{$nation}->{nom} if $nation;
 
-		$licence = $f->{$fid}->{licence};
+		$licence = $fencers->{$fid}->{licence};
 
     	if ($owing) 
 		{
@@ -716,12 +959,12 @@ sub displayList {
 	
     	print "<tr><td>";
 
-    	if ($::fencers->{$fid}->{'presence'} ne "present") 
+    	if ($fencers->{$fid}->{'presence'} ne "present") 
 		{
-			if ($::allowCheckInWithoutPaid || ( $owing eq "")) 
-			{
-        			print "<a href=javascript:check('".$fid."')>Check-in</a>" unless ($state eq "Check in");
-      		}
+			#if ($config->{allowCheckInWithoutPaid} || ( $owing eq "")) 
+			#{
+        			print "<a href=javascript:check('".$fid."')>Check-in</a>";
+      		#}
     	} 
 		else 
 		{
@@ -752,60 +995,10 @@ sub displayList {
 }
 
 
-sub config_read
-{
-        my $cf = shift;
-		
-		unless ($cf)
-		{
-			my $dir = cwd();
-			
-			$cf = "$dir/live.xml" if ( -r "$dir/live.xml" && not $cf);
-			$cf = "$dir/../live.xml" if ( -r "$dir/../live.xml" && not $cf);
-		}
-		
-        my $data = XMLin($cf, KeyAttr=>'id', ForceArray=>qr/competition/);
-		
-		my $debug = $data->{debug};
-		
-		$Engarde::DEBUGGING = $debug;
-		# HTMLdie "debug = " . $Engarde::DEBUGGING;
-		
-		# $Engarde::DEBUGGING = $data->{debug};
-		
-        return $data;
-}
-
-sub config_write
-{
-	my $data = shift;
-	my $cf = shift;
-
-	unless ($cf)
-	{
-		my $dir = cwd();
-			
-		$cf = "$dir/live.xml" if ( -w "$dir/live.xml" && not $cf);
-		$cf = "$dir/../live.xml" if ( -w "$dir/../live.xml" && not $cf);
-	}
-		
-	open my $FH, ">$cf" . ".tmp" or HTMLdie ("Could not open $cf.tmp for writing: $!");
-	flock($FH, LOCK_EX) || HTMLdie ("Couldn't obtain exclusive lock on $cf");
-
-	my $out = "<?xml version=\"1.0\"?>\n";
-	$out .= XMLout($data, KeyAttr=>'id', AttrIndent=>1, SuppressEmpty => undef, RootName=>'config');
-
-	print $FH "$out";
-	close $FH;
-	
-	rename "$cf.tmp", $cf or HTMLDie("rename failed: $!");
-}
-
-
 sub editItem 
 {
 	my $weaponPath = shift;
-	my $config = shift;
+	my $config = config_read();
 	my $comp = shift;
 
 	my ($name, $first, $club, $nation, $licence, $presence, $owing, $nva);
@@ -831,7 +1024,7 @@ sub editItem
     	$nva      = 0;
   	}
   
-	_std_header($config, "Edit Item", undef, undef);
+	_std_header( "Edit Item", undef, undef);
 
 	print start_form(
           -method=>'POST',
@@ -851,9 +1044,10 @@ sub editItem
           -name=>'Item',
           -value=>param('Item'),
           -override=>'true'
-        );
+		);
 
 	print "<fieldset><legend>Fencer Information</legend>\n";
+	
 	print table({border => 0, cellspacing=>2, cellpadding=>0},
 		Tr({},
 		[
@@ -861,7 +1055,7 @@ sub editItem
 			td(["Forename :",textfield(-name=>'prenom',-value=>$first,-size=>32,-maxlength=>32)]),
 			td(["Licence No :",textfield(-name=>'licence',-value=>$licence,-size=>32,-maxlength=>32)])
 		])
-	);
+		);
 
 	print "</fieldset>\n";
 	print "<fieldset><legend>Affilliation</legend>\n";
@@ -877,23 +1071,30 @@ sub editItem
   	# Generate Nation List
   	#
   	@nkeys = sort {uc($::nations{$a}->{'nom'}) cmp uc($::nations{$b}->{'nom'})} (keys(%::nations));
-  	foreach (@nkeys) {
+  	foreach (@nkeys) 
+	{
     	$nation   = $::nations{$_}->{'nom'} ;
     	$nation   =~ s/"//g ;
     	$nationnames{$_} = $nation;
-    	if (param('Item') != -1) {
-      	if ($_ == $::fencers{param('Item')}->{'nation1'}) {
+    	if (param('Item') != -1) 
+		{
+			if ($_ == $::fencers{param('Item')}->{'nation1'}) 
+			{
+				$selnation = $_;
+			}
+		} 
+		else 
+		{
+			if ($nation eq $::defaultNation) {
         	$selnation = $_;
-      	}
-    	} else {
-      	if ($nation eq $::defaultNation) {
-        	$selnation = $_;
-      	}
+			}
     	}
   	}
   	push (@nkeys, '-1');
-  	$nationnames{'-1'} = 'Other';
-  	print table({border => 0, cellspacing=>2, cellpadding=>0},
+  	
+	$nationnames{'-1'} = 'Other';
+  	
+	print table({border => 0, cellspacing=>2, cellpadding=>0},
           	Tr({},
           	[
             td(["Club :",
@@ -918,41 +1119,55 @@ sub editItem
           )
         );
 	print "<fieldset><legend>Additional Information</legend>\n";
-  if ($nva) {
-    print checkbox(-name=>'nva',-value=>1,-checked=>1,-label=>'NVA Member');
-  } else {
-    print checkbox(-name=>'nva',-value=>1,-checked=>0,-label=>'NVA Member');
-  }
-  if ($owing) {
-    print "<br>&pound;".$owing." outstanding ".checkbox(-name=>'paid',-value=>1,-checked=>0,-label=>'Paid');
-  }
-  print "</fieldset>\n";
-  print "<fieldset><legend>Flags</legend>\n";
   
-  if ($state->{'status'} =~ /check in/i) {
-    if ($presence eq "present") {
-      print checkbox(-name=>'presence',-value=>'present',-checked=>1,-label=>'Present');
-    } else {
-      print checkbox(-name=>'presence',-value=>'present',-checked=>0,-label=>'Present');
-    }
-  } else {
-    print hidden(-name=>'presence',-value=>$presence,-override=>'true');
-  }
-  print "<br>";
-  print "</fieldset>\n";
+	if ($nva) 
+	{
+		print checkbox(-name=>'nva',-value=>1,-checked=>1,-label=>'NVA Member');
+	} 
+	else 
+	{
+		print checkbox(-name=>'nva',-value=>1,-checked=>0,-label=>'NVA Member');
+	}
+	
+	if ($owing) 
+	{
+		print "<br>&pound;".$owing." outstanding ".checkbox(-name=>'paid',-value=>1,-checked=>0,-label=>'Paid');
+	}
   
-  print submit(-label=>'Update Record');
+	print "</fieldset>\n";
+	print "<fieldset><legend>Flags</legend>\n";
   
-  print end_form();
+	if ($state->{'status'} =~ /check-in/i) 
+	{
+		if ($presence eq "present") 
+		{
+			print checkbox(-name=>'presence',-value=>'present',-checked=>1,-label=>'Present');
+		} 
+		else 
+		{
+			print checkbox(-name=>'presence',-value=>'present',-checked=>0,-label=>'Present');
+		}
+	} 
+	else 
+	{
+		print hidden(-name=>'presence',-value=>$presence,-override=>'true');
+	}
+	
+	print "<br>";
+	print "</fieldset>\n";
+  
+	print submit(-label=>'Update Record');
+  
+	print end_form();
 
-  print end_html();
+	print end_html();
 }
 
 sub _std_header
 {
 	# prints the standard CGI.pm blurb
 	
-	my $config = shift;
+	# my $config = shift;
 	my $title = shift || "Engarde.pm";
 	my $JSCRIPT = shift || "";
 	my $onload = shift || "";
@@ -981,6 +1196,14 @@ sub _std_header
 	warningsToBrowser(1);
 }
 
+sub _std_footer
+{
+	print "<br>";
+	print "<a href='index.html'>Home</a><br>\n";
+	print "<a href='screens.cgi'>Screen Configuration</a><br>\n";
+	
+	print "</table></html>";
+}
 
 sub _club_list
 {
