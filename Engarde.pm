@@ -513,6 +513,8 @@ sub tireur
 	{
 		$self = {};
 		$self->{file} = "$dir/tireur.txt";
+		$self->{dir} = $dir;
+		
 		bless $self, "Engarde::Tireur";
 	}
 
