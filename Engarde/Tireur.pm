@@ -47,7 +47,7 @@ sub decode
 				s/\".*$//;
 
 				$item->{$key} = $_;
-				print STDERR "TIREUR 3: $_\n" if $key eq "date_nais";
+				# print STDERR "TIREUR 3: $_\n" if $key eq "date_nais";
 			}
 		}
 
@@ -147,11 +147,12 @@ sub to_text
 	
 	my $dir = $self->{dir};
 	
-	# this will silently return if engarde is running since we don't 
-	# want a multiple writer conflict
+	# the caller must ensure that engarde is not running since we don't 
+	# want a multiple writer conflict and linux doesn't like multiple locks on the 
+	# same file
 	
-	open ETAT, "+< $dir/etat.txt";
-	flock(ETAT, LOCK_EX) || return undef;
+	# open ETAT, "+< $dir/etat.txt";
+	# flock(ETAT, LOCK_EX) || return undef;
 	
 	open my $FH, "> $file" . ".tmp";
 	flock($FH, LOCK_EX) || return undef;
@@ -206,7 +207,7 @@ sub to_text
 	close $FH;
 	close $FH2;
 	
-	flock($ETAT, LOCK_UN); 
+	# flock($ETAT, LOCK_UN); 
 	close $ETAT;
 	
 	rename "$file.tmp", $file or die("rename failed: $!");

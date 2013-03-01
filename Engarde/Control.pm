@@ -197,27 +197,28 @@ sub fencer_checkin
 	my $config=config_read();
 
 	
-	
 	#HTMLdie(Dumper($config->{competition}->{$cid}));
 	
 	my $c = Engarde->new($config->{competition}->{$cid}->{source} . "/competition.egw", 1);
 	HTMLdie("invald compeition $cid") unless $c;
 	
-	my $ETAT;
-	open($ETAT, "+< " . $c->{dir} . "/etat.txt"); 
+	# my $ETAT;
+	open(ETAT, "+< " . $c->{dir} . "/etat.txt"); 
+	
+	HTMLdie("lock error: $!") unless ETAT;
 	
 	my $lockstat = flock(ETAT,LOCK_EX);
 
 	#HTMLdie("calling _running");
 	
-	HTMLdie("Competition Locked") unless $lockstat;
+	HTMLdie("Competition Locked: $^E") unless $lockstat;
 	
 	my $f = $c->tireur;
 	
 	$f->{$fid}->{presence} = "present";
 	
-	flock($ETAT,LOCK_UN);
-	close $ETAT;
+	flock(ETAT,LOCK_UN);
+	close ETAT;
 	# _release($ETAT);
 	
 	#HTMLdie("calling to_text");
@@ -1088,6 +1089,7 @@ sub editItem
 	
 	# check lock state here
 	
+	
 	my ($name, $first, $club, $nation, $licence, $presence, $owing, $nva);
 	my $state = $config->{competition}->{$weaponPath}->{state};
 
@@ -1315,14 +1317,14 @@ sub _club_list
 	my $c = $comp->club;
 
 	my $clubs = {};
-	
+						
 	foreach (keys %$c)
 	{
 		next unless /\d+/;
 		$clubs->{$_} = $c->{$_};
 	}
 	
-	print STDERR Dumper(\$clubs);
+	# print STDERR Dumper(\$clubs);
 
 	# Generate Club List
 
@@ -1338,13 +1340,42 @@ sub _club_list
 
 	#HTMLdie(Dumper($ckeys));
 
-	foreach (@$ckeys) {
+	foreach (@$ckeys) 
+	{
 		$$clubnames{$_} = $clubs->{$_}->{'nom'} ;
 	}
 	push (@$ckeys, '-1');
 	$$clubnames{'-1'} = 'Other';
 }
 
+sub _lock
+{
+	my $c = shift;
+	my $dir = $c->dir;
+	
+	my $tries = 0;
+	
+	while ($tries < 2)
+	{
+		if (-f "$dir/eflock.txt")
+		{
+			sleep 2;
+			$tries += 1;
+		}
+		else
+		{
+		
+		}
+	}
+	
+}
+
+sub _unlock
+{
+	my $c = shift;
+	my $dir = $c->dir;
+			
+}
 
 sub _nation_list
 {
