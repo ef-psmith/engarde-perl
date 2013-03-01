@@ -205,7 +205,7 @@ sub fencer_checkin
 	# my $ETAT;
 	open(ETAT, "+< " . $c->{dir} . "/etat.txt"); 
 	
-	HTMLdie("lock error: $!") unless ETAT;
+	# HTMLdie("lock error: $!") unless ETAT;
 	
 	my $lockstat = flock(ETAT,LOCK_EX);
 
@@ -321,9 +321,10 @@ sub config_read
 			
 			$cf = "$dir/live.xml" if ( -r "$dir/live.xml" && not $cf);
 			$cf = "$dir/../live.xml" if ( -r "$dir/../live.xml" && not $cf);
+			$cf = "/share/Public/engarde/live/live.xml" if ( -r "/share/Public/engarde/live/live.xml" && not $cf);
 		}
-		
-        my $data = XMLin($cf, KeyAttr=>'id', ForceArray=>qr/competition/);
+	
+        my $data = XMLin($cf, KeyAttr=>'id', ForceArray=>qr/competition/); 
 		
 		my $debug = $data->{debug};
 		
@@ -346,8 +347,9 @@ sub config_write
 			
 		$cf = "$dir/live.xml" if ( -w "$dir/live.xml" && not $cf);
 		$cf = "$dir/../live.xml" if ( -w "$dir/../live.xml" && not $cf);
+		$cf = "/share/Public/engarde/live/live.xml" if ( -w "share/Public/engarde/live/live.xml" && not $cf);
 	}
-		
+
 	open my $FH, ">$cf" . ".tmp" or HTMLdie ("Could not open $cf.tmp for writing: $!");
 	flock($FH, LOCK_EX) || HTMLdie ("Couldn't obtain exclusive lock on $cf");
 
