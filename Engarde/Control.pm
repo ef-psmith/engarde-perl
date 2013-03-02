@@ -147,6 +147,7 @@ sub weapon_series_update
 {
 	my $cid = shift;
 	my @screens = param("screens");
+	my $message = param("message");
 	
 	my %screens = map {$_ => 1 } @screens;
 	
@@ -162,6 +163,19 @@ sub weapon_series_update
 		
 		$config->{series}->{$s+1}->{competition} = \@result;
 	}	
+	
+	if ($message)
+	{
+		# this is clunky, but forces the message to be an element
+		my @msg;
+		push @msg, $message;
+	
+		$config->{competition}->{$cid}->{message} = \@msg;
+	}
+	else
+	{
+		delete $config->{competition}->{$cid}->{message};
+	}
 	
 	config_write($config);
 	
@@ -243,12 +257,14 @@ sub config_update_basic
 	my $debuglevel = param("debuglevel");
 	my $restrictip = param("restrictip");
 	my $allowunpaid = param("allowunpaid");
+	my $tournamentname = param("tournamentname");
 	
 	$config->{checkinTimeout} = $checkintimeout * 1000;
 	$config->{statusTimeout} = $statustimeout * 1000;
 	$config->{debug} = $debuglevel;
 	$config->{restrictIP} = $restrictip;
 	$config->{allowunpaid} = $allowunpaid;
+	$config->{tournamentname} = $tournamentname;
 	
 	config_write($config);
 	print "Location: ".url()."\n\n" ;
@@ -319,12 +335,26 @@ sub config_read
 		{
 			my $dir = cwd();
 			
-			$cf = "$dir/live.xml" if ( -r "$dir/live.xml" && not $cf);
-			$cf = "$dir/../live.xml" if ( -r "$dir/../live.xml" && not $cf);
-			$cf = "/share/Public/engarde/live/live.xml" if ( -r "/share/Public/engarde/live/live.xml" && not $cf);
+			my @locations = (	"/share/Public/engarde/live/web/live.xml",
+								"$dir/live.xml",
+								"$dir/web/live.xml",
+								"$dir/../live.xml",
+							);
+			foreach (@locations)
+			{
+				$cf = $_ if ( -r $_ && not $cf );
+			}
+			
+			#$cf = "$dir/live.xml" if ( -r "$dir/live.xml" && not $cf);
+			#$cf = "$dir/web/live.xml" if ( -r "$dir/web/live.xml" && not $cf);
+			#$cf = "$dir/../live.xml" if ( -r "$dir/../live.xml" && not $cf);
+			#$cf = "/share/Public/engarde/live/live.xml" if ( -r "/share/Public/engarde/live/live.xml" && not $cf);
 		}
-	
-        my $data = XMLin($cf, KeyAttr=>'id', ForceArray=>qr/competition/); 
+		
+		return undef unless $cf;
+		
+        #my $data = XMLin($cf, KeyAttr=>'id', ForceArray=>qr/competition message/); 
+		my $data = XMLin($cf, KeyAttr=>'id', ForceArray=>1); 
 		
 		my $debug = $data->{debug};
 		
@@ -579,9 +609,9 @@ sub screen_config_grid
 	_std_header("Screen Configuration");
   
 	print "<br><table border=1 cellspacing=0 cellpadding=4 width=1080\n";
-	print "<tr><th align=left>Competition</th><th></th><th colspan=12 align=left>Screens</th><th></th><th></th></tr>\n" ;
+	print "<tr><th align=left rowspan=2 colspan=2>Competition</th></th><th colspan=12 align=left>Screens</th><th rowspan=2>Message</th><th rowspan=2>Save</th><th rowspan=2>Enabled?</th></tr>\n" ;
 
-	print "<tr><th></th><th></th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th><th>9</th><th>10</th><th>11</th><th>12</th><th></th><th></th></tr>";
+	print "<tr><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th><th>9</th><th>10</th><th>11</th><th>12</th></tr>";
 	
 	my $comps = $config->{competition};
 
@@ -594,7 +624,13 @@ sub screen_config_grid
 		
 	foreach my $cid (sort { $a <=> $b } keys(%$comps)) 
 	{
-		print "<tr><th align='left'>$cid - " . $comps->{$cid}->{source} . "</th>";
+		my $short_src = $comps->{$cid}->{source};
+		
+		$short_src =~ s/.*\/examples\///;
+		$short_src =~ s/.*\\examples\\//;
+		$short_src =~ s/.*\/current\///;
+		
+		print "<tr><th align='left'>$cid - " . $short_src . "</th>";
 		print "<td><a href=\"".url()."?wp=".$cid."&Action=delete\"><img src='./graphics/red-cross-icon.png' /></a></td>";		
 		
 		my @values = (1..12);
@@ -626,20 +662,25 @@ sub screen_config_grid
 			print "<td>" . checkbox(-name=>"screens", -value=>$i, -checked=>${$seriescomps->{$cid}}[$i], -label=>"") . "</td>";
 		}
 		
+		my $msg = ${$comps->{$cid}->{message}}[0]; 
 		
+		# cope with an empty message element
+		$msg = "" if ref $msg eq "HASH";
+		
+		print "<td>" . textfield(-name=>"message", -value=>$msg) . "</td>";
 		# print "<td colspan=12>" . checkbox_group(-name => "screens", -values=> \@values, -default => \@default) . "</td>";
-		print "<td><a href=\"javascript: document.screens_$cid.submit();\"><img src='./graphics/green-disk-icon.png' /></a></td>";
+		print "<td align='center'><a href=\"javascript: document.screens_$cid.submit();\"><img src='./graphics/green-disk-icon.png' /></a></td>";
 		print end_form();
 
 		my $enabled = $comps->{$cid}->{enabled} || "false";
 		
 		if ($enabled eq "true")
 		{
-			print "<td><a href=\"".url()."?wp=".$cid."&Action=disable\"><img src='./graphics/green-document-icon.png' /></a></td>";
+			print "<td align='center'><a href=\"".url()."?wp=".$cid."&Action=disable\"><img src='./graphics/green-document-icon.png' /></a></td>";
 		}
 		else
 		{
-			print "<td><a href=\"".url()."?wp=".$cid."&Action=enable\"><img src='./graphics/blue-document-cross-icon.png' /></a></td>";
+			print "<td align='center'><a href=\"".url()."?wp=".$cid."&Action=enable\"><img src='./graphics/blue-document-cross-icon.png' /></a></td>";
 		}
 		
 		print "</tr>";
@@ -678,7 +719,8 @@ sub config_form
 					"Restrict access to the check in and status pages?",
 					"For the QNAP this should be /share/Qweb",
 					"Output from the writexml.pl script",
-					"Allow Check-in for fencers who owe entry fees?"
+					"Allow Check-in for fencers who owe entry fees?",
+					"The Name of the Tournament e.g. \"The Little Whinging 6 Weapon Bun Fight\"",
 				);
 				
 	my $gap = '&nbsp;&nbsp;&nbsp;';
@@ -694,6 +736,7 @@ sub config_form
 	print table({border => 0, cellspacing=>6, cellpadding=>2},
 		Tr({},
 		[
+ 			"<td>Event / Tournament Name :</td><td colspan=4>" . textfield(-name=>'tournamentname', -value=>$config->{tournamentname},-size=>50,-maxlength=>50) . "</td><td>$gap</td><td>$hints[7]</td>",
 			td(["Check In Timeout :",radio_group(-name=>'checkintimeout', -values=>[10, 20, 30, 40], -default=>$config->{checkinTimeout} / 1000, -linebreak=>'false'),$gap,$hints[0]]),
 			td(["Allow Unpaid Check-in :",radio_group(-name=>'allowunpaid', -values=>['true', 'false'], -default=>$config->{allowunpaid}, -linebreak=>'false'),'','',$gap,$hints[6]]),
 			td(["Status Timeout :",radio_group(-name=>'statustimeout', -values=>[10, 20, 30, 40], -default=>$config->{statusTimeout} / 1000, -linebreak=>'false'),$gap,$hints[1]]),
