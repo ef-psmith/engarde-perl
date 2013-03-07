@@ -5,12 +5,11 @@ require Exporter;
 use strict;
 use vars qw($VERSION @ISA);
 @ISA = qw(Engarde Exporter);
-our @EXPORT = qw(	control 
+our @EXPORT = qw(	frm_control frm_config frm_screen frm_checkin_desk frm_checkin_list frm_fencer_edit
 					config_read config_update_basic config_update_output config_update_ip config_trash
 					weapon_add weapon_delete weapon_disable weapon_enable weapon_series_update weapon_config_update 
 					fencer_checkin
-					HTMLdie desk displayList editItem 
-					screen_config_grid config_form );
+					HTMLdie );
 
 use Data::Dumper;
 use Cwd qw/abs_path cwd/;
@@ -29,6 +28,12 @@ use XML::Simple;
 my @available_comps;
 
 
+
+#########################################################
+#
+# General purpose error handler
+#
+#########################################################
 
 sub HTMLdie {
   
@@ -77,9 +82,7 @@ sub weapon_add
 	$comps->{$nextid}->{state} = 'active';
 	
 	config_write($config);
-	
-	# load the scrrens page
-	print "Location: screens.cgi\n\n" ;
+	print "Location: " . url() . "\n\n" ;
 }
 
 
@@ -277,9 +280,11 @@ sub config_update_output
 	
 	my $targetlocation = param("targetlocation");
 	my $log = param("log");
+	my $nif = param("nif");
 	
 	$config->{targetlocation} = $targetlocation;
 	$config->{log} = $log;
+	$config->{nif} = $nif;
 	
 	config_write($config);
 	print "Location: ".url()."\n\n" ;
@@ -336,19 +341,14 @@ sub config_read
 			my $dir = cwd();
 			
 			my @locations = (	"/share/Public/engarde/live/web/live.xml",
-								"$dir/live.xml",
 								"$dir/web/live.xml",
+								"$dir/live.xml",
 								"$dir/../live.xml",
 							);
 			foreach (@locations)
 			{
 				$cf = $_ if ( -r $_ && not $cf );
 			}
-			
-			#$cf = "$dir/live.xml" if ( -r "$dir/live.xml" && not $cf);
-			#$cf = "$dir/web/live.xml" if ( -r "$dir/web/live.xml" && not $cf);
-			#$cf = "$dir/../live.xml" if ( -r "$dir/../live.xml" && not $cf);
-			#$cf = "/share/Public/engarde/live/live.xml" if ( -r "/share/Public/engarde/live/live.xml" && not $cf);
 		}
 		
 		return undef unless $cf;
@@ -359,9 +359,6 @@ sub config_read
 		my $debug = $data->{debug};
 		
 		$Engarde::DEBUGGING = $debug;
-		# HTMLdie "debug = " . $Engarde::DEBUGGING;
-		
-		# $Engarde::DEBUGGING = $data->{debug};
 		
         return $data;
 }
@@ -374,12 +371,20 @@ sub config_write
 	unless ($cf)
 	{
 		my $dir = cwd();
-			
-		$cf = "$dir/live.xml" if ( -w "$dir/live.xml" && not $cf);
-		$cf = "$dir/../live.xml" if ( -w "$dir/../live.xml" && not $cf);
-		$cf = "/share/Public/engarde/live/live.xml" if ( -w "share/Public/engarde/live/live.xml" && not $cf);
+		
+		my @locations = (	"/share/Public/engarde/live/web/live.xml",
+							"$dir/web/live.xml",
+							"$dir/live.xml",
+							"$dir/../live.xml",
+						);
+		foreach (@locations)
+		{
+			$cf = $_ if ( -w $_ && not $cf );
+		}		
 	}
 
+	return undef unless $cf;
+		
 	open my $FH, ">$cf" . ".tmp" or HTMLdie ("Could not open $cf.tmp for writing: $!");
 	flock($FH, LOCK_EX) || HTMLdie ("Couldn't obtain exclusive lock on $cf");
 
@@ -398,20 +403,20 @@ sub config_write
 #
 #########################################################
 
-sub control {
+sub frm_control {
 	my $config = config_read();
 
 	my $JSCRIPT="function doLoad() {\n  setTimeout('window.location.reload()',".$config->{statusTimeout}.");\n}";
 
 	_std_header("Control Panel", $JSCRIPT, "doLoad()");
-  
+ 
 	print "<br><table border=1 cellspacing=0 cellpadding=4 width=1080\n";
 	print "<tr><td></td><th colspan=3 align=left>Status</th><th colspan=2 align=left>Actions</th></tr>\n" ;
 
-#	my $u = "escrime";
-#	my $p = "escrime";
-	
-#	my $dbh = DBI->connect("DBI:mysql:escrime:127.0.0.1", $u, $p);
+	# my $u = "escrime";
+	# my $p = "escrime";
+
+	# my $dbh = DBI->connect("DBI:mysql:escrime:127.0.0.1", $u, $p);
 	
 	my $comps = $config->{competition};
 
@@ -444,15 +449,8 @@ sub control {
 			
 		my $name = $c->titre_ligne;
 
-		
-		#$name =~ s/"//g;
-		print "<tr><th align=left>$cid - $name</th>" ;
-		
-		#if ((!defined $state) || ($state eq "hidden")) 
-		#{
-			# print "<td>Check-in</td><td>Not Ready</td><td><a href=\"".url()."?wp=".$cid."&Action=update&Status=Ready\">Setup check-in</a></td><td>Hidden</td>" ;
-		#} 
-		
+		print "<tr><th align=left>$cid - $name<br><font color='grey' size=1>$path</font></th>" ;
+				
 		if ($lockstat)
 		{
 			print "<td><img src='./graphics/unlock-small.png' /></td>";
@@ -466,13 +464,11 @@ sub control {
 		my @w = split (/\s+/,$where);
 		my $etat = $c->etat;
       
-		# print "<td>" . Dumper(\@w) . "</td>";
 		SWITCH: 
 		{
 			if ($etat eq "termine") 
 			{
 				print "<td>Complete</td><td></td>";
-				# <td></td><td><a href=\"".url()."?wp=".$cid."&Action=details\">Details</a></td><td></td>";
 				last SWITCH;
 			}
 
@@ -486,17 +482,13 @@ sub control {
 				{
 					if ($state eq "check-in") 
 					{
-						# print "<td>Check-in</td>"; 
 						print "<td>Open</td>"; 
 						print "<td>$present/$total <a href=\"".url()."?wp=".$cid."&Action=update&Status=active\">Close check-in</a></td>";
-						# print "<td><a href=\"".url()."?wp=".$cid."&Action=hide\">Hide</a></td>";
 					} 
 					else 
 					{
-						# print "<td>Check-in</td>";
 						print "<td>Ready</td>";
 						print "<td>$present/$total <a href=\"".url()."?wp=".$cid."&Action=update&Status=check-in\">Open check-in</a></td>";
-						# print "<td><a href=\"".url()."?wp=".$cid."&Action=hide\">Hide</a></td>";
 					}
 				}
 				else
@@ -506,31 +498,27 @@ sub control {
 				
   				last SWITCH;
 			}
-				if ($etat eq "poules") 
+				
+			if ($etat eq "poules") 
 			{
 				print "<td>Poules</td><td>Round $w[1] : " ;
-  					if ($w[2]) 
+  				if ($w[2]) 
 				{
- 					my @p = (@w);
+					my @p = (@w);
 					shift @p;
 					shift @p;
-	 					print scalar(@p)." poules running.<br>@p</td>";
-					# print "<td><a href=\"".url()."?wp=".$cid."&Action=details&Name=$name\">Details</a></td>";
-					# print "<td><a href=\"".url()."?wp=".$cid."&Action=hide\">Hide</a></td>";
-  				} 
+ 					print scalar(@p)." poules running.<br>@p</td>";
+				} 
 				else 
 				{
 					print "complete.</td>";
 					print "<td><a href=\"".url()."?wp=".$cid."&Action=details&Name=$name\">Details</a></td>";
-					# print "<td><a href=\"".url()."?wp=".$cid."&Action=hide\">Hide</a></td>";
 				}
-  				last SWITCH;
+				last SWITCH;
 			}
 
 			if ($etat eq "tableaux") 
 			{
-				# need to amend this - should print "poules" if $w[2] == "finished"
-				
 				if ($w[2] eq "finished")
 				{
 					print "<td>Poules</td><td>Finished" ;						
@@ -539,20 +527,10 @@ sub control {
 				{
 					print "<td>D.E.</td><td>" ;
 				
-					# shift @w;
-					# shift @w;
 					my @levels = split / /, $c->tableaux_en_cours;
 					
 					my $matchlist = $c->matchlist(1);
-						
- 					#foreach my $level (@levels) 
-					#{
-						# my $t = $c->tableau($level);	
-						# print "[$level] " . Dumper(\$t);
-					#}
-						
-					# print Dumper(\$matchlist);
-						
+											
 					foreach my $l (keys %$matchlist)
 					{
 						my $ll = $$matchlist{$l};
@@ -563,20 +541,16 @@ sub control {
 							print "$m ";
 						}
 						print "<br>";
-						# print Dumper(\$ll);
 					}
 					
 					print "</td>";
 				}
-				#print "<td><a href=\"".url()."?wp=".$cid."&Action=details&Name=$name\">Details</a></td>";
-				#print "<td><a href=\"".url()."?wp=".$cid."&Action=hide\">Hide</a></td>";
 					
 				last SWITCH;
 			}
 
 			print "<td>Error</td><td>Unknown</td><td></td><td></td>" ;
 		}
-
 
 		my $hold = $w->{hold} || 0;
 		
@@ -599,15 +573,18 @@ sub control {
 	
 }
 
-sub screen_config_grid
+sub frm_screen
 {
 	my $config = config_read();
-
-	#my $JSCRIPT="function doLoad() {\n  setTimeout('window.location.reload()',".$config->{statusTimeout}.");\n}";
-
-	#_std_header(undef, "Configuration", $JSCRIPT, "doLoad()");
 	_std_header("Screen Configuration");
-  
+
+	###########################################
+	#
+	#	Screen config
+	#
+	###########################################
+	print "<br><fieldset><legend>Screen Configuration</legend>\n";
+	
 	print "<br><table border=1 cellspacing=0 cellpadding=4 width=1080\n";
 	print "<tr><th align=left rowspan=2 colspan=2>Competition</th></th><th colspan=12 align=left>Screens</th><th rowspan=2>Message</th><th rowspan=2>Save</th><th rowspan=2>Enabled?</th></tr>\n" ;
 
@@ -684,20 +661,36 @@ sub screen_config_grid
 		}
 		
 		print "</tr>";
-	}
-
+	}	
 	
 	print "</table>\n";
+	print "</fieldset>\n";
 	
-	print "<br><a href=\"config.cgi\">General Configuration</a>\n";
+	print "<br>";
+			
+	###########################################
+	#
+	#	Add a competition
+	#
+	###########################################
+	print start_form(-name=>"form_add");	
+	print "<fieldset><legend>Add a Competition</legend>\n";
+	print hidden(-name=>"Action", -value=>"newcomp");
 	
-	print "<br><a href=\"index.html\">Back</a>\n";
+	print start_table({border => 0, cellspacing=>2, cellpadding=>0});
+	_find_comps();
+	print Tr(td( popup_menu(-name=>'newcomp', -values=>\@available_comps)), td("<a href='javascript: document.form_add.submit();'><img src='./graphics/green-plus-icon.png' /></a>"));
 	
-	print end_html();
+	print end_table();
+	print end_form();
+	print "</fieldset><br>\n";
+
+	_std_footer();
+
 }
 
 
-sub config_form
+sub frm_config
 {
 	my $config = config_read();
 	
@@ -721,12 +714,19 @@ sub config_form
 					"Output from the writexml.pl script",
 					"Allow Check-in for fencers who owe entry fees?",
 					"The Name of the Tournament e.g. \"The Little Whinging 6 Weapon Bun Fight\"",
+					"Highlight hihgly ranked fencers on the entry list",
 				);
 				
 	my $gap = '&nbsp;&nbsp;&nbsp;';
 				
 	_std_header("Configuration");
-  
+ 
+ 
+	###########################################
+	#
+	#	Base config
+	#
+	###########################################
 	print start_form(
           -method=>'POST',
           -action=>url()
@@ -741,10 +741,7 @@ sub config_form
 			td(["Allow Unpaid Check-in :",radio_group(-name=>'allowunpaid', -values=>['true', 'false'], -default=>$config->{allowunpaid}, -linebreak=>'false'),'','',$gap,$hints[6]]),
 			td(["Status Timeout :",radio_group(-name=>'statustimeout', -values=>[10, 20, 30, 40], -default=>$config->{statusTimeout} / 1000, -linebreak=>'false'),$gap,$hints[1]]),
 			td(["Debug Level :",radio_group(-name=>'debuglevel', -values=>[0, 1, 2], -default=>$config->{debug}, -linebreak=>'false'),'', $gap, $hints[2]]),
-			td(["Restrict IP :",radio_group(-name=>'restrictip', -values=>['true', 'false'], -default=>$config->{restrictIP}, -linebreak=>'false'),'','',$gap,$hints[3]]),
-			
-			#("<td>Target Location :</td><td colspan=5>" . textfield(-name=>'targetlocation',-value=>$config->{targetlocation},-size=>80,-maxlength=>132)] . "</td>")
-			# td(["Licence No :",textfield(-name=>'licence',-value=>'',-size=>32,-maxlength=>32)])
+			td(["Restrict IP :",radio_group(-name=>'restrictip', -values=>['true', 'false'], -default=>$config->{restrictIP}, -linebreak=>'false'),'','',$gap,$hints[3]]),			
 		])
 	);
 
@@ -754,20 +751,30 @@ sub config_form
 	
 	print "</fieldset>\n";
 
+
+	###########################################
+	#
+	#	Output files / directories
+	#
+	###########################################	
 	print start_form();
 	print "<fieldset><legend>Output</legend>\n";
 	print start_table({border => 0, cellspacing=>6, cellpadding=>2});
-	print "<tr><td>Target Location :</td><td>" . textfield(-name=>'targetlocation',-value=>$config->{targetlocation},-size=>80,-maxlength=>132) . "</td><td>$hints[4]</td></tr>";
-	print "<tr><td>Debug Output :</td><td>" . textfield(-name=>'log',-value=>$config->{log},-size=>80,-maxlength=>132) . "</td><td>$hints[5]</td></tr>";
+	print "<tr><td>Show NIF? :</td>" . td([radio_group(-name=>'nif', -values=>['true','false'], -default=>$config->{nif}, -linebreak=>'false'),$hints[8]]);
+	print "<tr><td>Target Location :</td><td colspan=2>" . textfield(-name=>'targetlocation',-value=>$config->{targetlocation},-size=>80,-maxlength=>132) . "</td><td>$hints[4]</td></tr>";
+	print "<tr><td>Debug Output :</td><td colspan=2>" . textfield(-name=>'log',-value=>$config->{log},-size=>80,-maxlength=>132) . "</td><td>$hints[5]</td></tr>";
 	print end_table();
 	
-	
 	print submit(-name=>'output', -label=>'Update');
-	
 	print end_form();
 	
 	print "</fieldset>\n";
 
+	###########################################
+	#
+	#	IP Restrictions
+	#
+	###########################################
 	print start_form();
 	
 	print "<fieldset><legend>Control IP Addresses</legend>\n";
@@ -785,27 +792,15 @@ sub config_form
 		print "</tr>\n";
 	}
 	print end_table();
-	
 	print submit(-name=>'controlip', -label=>'Update');
-	
 	print end_form();
-	
 	print "</fieldset>\n";
 	
-	print start_form(-name=>"form_add");
-	
-	print "<fieldset><legend>Add a Competition</legend>\n";
-	
-	print start_table({border => 0, cellspacing=>2, cellpadding=>0});
-	
-	_find_comps();
-	print Tr(td( popup_menu(-name=>'newcomp', -values=>\@available_comps)), td("<a href='javascript: document.form_add.submit();'><img src='./graphics/green-plus-icon.png' /></a>"));
-	
-	print end_table();
-	print end_form();
-
-	print "</fieldset>\n";
-	
+	###########################################
+	#
+	#	Set to Defaults
+	#
+	###########################################
 	print start_form();
 	
 	print "<fieldset><legend>Set to Defaults	</legend>\n";
@@ -818,11 +813,313 @@ sub config_form
 	print end_form();
 	print "</fieldset>\n";
 
-	print "<br><a href=\"screens.cgi\">Screen Configuration</a>\n";
-	print "<br><a href=\"index.html\">Back</a>\n";
+	print "<br>";
+
+	_std_footer();
+}
+
+sub frm_checkin_desk {
 	
+	my $config = config_read();
+	my $JSCRIPT="function doLoad() {\n  setTimeout('window.location.reload()',".$config->{checkinTimeout}.");\n}";
+
+	_std_header("Check In Desk", $JSCRIPT, "doLoad()");
+  
+	print "<table border=1 cellspacing=0 cellpadding=0 width=640>";
+	print "<tr><th>Please choose a weapon/competition.</th></tr>";
+	print "<tr><td>&nbsp;</td></tr>";
+
+	my $weapons = $config->{competition};
+
+	foreach my $cid (sort { $a <=> $b } keys %$weapons) 
+	{
+		my $w = $weapons->{$cid};
+		next unless $w->{enabled} eq "true";
+
+		my $state = $w->{'state'};
+
+		next unless $state eq "check-in";
+
+		my $c = Engarde->new($w->{source} . "/competition.egw", 1);
+		next unless defined $c;
+   		print "<tr><td><a href=".url()."?wp=$cid&Action=list>$cid - ".$c->titre_ligne."</a></td></tr>";
+  	}
+
+  	print "</table><br>";
+	
+	_std_footer();
+}
+
+
+sub frm_checkin_list {
+	my $cid = shift;
+	my $config = config_read();
+
+	my %cookies=CGI::Cookie->fetch;
+	
+	my $c = Engarde->new($config->{competition}->{$cid}->{source} . "/competition.egw");
+	HTMLdie("invalid competition") unless $c;
+
+	HTMLdie("Check-in no longer actvive") unless $config->{competition}->{$cid}->{state} eq "check-in";
+	
+	my $f = $c->tireur;
+	my $clubs = $c->club;
+	my $nations = $c->nation;
+	
+	my $JSCRIPT="function edit(item) {\n  window.location.href=\"".url()."?wp=".$cid."&Action=Edit&Item=\" + item;\n}\n";
+	$JSCRIPT=$JSCRIPT."function check(item,row) {\n  row.style.backgroundColor = 'green'; window.location.href = \"".url()."?wp=$cid&Action=Check&Item=\" + item\n}\n";
+	$JSCRIPT=$JSCRIPT."function doLoad() {\n  setTimeout('window.location.reload()'," . $config->{checkinTimeout} . ");\n}\n\n";
+	$JSCRIPT=$JSCRIPT."function showAll(val) { \n document.cookie='showAll='+val; window.location.reload();}";
+
+	my $row = 0;
+	my $state = $config->{competition}->{$cid}->{state};
+
+	my $fencers = {};
+	
+	_std_header("Check-in", $JSCRIPT, "doLoad();");
+	
+	foreach my $fid (keys %$f)
+	{
+		next unless ($fid =~ /\d+$/);
+		$fencers->{$fid} = $f->{$fid};
+	}
+	
+	my $present = $f->{present};
+	my $total = scalar keys %$fencers;
+	my $showall = "false";
+	$showall = $cookies{'showAll'}->value if $cookies{'showAll'};
+	
+	$showall = $showall eq "true" ? 1 : 0;
+	
+	# print "showall = $showall<br>";
+	print "<br>";
+
+	print "<table border=0 cellspacing=0 cellpadding=0><tr><td align=center>\n" ;
+	print "<table border=0 cellspacing=5 cellpadding=0 width=100%><tr><td><a href=".url().">Check-in Desk</a></td>";
+	print "<td align=center>Fencers Present : ".$present."/".$total."</td>";
+	print "<td>Show all " . checkbox(-name=>'showAll', -checked=>$showall, -onClick=>'showAll(this.checked)', -label=>"") . "</td>";
+	print "<td align=right>";
+	print "<a href=javascript:edit('-1')>Add Fencer</a>" unless ($state ne "check-in");
+	print "</td>";
+	print "</tr></table>\n" ;
+	print "<table border=1 cellspacing=0 cellpadding=2>\n" ;
+	print "<tr><th>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</th><th>NAME</th><th>CLUB</th><th>NATION</th><th>LICENCE NO</th><th>VET</th><th>OWING</th><th></th></tr>\n" ;
+
+
+	# print Dumper(\$fencers);
+	
+	foreach my $fid (sort {$fencers->{$a}->{nom} cmp $fencers->{$b}->{nom}} keys %{$fencers})
+	{
+		# next unless ($fid =~ /^\d+$/);	
+		# print $fid . "<br>";
+	
+		if (!$showall)
+		{	
+			next if $fencers->{$fid}->{presence} eq "present";
+			# print "<br>$fid [$fencers->{$fid}->{presence}]";
+		}
+		
+		my ($name, $first, $club, $nation, $licence, $owing, $nva);
+		my $bgcolour = "#ffffff" ;
+   
+    	$owing  = $fencers->{$fid}->{paiement} || "";
+
+		$name = $fencers->{$fid}->{nom} . " " . $fencers->{$fid}->{prenom};
+		$club = $fencers->{$fid}->{club1};
+		$club = $clubs->{$club}->{nom} if $club;
+		$nation = $fencers->{$fid}->{nation1};
+		$nation = $nations->{$nation}->{nom} if $nation;
+
+		$licence = $fencers->{$fid}->{licence};
+
+    	if ($owing) 
+		{
+      		$owing  = "&pound;".$owing;
+      		$bgcolour = "#FFFF00" ;
+    	} 
+
+    	$nva  = _is_vet($fencers->{$fid}->{date_nais}) if $fencers->{$fid}->{date_nais};
+		
+		$nva = $nva ? "*" : "";
+    	
+    	print "<tr id='row_$fid'><td>";
+
+    	if ($fencers->{$fid}->{'presence'} ne "present") 
+		{
+			if ($config->{allowunpaid} eq "true" || ( $owing eq "")) 
+			{
+        		print "<a href=javascript:check('".$fid."',document.getElementById('row_$fid'))>Check-in</a>";
+      		}
+    	} 
+		else
+		{
+      		$bgcolour = "#009900" ;
+    	}
+
+    	print "</td>";
+    	print "<td bgcolor=\"$bgcolour\">",$name,"</td>" ;
+    	print "<td bgcolor=\"",$bgcolour,"\">",$club || "","</td>" ;
+    	print "<td bgcolor=\"",$bgcolour,"\">",$nation || "","</td>" ;
+    	print "<td bgcolor=\"",$bgcolour,"\">",$licence || "","</td>" ;
+    	print "<td align='center' bgcolor=\"",$bgcolour,"\">",$nva,"</td>" ;
+    	print "<td bgcolor=\"",$bgcolour,"\">",$owing || "","</td>" ;
+    	print "<td><a href=javascript:edit('".$fid."')>Edit</a></td>" ;
+    	print "</tr>\n" ;
+    	$row += 1;
+
+    	#if ($row == 20) 
+		#{
+      		#$row = 0;
+      		#print "<tr><th></th><th>NAME</th><th>CLUB</th><th>NATION</th><th>LICENCE NO</th><th>VET</th><th>OWING</th><th></th></tr>\n" ;
+    	#}
+  	}
+  	print "</table>" ;
+  	print "</td></tr></table>" ;
+
+  	_std_footer();
+}
+
+
+sub frm_fencer_edit
+{
+	my $weaponPath = shift;
+	my $config = config_read();
+
+	my $c=Engarde->new($config->{competition}->{$weaponPath}->{source} . "/competition.egw", 1);
+	HTMLdie("invalid competition") unless $c;
+	
+	# check lock state here
+	# actually...only check it on update as this form may be on the screen for some time
+	
+	# my ($name, $first, $club, $nation, $licence, $presence, $owing, $nva);
+	my $state = $config->{competition}->{$weaponPath}->{state};
+
+	my $f = {};
+	my $item = param('Item');
+	
+	if ($item != -1)
+	{
+		$f 			= $c->tireur($item);
+	
+		# HTMLdie(Dumper($f));
+	
+		#$name		= $f->nom ;
+		#$first		= $f->prenom ;
+		#$licence	= $f->licence ;
+		#$presence	= $f->presence ;
+		#$owing 		= $f->paiement || 0;
+		#$nva    	= _is_vet($f->date_nais);
+		#$club		= $f->club1;
+		#$nation		= $f->nation1;
+	}
+	else
+	{
+		$item = {};
+	}
+	
+	_std_header( "Edit Item");
+
+	print start_form(
+          -method=>'POST',
+          -action=>url()
+        ),
+        hidden(
+          -name=>'wp',
+          -value=>$weaponPath,
+          -override=>'true'
+        ),
+        hidden(
+          -name=>'Action',
+          -value=>'Write',
+          -override=>'true'
+        ),
+        hidden(
+          -name=>'Item',
+          -value=>param('Item'),
+          -override=>'true'
+		);
+
+	print "<fieldset><legend>Fencer Information</legend>\n";
+	
+	print table({border => 0, cellspacing=>2, cellpadding=>0},
+		Tr({},
+		[
+			td(["Surname :",textfield(-name=>'nom',-value=>$f->{nom},-size=>32,-maxlength=>32)]),
+			td(["Forename :",textfield(-name=>'prenom',-value=>$f->{prenom},-size=>32,-maxlength=>32)]),
+			td(["Licence No :",textfield(-name=>'licence',-value=>$f->{licence},-size=>32,-maxlength=>32)])
+		])
+		);
+
+	print "</fieldset>\n";
+	
+	print "<fieldset><legend>Affilliation</legend>\n";
+	
+	my $selclub   = $f->{club1} || -1;
+	my $selnation = $f->{nation1} || -1;
+	
+	$selclub .= ",$selnation";
+
+	print table({border => 0, cellspacing=>2, cellpadding=>0},
+          	Tr({},
+          	[
+            td(	[	"Club :",_club_list($c, $selclub),
+					$selclub eq -1 ? 
+						textfield(-name=>'newclub',-value=>"",-size=>32,-maxlength=>32) :
+						textfield(-name=>'newclub',-value=>"",-size=>32,-maxlength=>32, -disabled=>'disabled')
+				]),
+            td(	[	"Nation :", _nation_list($c, $selnation),
+					$selnation eq -1 ?
+						textfield(-name=>'newnation',-value=>"",-size=>3,-maxlength=>3) :
+						textfield(-name=>'newnation',-value=>"",-size=>3,-maxlength=>3,-disabled=>'disabled')
+				]),               
+			])
+        );
+		
+	print "<fieldset><legend>Additional Information</legend>\n";
+  
+	if (_is_vet($f->{date_nais})) 
+	{
+		print checkbox(-name=>'nva',-value=>1,-checked=>1,-label=>'Veteran');
+	} 
+	else 
+	{
+		print checkbox(-name=>'nva',-value=>1,-checked=>0,-label=>'Veteran');
+	}
+	
+	if ($f->{paiement}) 
+	{
+		print "<br>" . checkbox(-name=>'paid',-value=>1,-checked=>0,-label=>'Paid', -disabled=>'true') . " &pound;" . $f->{paiement}. " outstanding";
+	}
+  
+	print "</fieldset>\n";
+	print "<fieldset><legend>Flags</legend>\n";
+  
+	if ($state eq "check-in") 
+	{
+		print checkbox(-name=>'presence',-value=>'present',-checked=> ($f->{present} eq "present"? 1 : 0),-label=>'Present');
+	} 
+	else 
+	{
+		print hidden(-name=>'presence',-value=>$f->presence,-override=>'true');
+	}
+	
+	print "<br>";
+	print "</fieldset>\n";
+  
+	print submit(-label=>'Update Record');
+  
+	print end_form();
+
 	print end_html();
 }
+
+
+
+#########################################################
+#
+# Private subs
+#
+#########################################################
 
 sub _find_comps
 {
@@ -959,354 +1256,6 @@ sub _is_vet
     return $age >= 40 ? 1 : 0;
 }
 
-sub desk {
-	
-	my $config = config_read();
-
-	my $JSCRIPT="function doLoad() {\n  setTimeout('window.location.reload()',".$config->{checkinTimeout}.");\n}";
-
-	_std_header("Check In Desk", $JSCRIPT, "doLoad()");
-  
-	# my $t=localtime();
-	# print "$t\n";
-	print "<table border=0 cellspacing=0 cellpadding=0 width=640>";
-	print "<tr><th>Please choose a weapon/competition.</th></tr>";
-	print "<tr><td>&nbsp;</td></tr>";
-
-	my $weapons = $config->{competition};
-
-	foreach my $cid (sort { $a <=> $b } keys %$weapons) 
-	{
-		my $w = $weapons->{$cid};
-		next unless $w->{enabled} eq "true";
-
-		my $state = $w->{'state'};
-
-		next unless $state eq "check-in";
-
-		my $c = Engarde->new($w->{source} . "/competition.egw", 1);
-		next unless defined $c;
-   		print "<tr><td><a href=".url()."?wp=$cid&Action=list>$cid - ".$c->titre_ligne."</a></td></tr>";
-  	}
-
-  	print "</table><br>";
-	
-	_std_footer();
-}
-
-
-sub displayList {
-	my $cid = shift;
-	my $config = config_read();
-
-	my %cookies=CGI::Cookie->fetch;
-	
-	my $c = Engarde->new($config->{competition}->{$cid}->{source} . "/competition.egw");
-	HTMLdie("invalid competition") unless $c;
-
-	HTMLdie("Check-in no longer actvive") unless $config->{competition}->{$cid}->{state} eq "check-in";
-	
-	my $f = $c->tireur;
-	my $clubs = $c->club;
-	my $nations = $c->nation;
-	
-	my $JSCRIPT="function edit(item) {\n  window.location.href=\"".url()."?wp=".$cid."&Action=Edit&Item=\" + item;\n}\n";
-	$JSCRIPT=$JSCRIPT."function check(item,row) {\n  row.style.backgroundColor = 'green'; window.location.href = \"".url()."?wp=$cid&Action=Check&Item=\" + item\n}\n";
-	$JSCRIPT=$JSCRIPT."function doLoad() {\n  setTimeout('window.location.reload()'," . $config->{checkinTimeout} . ");\n}\n\n";
-	$JSCRIPT=$JSCRIPT."function showAll(val) { \n document.cookie='showAll='+val; window.location.reload();}";
-
-	my $row = 0;
-	my $state = $config->{competition}->{$cid}->{state};
-
-	my $fencers = {};
-	
-	_std_header("Check-in", $JSCRIPT, "doLoad();");
-	
-	foreach my $fid (keys %$f)
-	{
-		next unless ($fid =~ /\d+$/);
-		$fencers->{$fid} = $f->{$fid};
-	}
-	
-	my $present = $f->{present};
-	my $total = scalar keys %$fencers;
-	my $showall = "false";
-	$showall = $cookies{'showAll'}->value if $cookies{'showAll'};
-	
-	$showall = $showall eq "true" ? 1 : 0;
-	
-	# print "showall = $showall<br>";
-	print "<br>";
-
-	print "<table border=0 cellspacing=0 cellpadding=0><tr><td align=center>\n" ;
-	print "<table border=0 cellspacing=5 cellpadding=0 width=100%><tr><td><a href=".url().">Check-in Desk</a></td>";
-	print "<td align=center>Fencers Present : ".$present."/".$total."</td>";
-	print "<td>Show all " . checkbox(-name=>'showAll', -checked=>$showall, -onClick=>'showAll(this.checked)', -label=>"") . "</td>";
-	print "<td align=right>";
-	print "<a href=javascript:edit('-1')>Add Fencer</a>" unless ($state ne "check-in");
-	print "</td>";
-	print "</tr></table>\n" ;
-	print "<table border=1 cellspacing=0 cellpadding=2>\n" ;
-	print "<tr><th>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</th><th>NAME</th><th>CLUB</th><th>NATION</th><th>LICENCE NO</th><th>VET</th><th>OWING</th><th></th></tr>\n" ;
-
-
-	# print Dumper(\$fencers);
-	
-	foreach my $fid (sort {$fencers->{$a}->{nom} cmp $fencers->{$b}->{nom}} keys %{$fencers})
-	{
-		# next unless ($fid =~ /^\d+$/);	
-		# print $fid . "<br>";
-	
-		if (!$showall)
-		{	
-			next if $fencers->{$fid}->{presence} eq "present";
-			# print "<br>$fid [$fencers->{$fid}->{presence}]";
-		}
-		
-		my ($name, $first, $club, $nation, $licence, $owing, $nva);
-		my $bgcolour = "#ffffff" ;
-   
-    	$owing  = $fencers->{$fid}->{paiement} || "";
-
-		$name = $fencers->{$fid}->{nom} . " " . $fencers->{$fid}->{prenom};
-		$club = $fencers->{$fid}->{club1};
-		$club = $clubs->{$club}->{nom} if $club;
-		$nation = $fencers->{$fid}->{nation1};
-		$nation = $nations->{$nation}->{nom} if $nation;
-
-		$licence = $fencers->{$fid}->{licence};
-
-    	if ($owing) 
-		{
-      		$owing  = "&pound;".$owing;
-      		$bgcolour = "#FFFF00" ;
-    	} 
-
-    	$nva  = _is_vet($fencers->{$fid}->{date_nais}) if $fencers->{$fid}->{date_nais};
-		
-		$nva = $nva ? "*" : "";
-    	
-    	print "<tr id='row_$fid'><td>";
-
-    	if ($fencers->{$fid}->{'presence'} ne "present") 
-		{
-			if ($config->{allowunpaid} eq "true" || ( $owing eq "")) 
-			{
-        		print "<a href=javascript:check('".$fid."',document.getElementById('row_$fid'))>Check-in</a>";
-      		}
-    	} 
-		else
-		{
-      		$bgcolour = "#009900" ;
-    	}
-
-    	print "</td>";
-    	print "<td bgcolor=\"$bgcolour\">",$name,"</td>" ;
-    	print "<td bgcolor=\"",$bgcolour,"\">",$club || "","</td>" ;
-    	print "<td bgcolor=\"",$bgcolour,"\">",$nation || "","</td>" ;
-    	print "<td bgcolor=\"",$bgcolour,"\">",$licence || "","</td>" ;
-    	print "<td align='center' bgcolor=\"",$bgcolour,"\">",$nva,"</td>" ;
-    	print "<td bgcolor=\"",$bgcolour,"\">",$owing || "","</td>" ;
-    	print "<td><a href=javascript:edit('".$fid."')>Edit</a></td>" ;
-    	print "</tr>\n" ;
-    	$row += 1;
-
-    	#if ($row == 20) 
-		#{
-      		#$row = 0;
-      		#print "<tr><th></th><th>NAME</th><th>CLUB</th><th>NATION</th><th>LICENCE NO</th><th>VET</th><th>OWING</th><th></th></tr>\n" ;
-    	#}
-  	}
-  	print "</table>" ;
-  	print "</td></tr></table>" ;
-
-  	_std_footer();
-}
-
-
-sub editItem 
-{
-	my $weaponPath = shift;
-	my $config = config_read();
-
-	my $c=Engarde->new($config->{competition}->{$weaponPath}->{source} . "/competition.egw");
-	HTMLdie("invalid competition") unless $c;
-	
-	# check lock state here
-	
-	
-	my ($name, $first, $club, $nation, $licence, $presence, $owing, $nva);
-	my $state = $config->{competition}->{$weaponPath}->{state};
-
-	my $f;
-	
-	my $item = param('Item');
-	
-	if ($item != -1)
-	{
-		$f = $c->tireur($item);
-		$name     = $f->{'nom'} ;
-		$first    = $f->{'prenom'} ;
-		$licence  = $f->{'licence'} ;
-		$presence = $f->{'presence'} ;
-		$owing    = $f->{'paiement'} || 0;
-		$nva      = _is_vet($f->{'date_nais'});
-	}
-	else
-	{
-		$item = {};
-	}
-	
-	_std_header( "Edit Item");
-
-	print start_form(
-          -method=>'POST',
-          -action=>url()
-        ),
-        hidden(
-          -name=>'wp',
-          -value=>$weaponPath,
-          -override=>'true'
-        ),
-        hidden(
-          -name=>'Action',
-          -value=>'Write',
-          -override=>'true'
-        ),
-        hidden(
-          -name=>'Item',
-          -value=>param('Item'),
-          -override=>'true'
-		);
-
-	print "<fieldset><legend>Fencer Information</legend>\n";
-	
-	print table({border => 0, cellspacing=>2, cellpadding=>0},
-		Tr({},
-		[
-			td(["Surname :",textfield(-name=>'nom',-value=>$name,-size=>32,-maxlength=>32)]),
-			td(["Forename :",textfield(-name=>'prenom',-value=>$first,-size=>32,-maxlength=>32)]),
-			td(["Licence No :",textfield(-name=>'licence',-value=>$licence,-size=>32,-maxlength=>32)])
-		])
-		);
-
-	print "</fieldset>\n";
-	print "<fieldset><legend>Affilliation</legend>\n";
-	my %clubnames = ();
-	my %nationnames = ();
-	my $selclub   = -1;
-	my $selnation = -1;
-	my (@ckeys,@nkeys);
-
-	_club_list($c, \@ckeys, \%clubnames, \$selclub);
-
-  	#
-  	# Generate Nation List
-  	#
-  	
-	my $n = $c->nation;
-	my $defaultNation = "GBR";
-	
-	my $nations = {}; 
-	
-	foreach (keys %$n)
-	{
-		next unless /\d+/;
-		$nations->{$_} = $n->{$_};
-	}
-	
-	@nkeys = sort {uc($$nations{$a}->{'nom'}) cmp uc($$nations{$b}->{'nom'})} (keys(%$nations));
-  	foreach (@nkeys) 
-	{
-    	$nation   = $$nations{$_}->{'nom'} ;
-    	$nationnames{$_} = $nation;
-    	if (param('Item') != -1) 
-		{
-			if ($_ == $f->nation) 
-			{
-				$selnation = $_;
-			}
-		} 
-		else
-		{
-			if ($nation eq $defaultNation) {
-        	$selnation = $_;
-			}
-    	}
-  	}
-  	push (@nkeys, '-1');
-  	
-	$nationnames{'-1'} = 'Other';
-  	
-	print table({border => 0, cellspacing=>2, cellpadding=>0},
-          	Tr({},
-          	[
-            td(["Club :",
-                popup_menu(-name=>'club',
-                           -values=>\@ckeys,
-                           -labels=>\%clubnames,
-                           -default=>$selclub,
-                           -onchange=>"if (club.value == -1) {newclub.disabled = false;} else {newclub.disabled = true;}"
-                          ),
-                textfield(-name=>'newclub',-value=>"",-size=>32,-maxlength=>32,-disabled=>'true')
-               ]),
-            td(["Nation :",popup_menu(-name=>'nation',
-                                  -values=>\@nkeys,
-                                  -labels=>\%nationnames,
-                                  -default=>$selnation,
-                                  -onchange=>"if (nation.value == -1) {newnation.disabled = false;} else {newnation.disabled = true;}"
-                                 ),
-                textfield(-name=>'newnation',-value=>"",-size=>3,-maxlength=>3,-disabled=>'true')
-               ]),
-               
-          ]
-          )
-        );
-	print "<fieldset><legend>Additional Information</legend>\n";
-  
-	if ($nva) 
-	{
-		print checkbox(-name=>'nva',-value=>1,-checked=>1,-label=>'NVA Member');
-	} 
-	else 
-	{
-		print checkbox(-name=>'nva',-value=>1,-checked=>0,-label=>'NVA Member');
-	}
-	
-	if ($owing) 
-	{
-		print "<br>&pound;".$owing." outstanding ".checkbox(-name=>'paid',-value=>1,-checked=>0,-label=>'Paid');
-	}
-  
-	print "</fieldset>\n";
-	print "<fieldset><legend>Flags</legend>\n";
-  
-	if ($state eq "check-in") 
-	{
-		if ($presence eq "present") 
-		{
-			print checkbox(-name=>'presence',-value=>'present',-checked=>1,-label=>'Present');
-		} 
-		else 
-		{
-			print checkbox(-name=>'presence',-value=>'present',-checked=>0,-label=>'Present');
-		}
-	} 
-	else 
-	{
-		print hidden(-name=>'presence',-value=>$presence,-override=>'true');
-	}
-	
-	print "<br>";
-	print "</fieldset>\n";
-  
-	print submit(-label=>'Update Record');
-  
-	print end_form();
-
-	print end_html();
-}
-
 sub _std_header
 {
 	# prints the standard CGI.pm blurb
@@ -1354,43 +1303,60 @@ sub _std_footer
 
 sub _club_list
 {
-	my $comp = shift;
-	my $ckeys = shift;
-	my $clubnames = shift;
-	my $selclub = shift;
+	my $c = shift;
+	my $sel = shift || -1;
+	my @ckeys;
+	my %clubnames;
 
-	my $c = $comp->club;
-
-	my $clubs = {};
-						
-	foreach (keys %$c)
-	{
-		next unless /\d+/;
-		$clubs->{$_} = $c->{$_};
-	}
+	my $clublist = $c->club;
 	
-	# print STDERR Dumper(\$clubs);
-
 	# Generate Club List
+	
+	@ckeys = sort {uc($clublist->{$a}->{'nom'}) cmp uc($clublist->{$b}->{'nom'})} (grep /\d+/, keys(%$clublist));
+	
+	%clubnames = map {$_ => $clublist->{$_}->{nom} } @ckeys;
+	
+	push (@ckeys, '-1');
+	$clubnames{'-1'} = 'Other';
+	
+	return popup_menu(	-name=>'club',
+						-values=>\@ckeys,
+						-labels=>\%clubnames,
+						-default=>$sel,
+						-onchange=>"alert(club.value); if (club.value == -1) {newclub.disabled = false;} else {newclub.disabled = true;}"
+					);
+}
 
-	my $t =	$comp->tireur(param('Item')) if param('Item');
 
-	#HTMLdie(Dumper($clubs));
+sub _nation_list
+{
+	my $c = shift;
+	my $sel = shift || -1;
+	my %nationnames;
 
-	$$selclub=$t->club1 if $t;
+  	#
+  	# Generate Nation List
+  	#
 
-	#HTMLdie(Dumper(keys %$clubs));
+	my $n = $c->nation;
+	
+	$n->default unless $n->{max};
+	
+	my $defaultNation = "GBR";
 
-	@$ckeys = sort {uc($clubs->{$a}->{'nom'}) cmp uc($clubs->{$b}->{'nom'})} (keys(%$clubs));
+	my @nkeys = sort {uc($n->{$a}->{'nom'}) cmp uc($n->{$b}->{'nom'})} (grep /\d+/, keys(%$n));
 
-	#HTMLdie(Dumper($ckeys));
+	%nationnames = map {$_ => $n->{$_}->{nom} } @nkeys;
 
-	foreach (@$ckeys) 
-	{
-		$$clubnames{$_} = $clubs->{$_}->{'nom'} ;
-	}
-	push (@$ckeys, '-1');
-	$$clubnames{'-1'} = 'Other';
+	push (@nkeys, '-1');
+	$nationnames{'-1'} = "None";
+
+	return popup_menu(	-name=>'nation',
+						-values=>\@nkeys,
+						-labels=>\%nationnames,
+						-default=>$sel,
+						-onchange=>"if (nation.value == -1) {newnation.disabled = false;} else {newnation.disabled = true;}"
+					);
 }
 
 sub _lock
@@ -1420,11 +1386,6 @@ sub _unlock
 	my $c = shift;
 	my $dir = $c->dir;
 			
-}
-
-sub _nation_list
-{
-
 }
 
 

@@ -577,6 +577,8 @@ sub nation
 	{
 		$self = {};
 		$self->{file} = "$dir/nation.txt";
+		$self->{dir} = $dir;
+		
 		bless $self, "Engarde::Nation";
 	}
 
@@ -587,6 +589,7 @@ sub nation
 	{
 		# print "Loading nation data...\n";
 		$self->load();
+
 		$c->{nation} = $self;
 	}
 	else
@@ -625,6 +628,8 @@ sub club
 	{
 		$self = {};
 		$self->{file} = "$dir/club.txt";
+		$self->{dir} = $dir;
+		
 		bless $self, "Engarde::Club";
 	}
 

@@ -27,7 +27,6 @@ sub decode
 
 	my @elements = split /[ \]]*\[/, $in;
 
-
 	my @keywords1 = qw/nom prenom licence mobile licence_fie mode date_nais/;
    	my @keywords2 = qw/club1 nation1 presence serie cle sexe paiement/;
 
@@ -208,7 +207,7 @@ sub to_text
 	close $FH2;
 	
 	# flock($ETAT, LOCK_UN); 
-	close $ETAT;
+	# close $ETAT;
 	
 	rename "$file.tmp", $file or die("rename failed: $!");
 }
