@@ -1184,6 +1184,7 @@ sub matchlist
 sub tireurs
 {
 	my $c = shift;
+	my $present = shift || 0;
 	my $output = {};
 
 	my $t = $c->tireur;
@@ -1195,6 +1196,8 @@ sub tireurs
 		next unless $id =~ /\d+/;
 
 		my $f = $c->tireur($id);
+		
+		next if $present && $f->presence ne "present";
 
 		# print "tireurs: f = " . Dumper(\$f);
 
