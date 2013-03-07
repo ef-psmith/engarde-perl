@@ -171,7 +171,7 @@ sub to_text
 	
 	my @keywords1 = qw/nom prenom licence mobile licence_fie mode date_nais/;
    	my @keywords2 = qw/club1 nation1 presence serie cle sexe paiement/;
-	
+
 	foreach my $id (sort {$a <=> $b} grep /\d+/,keys %$self)
 	{
 		my $out;	

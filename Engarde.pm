@@ -178,8 +178,8 @@ sub new {
 
     bless  $self, $class;
 
-	$self->_init_tableaux;	
-	$self->_init_poules;
+	$self->_init_tableaux unless $quick > 1;	
+	$self->_init_poules unless $quick > 1;
 	$self->initialise unless $quick;
 
     return $self;

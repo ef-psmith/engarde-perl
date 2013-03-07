@@ -24,6 +24,8 @@ use CGI::Cookie;
 use Fcntl qw(:flock :DEFAULT);
 
 use XML::Simple;
+$XML::Simple::PREFERRED_PARSER = "XML::Parser";
+
 # use XML::Dumper;
 my @available_comps;
 
@@ -211,12 +213,16 @@ sub fencer_checkin
 	my $cid = param("wp");
 	my $fid = param("Item");
 	my $paid = shift;
+
+	print STDERR "DEBUG: fencer_checkin(): starting config_read() at " . localtime() . "\n";
+
 	my $config=config_read();
 
 	
 	#HTMLdie(Dumper($config->{competition}->{$cid}));
 	
-	my $c = Engarde->new($config->{competition}->{$cid}->{source} . "/competition.egw", 1);
+	print STDERR "DEBUG: fencer_checkin(): starting new() at " . localtime() . "\n";
+	my $c = Engarde->new($config->{competition}->{$cid}->{source} . "/competition.egw", 2);
 	HTMLdie("invald compeition $cid") unless $c;
 	
 	# my $ETAT;
@@ -238,10 +244,13 @@ sub fencer_checkin
 	close ETAT;
 	# _release($ETAT);
 	
+	print STDERR "DEBUG: fencer_checkin(): starting to_text() at " . localtime() . "\n";
 	#HTMLdie("calling to_text");
 	$f->to_text;
 
-	print "Location: check-in.cgi?wp=$cid&Action=list\n\n" ;
+	print STDERR "DEBUG: fencer_checkin(): redirecting at " . localtime() . "\n";
+
+	print redirect(-uri=>"check-in.cgi?wp=$cid&Action=list");
 	
 }
 
@@ -840,7 +849,7 @@ sub frm_checkin_desk {
 
 		next unless $state eq "check-in";
 
-		my $c = Engarde->new($w->{source} . "/competition.egw", 1);
+		my $c = Engarde->new($w->{source} . "/competition.egw", 2);
 		next unless defined $c;
    		print "<tr><td><a href=".url()."?wp=$cid&Action=list>$cid - ".$c->titre_ligne."</a></td></tr>";
   	}
@@ -985,7 +994,7 @@ sub frm_fencer_edit
 	my $weaponPath = shift;
 	my $config = config_read();
 
-	my $c=Engarde->new($config->{competition}->{$weaponPath}->{source} . "/competition.egw", 1);
+	my $c=Engarde->new($config->{competition}->{$weaponPath}->{source} . "/competition.egw", 2);
 	HTMLdie("invalid competition") unless $c;
 	
 	# check lock state here
