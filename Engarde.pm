@@ -1427,18 +1427,20 @@ sub whereami
 		}
 		else
 		{
-			my @tab = $self->tableaux(1);
-			my $initial = $self->tableaux(2);
-			
-			print "DEBUG: whereami: current tab = @tab\n" if $DEBUGGING > 1;
-			print "DEBUG: whereami: initial = $initial\n" if $DEBUGGING > 1;
+			#my @tab = $self->tableaux(1);
+			#my $initial = $self->tableaux(2);
+		
+			my $tab = uc($self->tableaux_en_cours);
+	
+			print "DEBUG: whereami: current tab = $tab\n" if $DEBUGGING;
+			#print "DEBUG: whereami: initial = $initial\n" if $DEBUGGING > 1;
 
-			$result = "tableau";
+			$result = "tableau $tab";
 
 			# $result = "tableau $initial $tab[0]";
 			
-			$result = "tableau $initial $tab[0]" unless $tab[0] eq $initial;
-			$result = "tableau @tab" if $tab[0] eq $initial;
+			#$result = "tableau $initial $tab[0]" unless $tab[0] eq $initial;
+			#$result = "tableau @tab" if $tab[0] eq $initial;
 		}
 	}
 	elsif ($etat eq "debut")
