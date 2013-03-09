@@ -56,9 +56,9 @@ sub default
 {
 	my $self = shift;
 
-	my %def = ( 'ALG'=>"Algérie", 'AHO'=>"Antilles Néerlandaises", 'ARG'=>"Argentine",
-				'ARM'=>"Arménie", 'ARU'=>"Aruba", 'AUS'=>"Australie",
-				'AUT'=>"Autriche", 'AZE'=>"Azerbaïdjan", 'BEL'=>"Belgique",
+	my %def = ( 'ALG'=>"Algeria", 'AHO'=>"Dutch Antilles", 'ARG'=>"Argentina",
+				'ARM'=>"Armenia", 'ARU'=>"Aruba", 'AUS'=>"Australia",
+				'AUT'=>"Autriche", 'AZE'=>"Azerbaijan", 'BEL'=>"Belgium",
 				'BLR'=>"Bieloarussie", 'BOL'=>"Bolivie", 'BRA'=>"Brésil",
 				'BRN'=>"Bahrein", 'BUL'=>"Bulgarie", 'CAN'=>"Canada",
 				'CHI'=>"Chili", 'CHN'=>"Chine", 'COL'=>"Colombie",

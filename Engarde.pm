@@ -1126,7 +1126,7 @@ sub matchlist
 
 	my $output = {};
 
-	my @ta = $c->tableaux(1);
+	my @ta = split / /,$c->tableaux_en_cours;
 
 	print STDERR "DEBUG: matchlist(): tableaux = " . Dumper(\@ta) if $DEBUGGING > 1;
 
@@ -1296,28 +1296,34 @@ sub tableaux
 	my $initial;
 	my @tableaux;
 
-	foreach my $key (sort tableaux_sort keys %$ta)
-	{
-		print STDERR "DEBUG: tableaux(): current tableau = $key\n" if $DEBUGGING > 1;
+	# much simpler now 
+	# just return the full list of tableaux in ranking order 
+	# without worrying about the state
 
-		my $tab = $self->tableau($key);
+	@tableaux = sort tableaux_sort keys %$ta;
 
-		next unless $tab;
+#	foreach my $key (sort tableaux_sort keys %$ta)
+	#{
+		#print STDERR "DEBUG: tableaux(): current tableau = $key\n" if $DEBUGGING ;
 
-		print STDERR "DEBUG: tableaux(): tab = " . Dumper(\$tab) if $DEBUGGING > 2;
+		#my $tab = $self->tableau($key);
 
-		my $etat = $tab->etat;
+		#next unless $tab;
 
-		print STDERR "DEBUG: tableaux(): etat = $etat\n" if $DEBUGGING > 1;
+		#print STDERR "DEBUG: tableaux(): tab = " . Dumper(\$tab) if $DEBUGGING > 2;
 
-		push @tableaux, $key if ($etat eq "en_cours");
-		push @tableaux, $key if ($etat eq "tableaux");
-		push @tableaux, $key if ($etat eq "termine" &&  not $current);
-		push @tableaux, $key if ($etat eq "vide" &&  not $current);
+		#my $etat = $tab->etat;
+
+		#print STDERR "DEBUG: tableaux(): etat = $etat\n" if $DEBUGGING;
+
+		#push @tableaux, $key if ($etat eq "en_cours");
+		#push @tableaux, $key if ($etat eq "tableaux");
+		#push @tableaux, $key if ($etat eq "termine" &&  not $current);
+		#push @tableaux, $key if ($etat eq "vide" &&  not $current);
 		
-		$initial = $key if $etat eq "termine";
+		#$initial = $key if $etat eq "termine";
 		# print STDERR "DEBUG: tableaux(): initial tableau = $initial\n" if $DEBUGGING;
-	}
+	#}
 
 	$initial = $tableaux[0] unless $initial;
 	# print "TABLEAUX: result @result\n";
@@ -1432,8 +1438,7 @@ sub whereami
 		
 			my $tab = uc($self->tableaux_en_cours);
 	
-			print "DEBUG: whereami: current tab = $tab\n" if $DEBUGGING;
-			#print "DEBUG: whereami: initial = $initial\n" if $DEBUGGING > 1;
+			print "DEBUG: whereami: tab = $tab\n" if $DEBUGGING > 1;
 
 			$result = "tableau $tab";
 

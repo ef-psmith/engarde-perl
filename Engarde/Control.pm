@@ -80,11 +80,11 @@ sub weapon_add
 	$comps->{$nextid}->{source} = $path;
 	$comps->{$nextid}->{enabled} = 'true';
 	$comps->{$nextid}->{nif} = 0;
-	$comps->{$nextid}->{background} = 'FF000000';
+	$comps->{$nextid}->{background} = 'FF0000';
 	$comps->{$nextid}->{state} = 'active';
 	
 	config_write($config);
-	print "Location: " . url() . "\n\n" ;
+	print redirect(url());
 }
 
 
@@ -118,7 +118,7 @@ sub weapon_delete
 	delete $config->{competition}->{$cid};
 	config_write($config);
 	
-	print "Location: " . url() . "\n\n" ;
+	print redirect(url());
 	
 }
 
@@ -131,7 +131,7 @@ sub weapon_disable
 	
 	config_write($config);
 		
-	print "Location: " . url() . "\n\n" ;
+	print redirect(url());
 }
 
 
@@ -145,6 +145,7 @@ sub weapon_enable
 	config_write($config);
 		
 	print "Location: " . url() . "\n\n" ;
+	print redirect(url());
 }
 
 
@@ -184,7 +185,7 @@ sub weapon_series_update
 	
 	config_write($config);
 	
-	print "Location: " . url() . "\n\n" ;
+	print redirect(url());
 }
 
 sub weapon_config_update
@@ -198,7 +199,7 @@ sub weapon_config_update
 	my $config = config_read();
 	$config->{competition}->{$id}->{$key} = $value;
 	config_write($config);
-	print "Location: ".url()."\n\n" ;
+	print redirect(url());
 }
 #########################################################
 #
@@ -271,7 +272,7 @@ sub config_update_basic
 	my $allowunpaid = param("allowunpaid");
 	my $tournamentname = param("tournamentname");
 	
-	$config->{checkinTimeout} = $checkintimeout * 1000;
+	$config->{checkintimeout} = $checkintimeout * 1000;
 	$config->{statusTimeout} = $statustimeout * 1000;
 	$config->{debug} = $debuglevel;
 	$config->{restrictIP} = $restrictip;
@@ -279,7 +280,7 @@ sub config_update_basic
 	$config->{tournamentname} = $tournamentname;
 	
 	config_write($config);
-	print "Location: ".url()."\n\n" ;
+	print redirect(url());
 	
 }
 
@@ -296,7 +297,7 @@ sub config_update_output
 	$config->{nif} = $nif;
 	
 	config_write($config);
-	print "Location: ".url()."\n\n" ;
+	print redirect(url());
 }
 
 
@@ -314,7 +315,7 @@ sub config_update_ip
 	$config->{controlIP} = \@ips;
 	
 	config_write($config);
-	print "Location: ".url()."\n\n" ;
+	print redirect(url());
 }
 
 
@@ -327,11 +328,11 @@ sub config_trash
 	my $config = {};
 	
 	$config->{statusTimeout} = 20000;
-	$config->{checkinTimeout} = 20000;
+	$config->{checkintimeout} = 60000;
 	$config->{restrictIP} = "false";
 	$config->{allowunpaid} = "false";
 	$config->{debug} = 0;
-	$config->{targetLocation} = "/share/Qweb";
+	$config->{targetlocation} = "/share/Public/engarde/live/web";
 	$config->{log} = "./out.txt";
 	
 	foreach my $s (1..12)
@@ -417,7 +418,7 @@ sub frm_control {
 
 	my $JSCRIPT="function doLoad() {\n  setTimeout('window.location.reload()',".$config->{statusTimeout}.");\n}";
 
-	_std_header("Control Panel", $JSCRIPT, "doLoad()");
+	_std_header("$config->{tournamentname} Control Panel", $JSCRIPT, "doLoad()");
  
 	print "<br><table border=1 cellspacing=0 cellpadding=4 width=1080\n";
 	print "<tr><td></td><th colspan=3 align=left>Status</th><th colspan=2 align=left>Actions</th></tr>\n" ;
@@ -530,7 +531,7 @@ sub frm_control {
 
 			if ($etat eq "tableaux") 
 			{
-				if ($w[2] eq "finished")
+				if ($w[2] && $w[2] eq "finished")
 				{
 					print "<td>Poules</td><td>Finished" ;						
 				}
@@ -545,10 +546,12 @@ sub frm_control {
 					foreach my $l (keys %$matchlist)
 					{
 						my $ll = $$matchlist{$l};
+						# print STDERR Dumper($ll);
 						
-						print "<font size=+2><b>$l</b></font> ";
-						foreach my $m (sort keys %$ll)
+						print "<font size=+2><b>" . uc($l) . "</b></font> ";
+						foreach my $m (sort {$a <=> $b} keys %$ll)
 						{
+							next unless ($ll->{$m}->{idA} && $ll->{$m}->{idB} && not $ll->{$m}->{winnerid});
 							print "$m ";
 						}
 						print "<br>";
@@ -705,7 +708,7 @@ sub frm_config
 {
 	my $config = config_read();
 	
-	# <config checkinTimeout="20000"
+	# <config checkintimeout="20000"
     #    debug="1"
     #    log="./out.txt"
     #    restrictIP="false"
@@ -748,7 +751,7 @@ sub frm_config
 		Tr({},
 		[
  			"<td>Event / Tournament Name :</td><td colspan=4>" . textfield(-name=>'tournamentname', -value=>$config->{tournamentname},-size=>50,-maxlength=>50) . "</td><td>$gap</td><td>$hints[7]</td>",
-			td(["Check In Timeout :",radio_group(-name=>'checkintimeout', -values=>[10, 20, 30, 40], -default=>$config->{checkinTimeout} / 1000, -linebreak=>'false'),$gap,$hints[0]]),
+			td(["Check In Timeout :",radio_group(-name=>'checkintimeout', -values=>[60, 80, 100, 120], -default=>$config->{checkintimeout} / 1000, -linebreak=>'false'),$gap,$hints[0]]),
 			td(["Allow Unpaid Check-in :",radio_group(-name=>'allowunpaid', -values=>['true', 'false'], -default=>$config->{allowunpaid}, -linebreak=>'false'),'','',$gap,$hints[6]]),
 			td(["Status Timeout :",radio_group(-name=>'statustimeout', -values=>[10, 20, 30, 40], -default=>$config->{statusTimeout} / 1000, -linebreak=>'false'),$gap,$hints[1]]),
 			td(["Debug Level :",radio_group(-name=>'debuglevel', -values=>[0, 1, 2], -default=>$config->{debug}, -linebreak=>'false'),'', $gap, $hints[2]]),
@@ -832,9 +835,9 @@ sub frm_config
 sub frm_checkin_desk {
 	
 	my $config = config_read();
-	my $JSCRIPT="function doLoad() {\n  setTimeout('window.location.reload()',".$config->{checkinTimeout}.");\n}";
+	my $JSCRIPT="function doLoad() {\n  setTimeout('window.location.reload()',".$config->{checkintimeout}.");\n}";
 
-	_std_header("Check In Desk", $JSCRIPT, "doLoad()");
+	_std_header("$config->{tournamentname} Check In Desk", $JSCRIPT, "doLoad()");
   
 	print "<table border=1 cellspacing=0 cellpadding=0 width=640>";
 	print "<tr><th>Please choose a weapon/competition.</th></tr>";
@@ -853,7 +856,10 @@ sub frm_checkin_desk {
 
 		my $c = Engarde->new($w->{source} . "/competition.egw", 2);
 		next unless defined $c;
-   		print "<tr><td><a href=".url()."?wp=$cid&Action=list>$cid - ".$c->titre_ligne."</a></td></tr>";
+
+		my $name = $c->titre_ligne;
+		my $path = $c->dir();
+		print "<tr><td><a href=".url()."?wp=$cid&Action=list>$cid - $name<br><font color='grey' size=1>$path</font></a></td></tr>" ;
   	}
 
   	print "</table><br>";
@@ -879,7 +885,7 @@ sub frm_checkin_list {
 	
 	my $JSCRIPT="function edit(item) {\n  window.location.href=\"".url()."?wp=".$cid."&Action=Edit&Item=\" + item;\n}\n";
 	$JSCRIPT=$JSCRIPT."function check(item,row) {\n  row.style.backgroundColor = 'green'; window.location.href = \"".url()."?wp=$cid&Action=Check&Item=\" + item\n}\n";
-	$JSCRIPT=$JSCRIPT."function doLoad() {\n  setTimeout('window.location.reload()'," . $config->{checkinTimeout} . ");\n}\n\n";
+	$JSCRIPT=$JSCRIPT."function doLoad() {\n  setTimeout('window.location.reload()'," . $config->{checkintimeout} . ");\n}\n\n";
 	$JSCRIPT=$JSCRIPT."function showAll(val) { \n document.cookie='showAll='+val; window.location.reload();}";
 
 	my $row = 0;
@@ -887,7 +893,7 @@ sub frm_checkin_list {
 
 	my $fencers = {};
 	
-	_std_header("Check-in", $JSCRIPT, "doLoad();");
+	_std_header($c->titre_ligne  ." Check-in", $JSCRIPT, "doLoad();");
 	
 	foreach my $fid (keys %$f)
 	{
@@ -1107,7 +1113,7 @@ sub frm_fencer_edit
   
 	if ($state eq "check-in") 
 	{
-		print checkbox(-name=>'presence',-value=>'present',-checked=> ($f->{present} eq "present"? 1 : 0),-label=>'Present');
+		print checkbox(-name=>'presence',-value=>'present',-checked=> (($f->{present} && $f->{present} eq "present") ? 1 : 0),-label=>'Present');
 	} 
 	else 
 	{
@@ -1357,7 +1363,7 @@ sub _nation_list
 
 	my @nkeys = sort {uc($n->{$a}->{'nom'}) cmp uc($n->{$b}->{'nom'})} (grep /\d+/, keys(%$n));
 
-	%nationnames = map {$_ => $n->{$_}->{nom} } @nkeys;
+	%nationnames = map {$_ => "$n->{$_}->{nom} " . escapeHTML($n->{$_}->{nom_etendu}) } @nkeys;
 
 	push (@nkeys, '-1');
 	$nationnames{'-1'} = "None";
