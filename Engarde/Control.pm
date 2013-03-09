@@ -473,6 +473,8 @@ sub frm_control {
 		my @w = split (/\s+/,$where);
 		my $etat = $c->etat;
       
+		# print "DEBUG: etat = $etat";
+
 		SWITCH: 
 		{
 			if ($etat eq "termine") 
@@ -532,7 +534,7 @@ sub frm_control {
 				{
 					print "<td>Poules</td><td>Finished" ;						
 				}
-				elsif ($w[2])
+				elsif ($w[1])
 				{
 					print "<td>D.E.</td><td>" ;
 				
