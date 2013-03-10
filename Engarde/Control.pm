@@ -255,6 +255,17 @@ sub fencer_checkin
 	
 }
 
+sub fencer_add
+{
+	my $config=config_read();
+	my $cid = param("wp");
+	
+	return undef unless $cid;
+	
+	HTMLdie("Check-in closed") unless $config->{$cid}->{state} eq "check-in";
+	
+]
+
 #########################################################
 #
 # subs to update the non-competition related entries
@@ -1373,6 +1384,20 @@ sub _nation_list
 						-labels=>\%nationnames,
 						-default=>$sel,
 						-onchange=>"if (nation.value == -1) {newnation.disabled = false;} else {newnation.disabled = true;}"
+					);
+}
+
+
+sub _colour_list
+{
+	my $sel = shift || "blue";
+	
+	my @colours = qw/blue chartreuse coral cyan darkgreen deeppink dodgerblue gold hotpink magenta orange red seagreen tomato yellow/; 
+	
+	return popup_menu(	-name=>'colour',
+						-values=>\@colours,
+						-default=>$sel,
+						-onchange=>"this.parent.color = value"
 					);
 }
 

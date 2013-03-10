@@ -212,6 +212,35 @@ sub to_text
 	rename "$file.tmp", $file or die("rename failed: $!");
 }
 
+sub add
+{
+	# really this should do a lock check and pass the lock to to_text() but 
+	# I don't have the time to work this out and Win32 seems to hate 
+	# regranting an exlusive lock so for now, the race condition will
+	# have to be on the TODO list
+	
+	my $self = shift;
+	my $new = shift;
+	
+	my @required = qw/nom prenom/;
+	
+	foreach (@required)
+	{
+		return undef unless $new->{$_};
+	}
+	
+	my $newid = $self->{max} + 1;
+	
+	$new->{cle} = $newid;
+	
+	$self->{newid} = $item;
+	$self->{max} = $newid; # not really required
+	
+	$self->to_text;
+	
+	return $newid;
+}
+
 1;
 
 
