@@ -30,9 +30,11 @@ use Time::Local;
 our $DEBUGGING = 0;
 
 use vars qw($VERSION @ISA $ta);
-@ISA = qw(Exporter);
+our @ISA = qw(Exporter);
 
-$VERSION = '0.95'; 
+our @EXPORT = qw(debug);
+
+$VERSION = '1.00'; 
 
 my %order = ( 
 			128 => [undef, 	1, 128, 65, 64, 33, 96, 97, 32, 17, 112, 81, 48, 49, 80, 113, 16, 
@@ -76,11 +78,6 @@ sub AUTOLOAD
 	my $name = $AUTOLOAD;
 	$name =~ s/.*://;   # strip fully-qualified portion
 
-	# unless (exists $self->{_permitted}->{$name} ) 
-	# {
-	# croak "Can't access `$name' field in class $type";
-	# }
-
 	# if (@_) 
 	# {
 	# return $self->{$name} = shift;
@@ -111,13 +108,15 @@ sub new {
 	my $quick = shift || 0;
 
 	# print "NEW: class = $class\n";
-	print STDERR "DEBUG: new(): processing file $file\n" if $DEBUGGING;
+	debug(1,"new(): processing file $file");
 
 	my $self  = {};
 
+	$file .= "/competition.egw" if (-d $file);
+	
 	unless (-r $file)
 	{
-		print STDERR "DEBUG: new(): Cannot read file $file\n" if $DEBUGGING;
+		debug(1, "new(): Cannot read file $file");
 		return undef;
 	}
 
@@ -130,7 +129,7 @@ sub new {
 
 	$self->{dir} = $dir;
 
-	open IN, "$file" or die $!;
+	open IN, "$file" or die "cannot open $file: $!";
 
 	my $unparsed;
 	my $inside;
@@ -1541,7 +1540,57 @@ sub _heure_to_time
 	return $out;
 }
 
+#################################################
+#
+# convenience sub to call $t->add
+# should also allow add to be called on an uninitialised comp
+# as $c->tireur will ititialise as needed
+#
+#################################################
+sub tireur_add
+{
+	my $self = shift;
+	my $item = shift;
+	my $t = $self->tireur;
+	
+	if ($item->{club} == -1)
+	{
+		my $c = {};
+		$c->{nom} = $item->{newclub};
+		my $cid = $self->club_add($c);
+		
+		$item->{club1} = $cid;
+		delete $item->{newclub};
+	}
+	else
+	{
+		$item->{club1} = $item->{club};
+	}
+	
+	delete $item->{club};
+	
+	if ($item->{nation} > 0)
+	{
+		$item->{nation1} = $item->{nation};
+	}
+	
+	delete $item->{nation};
+	
+	debug(1,"tireur_add(): adding item = " . Dumper($item));
+	
+	return $t->add($item);
+}
 
+sub club_add
+{
+	my $self = shift;
+	my $item = shift;
+	
+	delete $item->{nation1} if $item->{nation1} == -1;
+	my $c = $self->club;
+	
+	$c->add($item)
+}
 
 sub piste_status
 {
@@ -1621,6 +1670,20 @@ sub piste_status
 	}
 	return $out;
 }
+
+
+############################################################################
+# Debug output
+############################################################################
+
+sub debug
+{
+	my $level = shift;
+	my $text = shift;
+	
+	print STDERR "DEBUG($level): $text\n" if ($level le $Engarde::DEBUGGING);
+}
+
 
 1;
 

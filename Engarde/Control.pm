@@ -8,7 +8,7 @@ use vars qw($VERSION @ISA);
 our @EXPORT = qw(	frm_control frm_config frm_screen frm_checkin_desk frm_checkin_list frm_fencer_edit
 					config_read config_update_basic config_update_output config_update_ip config_trash
 					weapon_add weapon_delete weapon_disable weapon_enable weapon_series_update weapon_config_update 
-					fencer_checkin
+					fencer_checkin fencer_edit
 					HTMLdie );
 
 use Data::Dumper;
@@ -255,16 +255,32 @@ sub fencer_checkin
 	
 }
 
-sub fencer_add
+sub fencer_edit
 {
 	my $config=config_read();
-	my $cid = param("wp");
+	my $wp = param("wp");
 	
-	return undef unless $cid;
+	return undef unless $wp;
 	
-	HTMLdie("Check-in closed") unless $config->{$cid}->{state} eq "check-in";
+	HTMLdie("Check-in closed") unless $config->{competition}->{$wp}->{state} eq "check-in";
 	
-]
+	# HTMLdie(Dump());
+	
+	my $item = {};
+	
+	for (qw/nom prenom licence presence club nation/)
+	{
+		$item->{$_} = param($_);
+	}
+	
+	my $c=Engarde->new($config->{competition}->{$wp}->{source}, 2);
+	
+	HTMLdie("invalid competition") unless $c;
+	
+	$c->tireur_add($item);
+	
+	print redirect(-uri=>"check-in.cgi?wp=$wp&Action=list");
+}
 
 #########################################################
 #
@@ -354,7 +370,7 @@ sub config_trash
 
 
 sub config_read
-{
+ {
         my $cf = shift;
 		
 		unless ($cf)
@@ -626,13 +642,18 @@ sub frm_screen
 		
 	foreach my $cid (sort { $a <=> $b } keys(%$comps)) 
 	{
-		my $short_src = $comps->{$cid}->{source};
+		my $src = $comps->{$cid}->{source};
+		my $c = Engarde->new($src,2);
 		
-		$short_src =~ s/.*\/examples\///;
-		$short_src =~ s/.*\\examples\\//;
-		$short_src =~ s/.*\/current\///;
+		my $name = $c->titre_ligne;
+		# my $src = $comps->{$cid}->{source};
+		#my $short_src = $comps->{$cid}->{source};
 		
-		print "<tr><th align='left'>$cid - " . $short_src . "</th>";
+		#$short_src =~ s/.*\/examples\///;
+		#$short_src =~ s/.*\\examples\\//;
+		#$short_src =~ s/.*\/current\///;
+		
+		print "<tr><th align='left'>$cid - $name<br><font size=1>$src</font></th>";
 		print "<td><a href=\"".url()."?wp=".$cid."&Action=delete\"><img src='./graphics/red-cross-icon.png' /></a></td>";		
 		
 		my @values = (1..12);
@@ -1058,7 +1079,7 @@ sub frm_fencer_edit
         ),
         hidden(
           -name=>'Action',
-          -value=>'Write',
+          -value=>'write',
           -override=>'true'
         ),
         hidden(
@@ -1096,9 +1117,9 @@ sub frm_fencer_edit
 						textfield(-name=>'newclub',-value=>"",-size=>32,-maxlength=>32, -disabled=>'disabled')
 				]),
             td(	[	"Nation :", _nation_list($c, $selnation),
-					$selnation eq -1 ?
-						textfield(-name=>'newnation',-value=>"",-size=>3,-maxlength=>3) :
-						textfield(-name=>'newnation',-value=>"",-size=>3,-maxlength=>3,-disabled=>'disabled')
+					#$selnation eq -1 ?
+					#	textfield(-name=>'newnation',-value=>"",-size=>3,-maxlength=>3) :
+						# textfield(-name=>'newnation',-value=>"",-size=>3,-maxlength=>3,-disabled=>'disabled')
 				]),               
 			])
         );
@@ -1374,7 +1395,9 @@ sub _nation_list
 
 	my @nkeys = sort {uc($n->{$a}->{'nom'}) cmp uc($n->{$b}->{'nom'})} (grep /\d+/, keys(%$n));
 
-	%nationnames = map {$_ => "$n->{$_}->{nom} " . escapeHTML($n->{$_}->{nom_etendu}) } @nkeys;
+	# %nationnames = map {$_ => "$n->{$_}->{nom} " . escapeHTML($n->{$_}->{nom_etendu}) } @nkeys;
+
+	%nationnames = map {$_ => $n->{$_}->{nom} } @nkeys;
 
 	push (@nkeys, '-1');
 	$nationnames{'-1'} = "None";

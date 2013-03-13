@@ -153,11 +153,29 @@ sub to_text
 	# open ETAT, "+< $dir/etat.txt";
 	# flock(ETAT, LOCK_EX) || return undef;
 	
-	open my $FH, "> $file" . ".tmp";
-	flock($FH, LOCK_EX) || return undef;
+	open (my $FH, ">",  "$file.tmp") or do
+	{	
+		Engarde::debug(1,"open failed on $file.tmp $!");
+		return undef;
+	};
 	
-	open my $FH2, "+< $file";
-	flock($FH2, LOCK_EX) || return undef;
+	flock($FH, LOCK_EX) or do
+	{
+		Engarde::debug(1,"lock failed on $file.tmp $!");
+		return undef;
+	};
+	
+	open (my $FH2, "+<", $file) or do
+	{	
+		Engarde::debug(1,"open failed on $file $!");
+		return undef;
+	};
+	
+	flock($FH2, LOCK_EX) or do
+	{
+		Engarde::debug(1,"lock failed on $file $!");
+		return undef;
+	};
 
 	my $seq = 1;
 	
@@ -174,6 +192,8 @@ sub to_text
 
 	foreach my $id (sort {$a <=> $b} grep /\d+/,keys %$self)
 	{
+		Engarde::debug(3,"tireur: to_text(): processing id $id");
+				
 		my $out;	
 		$out = "{[classe tireur]";
 		
@@ -200,6 +220,9 @@ sub to_text
 		}
 		
 		$out .= "}\n";
+		
+		Engarde::debug(3,"tireur: to_text(): id $id = $out");
+		
 		print $FH $out;
 	}
 	
@@ -222,6 +245,8 @@ sub add
 	my $self = shift;
 	my $new = shift;
 	
+	Engarde::debug(2,"add(): new (start) = " . Dumper($new));
+	
 	my @required = qw/nom prenom/;
 	
 	foreach (@required)
@@ -233,8 +258,11 @@ sub add
 	
 	$new->{cle} = $newid;
 	
-	$self->{newid} = $item;
+	$self->{$newid} = $new;
 	$self->{max} = $newid; # not really required
+	
+	Engarde::debug(2,"add(): new (end) = " . Dumper($new));
+	Engarde::debug(3,"add(): self = " . Dumper($self));
 	
 	$self->to_text;
 	
