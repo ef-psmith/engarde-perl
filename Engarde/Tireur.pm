@@ -71,7 +71,7 @@ sub decode
 
 	$max = $cle if $cle > $max;
 
-	if ($item->{presence} eq "present")
+	if ($item->{presence} && $item->{presence} eq "present")
 	{
 		$present += 1;
 	}
@@ -121,6 +121,27 @@ sub nation
 {
 	my $self = shift;
 	return $self->{nation1};
+}
+
+
+sub dob
+{
+	my $self = shift;
+	return undef unless $self->{date_nais};
+	
+	$self->{date_nais} =~ s/~//g;
+	
+	return $self->{date_nais};
+	
+	#my @parts = split /\//, $self->{date_nais};
+	
+	#@parts = reverse @parts;
+	
+	# @parts will now how either y, y/m or y/m/d...  
+	
+	#return "$parts[2]/$parts[1]/$parts[0]" if ($#parts == 3);
+	#return "$parts[1]/$parts[0]" if ($#parts == 2);
+	#return "$parts[0]" if ($#parts == 1);
 }
 
 sub rangpou
@@ -235,7 +256,7 @@ sub to_text
 	rename "$file.tmp", $file or die("rename failed: $!");
 }
 
-sub add
+sub add_edit
 {
 	# really this should do a lock check and pass the lock to to_text() but 
 	# I don't have the time to work this out and Win32 seems to hate 
@@ -245,7 +266,7 @@ sub add
 	my $self = shift;
 	my $new = shift;
 	
-	Engarde::debug(2,"add(): new (start) = " . Dumper($new));
+	Engarde::debug(2,"add_edit(): new (start) = " . Dumper($new));
 	
 	my @required = qw/nom prenom/;
 	
@@ -254,19 +275,15 @@ sub add
 		return undef unless $new->{$_};
 	}
 	
-	my $newid = $self->{max} + 1;
+	$new->{cle} = $self->{max} + 1 unless $new->{cle} > 0;
+	$self->{$new->{cle}} = $new;
 	
-	$new->{cle} = $newid;
-	
-	$self->{$newid} = $new;
-	$self->{max} = $newid; # not really required
-	
-	Engarde::debug(2,"add(): new (end) = " . Dumper($new));
-	Engarde::debug(3,"add(): self = " . Dumper($self));
+	Engarde::debug(2,"add_edit(): new (end) = " . Dumper($new));
+	Engarde::debug(3,"add_edit(): self = " . Dumper($self));
 	
 	$self->to_text;
 	
-	return $newid;
+	return $self->{cle};
 }
 
 1;

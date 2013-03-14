@@ -1,4 +1,15 @@
+# vim: ts=4 sw=4 noet:
 package Engarde::Control;
+
+###############################################################################
+#
+# 	Control.pm
+#
+# 	Engarde::Control - Provides the functions needed for DT, check-in, etc
+#
+# 	Copyright	2012-2013, Peter Smith, peter.smith@englandfencing.org.uk
+#				2012-2013, England Fencing 
+#				2012-2013, BIFTOC (for inspiration and the original code)
 
 use Engarde;
 require Exporter;
@@ -22,6 +33,7 @@ use CGI::Pretty qw(:standard *table -no_xhtml);
 use CGI::Cookie;
     
 use Fcntl qw(:flock :DEFAULT);
+use Scalar::Util qw(blessed);
 
 use XML::Simple;
 $XML::Simple::PREFERRED_PARSER = "XML::Parser";
@@ -259,6 +271,7 @@ sub fencer_edit
 {
 	my $config=config_read();
 	my $wp = param("wp");
+	my $cle = param("Item");
 	
 	return undef unless $wp;
 	
@@ -268,16 +281,29 @@ sub fencer_edit
 	
 	my $item = {};
 	
-	for (qw/nom prenom licence presence club nation/)
+	for (qw/nom prenom licence presence club newclub nation/)
 	{
+		#Engarde::debug(1,"fencer_edit: setting $_ to " . param($_));
 		$item->{$_} = param($_);
 	}
+	
+	$item->{presence} = "absent" unless $item->{presence};
+	$item->{nom} = uc($item->{nom});
+	$item->{prenom} = ucfirst($item->{prenom});
+	$item->{cle} = $cle;
+	$item->{date_nais} = _dob_to_date(param("dob"));
+	
+	if (param("paid"))
+	{
+		delete $item->{paiement};
+	}
+	
 	
 	my $c=Engarde->new($config->{competition}->{$wp}->{source}, 2);
 	
 	HTMLdie("invalid competition") unless $c;
 	
-	$c->tireur_add($item);
+	my $id = $c->tireur_add_edit($item);
 	
 	print redirect(-uri=>"check-in.cgi?wp=$wp&Action=list");
 }
@@ -477,12 +503,20 @@ sub frm_control {
 		my $lockstat = 0;
 		
 		# test to see if Engarde is running
-		open(ETAT, "+< $path/etat.txt"); 
-		$lockstat = flock(ETAT,LOCK_EX);
 		
-		# immediately release the lock just in case
-		flock(ETAT,LOCK_UN);
-		close ETAT;
+		if ($^O =~ /Win32/)
+		{
+			open(ETAT, "+< $path/etat.txt"); 
+			$lockstat = flock(ETAT,LOCK_EX);
+		
+			# immediately release the lock just in case
+			flock(ETAT,LOCK_UN);
+			close ETAT;
+		}
+		else
+		{
+			$lockstat = 0 unless `lsof $path/etat.txt`;
+		}
 			
 		my $name = $c->titre_ligne;
 
@@ -532,6 +566,12 @@ sub frm_control {
 				}
 				else
 				{
+					if ($state eq "check-in")
+					{
+						# auto close check in if Engarde is running
+						$w->{state} = "active";
+						config_write($config);
+					}
 					print "<td>Check-in</td><td>$present/$total Locked</td>";
 				}
 				
@@ -760,7 +800,7 @@ sub frm_config
 					"Output from the writexml.pl script",
 					"Allow Check-in for fencers who owe entry fees?",
 					"The Name of the Tournament e.g. \"The Little Whinging 6 Weapon Bun Fight\"",
-					"Highlight hihgly ranked fencers on the entry list",
+					"Highlight highly ranked fencers on the entry list",
 				);
 				
 	my $gap = '&nbsp;&nbsp;&nbsp;';
@@ -952,7 +992,7 @@ sub frm_checkin_list {
 	print "</td>";
 	print "</tr></table>\n" ;
 	print "<table border=1 cellspacing=0 cellpadding=2>\n" ;
-	print "<tr><th>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</th><th>NAME</th><th>CLUB</th><th>NATION</th><th>LICENCE NO</th><th>VET</th><th>OWING</th><th></th></tr>\n" ;
+	print "<tr><th>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</th><th>NAME</th><th>CLUB</th><th>NATION</th><th>LICENCE NO</th><th>CAT	</th><th>OWING</th><th></th></tr>\n" ;
 
 
 	# print Dumper(\$fencers);
@@ -964,13 +1004,15 @@ sub frm_checkin_list {
 	
 		if (!$showall)
 		{	
-			next if $fencers->{$fid}->{presence} eq "present";
+			next if $fencers->{$fid}->{presence} && $fencers->{$fid}->{presence} eq "present";
 			# print "<br>$fid [$fencers->{$fid}->{presence}]";
 		}
 		
 		my ($name, $first, $club, $nation, $licence, $owing, $nva);
-		my $bgcolour = "#ffffff" ;
+		my $bgcolour = "green" ;
    
+		$nva = "";
+		
     	$owing  = $fencers->{$fid}->{paiement} || "";
 
 		$name = $fencers->{$fid}->{nom} . " " . $fencers->{$fid}->{prenom};
@@ -981,46 +1023,43 @@ sub frm_checkin_list {
 
 		$licence = $fencers->{$fid}->{licence};
 
-    	if ($owing) 
-		{
-      		$owing  = "&pound;".$owing;
-      		$bgcolour = "#FFFF00" ;
-    	} 
-
-    	$nva  = _is_vet($fencers->{$fid}->{date_nais}) if $fencers->{$fid}->{date_nais};
+		my $link = "";
 		
-		$nva = $nva ? "*" : "";
-    	
-    	print "<tr id='row_$fid'><td>";
-
-    	if ($fencers->{$fid}->{'presence'} ne "present") 
+		if (!$fencers->{$fid}->{presence} || $fencers->{$fid}->{presence} ne "present") 
 		{
-			if ($config->{allowunpaid} eq "true" || ( $owing eq "")) 
+			$link = "<a href=javascript:check('".$fid."',document.getElementById('row_$fid'))>Check-in</a>";
+			
+			if ($owing) 
 			{
-        		print "<a href=javascript:check('".$fid."',document.getElementById('row_$fid'))>Check-in</a>";
-      		}
-    	} 
-		else
-		{
-      		$bgcolour = "#009900" ;
-    	}
-
-    	print "</td>";
-    	print "<td bgcolor=\"$bgcolour\">",$name,"</td>" ;
+				$owing  = "&pound;".$owing;
+				$bgcolour = "yellow";
+				
+				$link = "" unless $config->{allowunpaid} eq "true";
+			} 
+			else 
+			{
+				$bgcolour = "white";
+			}
+		}
+		
+    	$nva  = _age_cat($fencers->{$fid}->{date_nais}) if $fencers->{$fid}->{date_nais};
+		
+		# $nva = $nva ? "*" : "";
+    	
+		$nva = "" if $nva eq "S";
+		
+		print "<tr bgcolor=\"$bgcolour\" id='row_$fid'>";
+    	print "<td>$link</td>";
+    	print "<td >",$name,"</td>" ;
     	print "<td bgcolor=\"",$bgcolour,"\">",$club || "","</td>" ;
     	print "<td bgcolor=\"",$bgcolour,"\">",$nation || "","</td>" ;
     	print "<td bgcolor=\"",$bgcolour,"\">",$licence || "","</td>" ;
-    	print "<td align='center' bgcolor=\"",$bgcolour,"\">",$nva,"</td>" ;
+    	print "<td align='center' bgcolor=\"",$bgcolour,"\">$nva</td>" ;
     	print "<td bgcolor=\"",$bgcolour,"\">",$owing || "","</td>" ;
     	print "<td><a href=javascript:edit('".$fid."')>Edit</a></td>" ;
     	print "</tr>\n" ;
     	$row += 1;
 
-    	#if ($row == 20) 
-		#{
-      		#$row = 0;
-      		#print "<tr><th></th><th>NAME</th><th>CLUB</th><th>NATION</th><th>LICENCE NO</th><th>VET</th><th>OWING</th><th></th></tr>\n" ;
-    	#}
   	}
   	print "</table>" ;
   	print "</td></tr></table>" ;
@@ -1049,17 +1088,6 @@ sub frm_fencer_edit
 	if ($item != -1)
 	{
 		$f 			= $c->tireur($item);
-	
-		# HTMLdie(Dumper($f));
-	
-		#$name		= $f->nom ;
-		#$first		= $f->prenom ;
-		#$licence	= $f->licence ;
-		#$presence	= $f->presence ;
-		#$owing 		= $f->paiement || 0;
-		#$nva    	= _is_vet($f->date_nais);
-		#$club		= $f->club1;
-		#$nation		= $f->nation1;
 	}
 	else
 	{
@@ -1086,7 +1114,7 @@ sub frm_fencer_edit
           -name=>'Item',
           -value=>param('Item'),
           -override=>'true'
-		);
+	);
 
 	print "<fieldset><legend>Fencer Information</legend>\n";
 	
@@ -1097,7 +1125,7 @@ sub frm_fencer_edit
 			td(["Forename :",textfield(-name=>'prenom',-value=>$f->{prenom},-size=>32,-maxlength=>32)]),
 			td(["Licence No :",textfield(-name=>'licence',-value=>$f->{licence},-size=>32,-maxlength=>32)])
 		])
-		);
+	);
 
 	print "</fieldset>\n";
 	
@@ -1106,46 +1134,49 @@ sub frm_fencer_edit
 	my $selclub   = $f->{club1} || -1;
 	my $selnation = $f->{nation1} || -1;
 	
-	$selclub .= ",$selnation";
+	# $selclub .= ",$selnation";
 
 	print table({border => 0, cellspacing=>2, cellpadding=>0},
-          	Tr({},
-          	[
-            td(	[	"Club :",_club_list($c, $selclub),
+		Tr({},
+		[
+			td(	[	"Club :",_club_list($c, $selclub),
 					$selclub eq -1 ? 
-						textfield(-name=>'newclub',-value=>"",-size=>32,-maxlength=>32) :
-						textfield(-name=>'newclub',-value=>"",-size=>32,-maxlength=>32, -disabled=>'disabled')
-				]),
-            td(	[	"Nation :", _nation_list($c, $selnation),
-					#$selnation eq -1 ?
-					#	textfield(-name=>'newnation',-value=>"",-size=>3,-maxlength=>3) :
-						# textfield(-name=>'newnation',-value=>"",-size=>3,-maxlength=>3,-disabled=>'disabled')
-				]),               
-			])
-        );
+					textfield(-name=>'newclub',-value=>"",-size=>32,-maxlength=>32) :
+					textfield(-name=>'newclub',-value=>"",-size=>32,-maxlength=>32, -disabled=>'disabled')
+			]),
+			td("Nation :") . td({colspan=>(2)},  _nation_list($c, $selnation)),               
+		])
+	);
 		
 	print "<fieldset><legend>Additional Information</legend>\n";
   
-	if (_is_vet($f->{date_nais})) 
-	{
-		print checkbox(-name=>'nva',-value=>1,-checked=>1,-label=>'Veteran');
-	} 
-	else 
-	{
-		print checkbox(-name=>'nva',-value=>1,-checked=>0,-label=>'Veteran');
-	}
+	print start_table({border => 0, cellspacing=>2, cellpadding=>0});
+	my $cat  = _age_cat($f->{date_nais});
+	
+	print	Tr({},
+			[
+				td( [	"Date of Birth :",
+						textfield(-name=>'dob',-value=>blessed($f) ? $f->dob : ""),
+						textfield(-name=>'cat',-size=>5, -value=>$cat,-checked=>1,-label=>'Veteran',-disabled=>1),
+						"Enter the DoB as d/m/yyyy or just yyyy.  Only a year is needed to work out the age category"
+					]
+				),
+			]
+		);
 	
 	if ($f->{paiement}) 
 	{
-		print "<br>" . checkbox(-name=>'paid',-value=>1,-checked=>0,-label=>'Paid', -disabled=>'true') . " &pound;" . $f->{paiement}. " outstanding";
+		print "<tr bgcolor='yellow'><td>&pound;" . $f->{paiement}. " outstanding</td><td>" . checkbox(-name=>'paid',-value=>1,-checked=>0,-label=>'Paid') . "</td></tr>";
 	}
   
+	print end_table;
+	
 	print "</fieldset>\n";
 	print "<fieldset><legend>Flags</legend>\n";
   
 	if ($state eq "check-in") 
 	{
-		print checkbox(-name=>'presence',-value=>'present',-checked=> (($f->{present} && $f->{present} eq "present") ? 1 : 0),-label=>'Present');
+		print checkbox(-name=>'presence',-value=>'present',-checked=> (($f->{presence} && $f->{presence} eq "present") ? 1 : 0),-label=>'Present');
 	} 
 	else 
 	{
@@ -1273,36 +1304,30 @@ sub _release
    close( $fh );
 } 
 
-sub _is_vet
+sub _age_cat
 {
 	my $dob = shift;
-	return 0 unless $dob;
+	return "" unless $dob;
 	$dob =~ s/~//g;
 	
 	my @parts = split /\//, $dob;
 	
-	@parts = reverse @parts;
+	# last part will be the year
+	my $yob = $parts[-1];
 	
-	# @parts will now how either y, y/m or y/m/d...  
-	# default to 28th of the month, and December (m11) in case
-	#
-	# this leaves a problem for events on 29-31 December where only the month and year of birth
-	# are provided but this is a rare enough case that it should be safe to ignore
-	
-	$parts[1] = 11 unless $parts[1];
-	$parts[2] = 28 unless $parts[2];
-	
-    # Assuming $birth_month is 0..11
-    # my ($birth_day, $birth_month, $birth_year) = @_;
-
-    my ($day, $month, $year) = (localtime)[3..5];
+    my ($month, $year) = (localtime)[4..5];
     $year += 1900;
 
-    my $age = $year - $parts[0];
-    $age-- unless sprintf("%02d%02d", $month, $day)
-               >= sprintf("%02d%02d", $parts[1], $parts[2]);
-			   
-    return $age >= 40 ? 1 : 0;
+    my $age = $year - $yob - 1;
+    $age++ if $month > 9;
+	
+	return "U9" if $age < 9;
+	return "U11" if $age < 11;
+	return "U13" if $age < 13;
+	return "V" if $age >= 40;			# veteran is 40+ on 1st Jan
+	return "S" unless $age <20;			# Senior is most of the rest
+	return "J" if $age >= 17;			# Junior is 17-19 on 1st Jan
+	return "C" if $age <= 17;			# Cadet is 13 to 16 on 1st Jan
 }
 
 sub _std_header
@@ -1354,6 +1379,9 @@ sub _club_list
 {
 	my $c = shift;
 	my $sel = shift || -1;
+	
+	Engarde::debug(1,"_club_list: sel = $sel");
+	
 	my @ckeys;
 	my %clubnames;
 
@@ -1372,7 +1400,7 @@ sub _club_list
 						-values=>\@ckeys,
 						-labels=>\%clubnames,
 						-default=>$sel,
-						-onchange=>"alert(club.value); if (club.value == -1) {newclub.disabled = false;} else {newclub.disabled = true;}"
+						-onchange=>"if (club.value == -1) {newclub.disabled = false;} else {newclub.disabled = true;}"
 					);
 }
 
@@ -1395,9 +1423,9 @@ sub _nation_list
 
 	my @nkeys = sort {uc($n->{$a}->{'nom'}) cmp uc($n->{$b}->{'nom'})} (grep /\d+/, keys(%$n));
 
-	# %nationnames = map {$_ => "$n->{$_}->{nom} " . escapeHTML($n->{$_}->{nom_etendu}) } @nkeys;
+	%nationnames = map {$_ => "$n->{$_}->{nom} => $n->{$_}->{nom_etendu}" } @nkeys;
 
-	%nationnames = map {$_ => $n->{$_}->{nom} } @nkeys;
+	# %nationnames = map {$_ => $n->{$_}->{nom} } @nkeys;
 
 	push (@nkeys, '-1');
 	$nationnames{'-1'} = "None";
@@ -1408,6 +1436,27 @@ sub _nation_list
 						-default=>$sel,
 						-onchange=>"if (nation.value == -1) {newnation.disabled = false;} else {newnation.disabled = true;}"
 					);
+}
+
+sub _dob_to_date
+{
+	# this isn't strictly needed but is useful to have in case
+	# we need to use real dates from a date picker for example
+	
+	my $dob = shift;
+	return undef unless $dob;
+	
+	Engarde::debug(3,"_dob_to_date(): dob = $dob");
+	
+	my @parts = split /\//, $dob;
+	@parts = reverse @parts;
+	
+	Engarde::debug(1,"_dob_to_date(): parts = [@parts]");
+	
+	return "~$parts[2]/$parts[1]/$parts[0]" if (scalar @parts == 3);
+	return "~$parts[1]/$parts[0]" if (scalar @parts == 2);
+	return "~$parts[0]" if (scalar @parts == 1);
+	return "~$dob";
 }
 
 

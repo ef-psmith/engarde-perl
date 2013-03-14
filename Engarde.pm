@@ -30,7 +30,7 @@ use Time::Local;
 our $DEBUGGING = 0;
 
 use vars qw($VERSION @ISA $ta);
-our @ISA = qw(Exporter);
+@ISA = qw(Exporter);
 
 our @EXPORT = qw(debug);
 
@@ -1547,17 +1547,28 @@ sub _heure_to_time
 # as $c->tireur will ititialise as needed
 #
 #################################################
-sub tireur_add
+sub tireur_add_edit
 {
 	my $self = shift;
 	my $item = shift;
 	my $t = $self->tireur;
 	
-	if ($item->{club} == -1)
+	debug(1,"tireur_add_edit(): starting item " . Dumper($item));
+	
+	# this will allow U/A implicitly
+	# not sure if that's correct really but it's consistent with Engarde
+	
+	if ($item->{club} == -1 && $item->{newclub})
 	{
 		my $c = {};
-		$c->{nom} = $item->{newclub};
+		$c->{nom} = uc($item->{newclub});
+		
+		debug(1,"tireur_add_edit(): adding club " . Dumper($c));
+		
+		
 		my $cid = $self->club_add($c);
+		
+		debug(1,"tireur_add_edit(): got club $cid");
 		
 		$item->{club1} = $cid;
 		delete $item->{newclub};
@@ -1576,20 +1587,25 @@ sub tireur_add
 	
 	delete $item->{nation};
 	
-	debug(1,"tireur_add(): adding item = " . Dumper($item));
+	debug(1,"tireur_add_edit(): processing item = " . Dumper($item));
 	
-	return $t->add($item);
+	return $t->add_edit($item);
 }
+
 
 sub club_add
 {
 	my $self = shift;
 	my $item = shift;
 	
-	delete $item->{nation1} if $item->{nation1} == -1;
-	my $c = $self->club;
+	# debug(1,"club_add: item (start) = " . Dumper($item));
 	
-	$c->add($item)
+	delete $item->{nation1} if $item->{nation1} == -1;
+	my $cl = $self->club;
+	
+	debug(1,"club_add: item (end) = " . Dumper($item));
+	
+	return $cl->add_edit($item);
 }
 
 sub piste_status
