@@ -216,7 +216,7 @@ sub to_text
 		Engarde::debug(3,"tireur: to_text(): processing id $id");
 				
 		my $out;	
-		$out = "{[classe tireur]";
+		$out = "{[classe tireur] [status normal] [points 0.00]";
 		
 		foreach my $key (@keywords1)
 		{

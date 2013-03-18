@@ -515,7 +515,7 @@ sub frm_control {
 		}
 		else
 		{
-			$lockstat = 0 unless `lsof $path/etat.txt`;
+			$lockstat = 1 unless `/opt/sbin/lsof $path/etat.txt`;
 		}
 			
 		my $name = $c->titre_ligne;

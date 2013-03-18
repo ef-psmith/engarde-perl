@@ -987,7 +987,7 @@ sub ranking
 
 			my $eliminated = $round->eliminated;
 
-			# print STDERR "DEBUG: ranking(): eliminated = " . Dumper(\$eliminated);
+			debug(1, "ranking(): eliminated = " . Dumper(\$eliminated));
 
 			my $next_rang = $round->rang_premier_battu;
 
@@ -998,6 +998,8 @@ sub ranking
 			foreach my $e (@$eliminated)
 			{
 				my $t = $c->tireur($e);
+				# debug(2, "ranking(): eliminated $e = " . Dumper(\$t));
+
 				my $rang = $t->rangpou;
 				my $nom = $t->nom;
 				my $nom_court = $t->nom_court;
@@ -1016,7 +1018,7 @@ sub ranking
 
 			foreach my $e (sort { $elim->{$a}->{rangpou} <=> $elim->{$b}->{rangpou}} keys(%$elim))
 			{
-				# print STDERR "ranking: e = " . Dumper(\$e);
+				# debug(2,"ranking(): e = " . Dumper(\$e));
 
 				my $rangpou = $elim->{$e}->{rangpou};
 
@@ -1028,6 +1030,7 @@ sub ranking
 				$seeds->{$e}->{seed} = $current_rang;
 				$seeds->{$e}->{seed} = 3 if $current_rang == 4;
 			}
+			debug(2, "ranking(): seeds = " . Dumper(\$seeds));
 
 			if ($taille == 2)
 			{
@@ -1043,13 +1046,13 @@ sub ranking
 				my $nation = defined($m->{idA}) && $nom eq $m->{fencerA} ? $m->{nationA} : $m->{nationB};
 				my $club = defined($m->{idB}) && $nom eq $m->{fencerA} ? $m->{clubA} : $m->{clubB};
 
-				$seeds->{1} = {nom=>$nom, nation=>$nation, club=>$club, seed=>1, group=>"elim_0"}; 
+				$seeds->{$m->{winner}} = {nom=>$nom, nation=>$nation, club=>$club, seed=>1, group=>"elim_0"}; 
 
 			}
 		}
 	}
 
-	# print "Engarde::ranking: seeds = " . Dumper(\$seeds);
+	debug(2,"ranking(): seeds = " . Dumper(\$seeds));
 	return $seeds;
 }
 
@@ -1695,7 +1698,7 @@ sub piste_status
 sub debug
 {
 	my $level = shift;
-	my $text = shift;
+	my $text = shift || "";
 	
 	print STDERR "DEBUG($level): $text\n" if ($level le $Engarde::DEBUGGING);
 }
