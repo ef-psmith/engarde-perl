@@ -4,8 +4,10 @@ use vars qw($VERSION @ISA);
 @ISA = qw(Engarde);
 
 use Data::Dumper;
-use Fcntl qw(:flock :DEFAULT);
+use Fcntl qw(:flock);
 #use HTML::Entities;
+
+$VERSION=1.21;
 
 sub decode
 {
@@ -211,7 +213,7 @@ sub to_text
 	my @keywords1 = qw/nom prenom licence mobile licence_fie mode date_nais/;
    	my @keywords2 = qw/club1 nation1 presence serie cle sexe paiement/;
 
-	foreach my $id (sort {$a <=> $b} grep /\d+/,keys %$self)
+	foreach my $id (sort {$self->{$a}->{nom} cmp $self->{$b}->{nom}} grep /\d+/,keys %$self)
 	{
 		Engarde::debug(3,"tireur: to_text(): processing id $id");
 				
@@ -224,7 +226,7 @@ sub to_text
 			
 			if (length($out) > 60)
 			{
-				print $FH $out . "\n";
+				print $FH $out . "\r\n";
 				$out = "";
 			}
 		}
@@ -235,12 +237,12 @@ sub to_text
 			
 			if (length($out) > 80)
 			{
-				print $FH $out . "\n";
+				print $FH $out . "\r\n";
 				$out = "";
 			}
 		}
 		
-		$out .= "}\n";
+		$out .= "}\r\n";
 		
 		Engarde::debug(3,"tireur: to_text(): id $id = $out");
 		

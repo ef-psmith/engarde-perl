@@ -5,6 +5,8 @@ use vars qw($VERSION @ISA);
 
 use Data::Dumper;
 
+$VERSION=1.21;
+
 sub decode
 {
 	my $self = shift;
@@ -147,7 +149,7 @@ sub to_text
 	
 	foreach my $id (sort {$a <=> $b} grep /\d+/,keys %$self)
 	{
-		$out .= "{[classe nation] [nom \"$self->{$id}->{nom}\"] [nom_etendu \"$self->{$id}->{nom_etendu}\"] [cle $id]}\n";
+		$out .= "{[classe nation] [nom \"$self->{$id}->{nom}\"] [nom_etendu \"$self->{$id}->{nom_etendu}\"] [cle $id]}\r\n";
 	}
 	
 	print $FH $out;

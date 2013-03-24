@@ -5,8 +5,10 @@ use strict;
 use vars qw($VERSION @ISA);
 @ISA = qw(Engarde);
 
+$VERSION=1.22;
+
 use Data::Dumper;
-use Fcntl qw(:flock :DEFAULT);
+use Fcntl qw(:flock);
 
 sub decode
 {
@@ -76,7 +78,7 @@ sub to_text
 	my $file = $self->{file};
 	
 	my $dir = $self->{dir};
-	
+
 	open (my $FH, ">",  "$file.tmp") or do
 	{	
 		Engarde::debug(1,"club: to_text(): open failed on $file.tmp $!");
@@ -88,21 +90,25 @@ sub to_text
 		Engarde::debug(1,"club: to_text(): lock failed on $file.tmp $!");
 		return undef;
 	};
-	
-	open (my $FH2, "+<", $file) or do
+
+	my $FH2;
+
+	if ( -f $file)
 	{	
-		Engarde::debug(1,"club: to_text(): open failed on $file $!");
-		return undef;
-	};
+		open (my $FH2, "+<", $file) or do
+		{	
+			Engarde::debug(1,"club: to_text(): open failed on $file $!");
+			return undef;
+		};
 	
-	flock($FH2, LOCK_EX) or do
-	{
-		Engarde::debug(1,"club: to_text(): lock failed on $file $!");
-		return undef;
-	};
+		flock($FH2, LOCK_EX) or do
+		{
+			Engarde::debug(1,"club: to_text(): lock failed on $file $!");
+			return undef;
+		};
+	}
 
 	my $seq = 1;
-	
 	
 	# {[classe club] [nom "126"] [cle 23]}
 	my $out = "";
@@ -111,17 +117,17 @@ sub to_text
 	foreach my $id (sort {$self->{$a}->{nom} cmp $self->{$b}->{nom}} grep /\d+/,keys %$self)
 	{
 		Engarde::debug(3,"club: to_text(): processing id $id");
-		$out .= "{[classe club] [nom \"$self->{$id}->{nom}\"] [cle $id]}\n";
+		$out .= "{[classe club] [nom \"$self->{$id}->{nom}\"] [cle $id]}\r\n";
 		
 		Engarde::debug(3,"club: to_text(): id $id = $out");
 	}
 	print $FH $out;
 	close $FH;
-	close $FH2;
+
+	close $FH2 if defined $FH2;
 	
 	rename "$file.tmp", $file or die("rename failed: $!");
 }
-
 
 1;
 

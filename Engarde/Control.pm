@@ -14,8 +14,13 @@ package Engarde::Control;
 use Engarde;
 require Exporter;
 use strict;
+no warnings 'io';
+
 use vars qw($VERSION @ISA);
 @ISA = qw(Engarde Exporter);
+
+$VERSION=1.24;
+
 our @EXPORT = qw(	frm_control frm_config frm_screen frm_checkin_desk frm_checkin_list frm_fencer_edit
 					config_read config_update_basic config_update_output config_update_ip config_trash
 					weapon_add weapon_delete weapon_disable weapon_enable weapon_series_update weapon_config_update 
@@ -36,7 +41,7 @@ use Fcntl qw(:flock :DEFAULT);
 use Scalar::Util qw(blessed);
 
 use XML::Simple;
-$XML::Simple::PREFERRED_PARSER = "XML::Parser";
+# $XML::Simple::PREFERRED_PARSER = "XML::Parser";
 
 # use XML::Dumper;
 my @available_comps;
@@ -213,6 +218,7 @@ sub weapon_config_update
 	config_write($config);
 	print redirect(url());
 }
+
 #########################################################
 #
 # subs to update fencers and clubs
@@ -281,7 +287,7 @@ sub fencer_edit
 	
 	my $item = {};
 	
-	for (qw/nom prenom licence presence club newclub nation/)
+	for (qw/nom prenom licence presence club newclub nation mode/)
 	{
 		#Engarde::debug(1,"fencer_edit: setting $_ to " . param($_));
 		$item->{$_} = param($_);
@@ -385,7 +391,7 @@ sub config_trash
 	$config->{restrictIP} = "false";
 	$config->{allowunpaid} = "false";
 	$config->{debug} = 0;
-	$config->{targetlocation} = "/share/Public/engarde/live/web";
+	$config->{targetlocation} = "/home/engarde/live/web";
 	$config->{log} = "./out.txt";
 	
 	foreach my $s (1..12)
@@ -403,7 +409,7 @@ sub config_read
 		{
 			my $dir = cwd();
 			
-			my @locations = (	"/share/Public/engarde/live/web/live.xml",
+			my @locations = (	"/home/engarde/eng-live/web/live.xml",
 								"$dir/web/live.xml",
 								"$dir/live.xml",
 								"$dir/../live.xml",
@@ -435,7 +441,7 @@ sub config_write
 	{
 		my $dir = cwd();
 		
-		my @locations = (	"/share/Public/engarde/live/web/live.xml",
+		my @locations = (	"/home/engarde/eng-live/web/live.xml",
 							"$dir/web/live.xml",
 							"$dir/live.xml",
 							"$dir/../live.xml",
@@ -685,6 +691,8 @@ sub frm_screen
 		my $src = $comps->{$cid}->{source};
 		my $c = Engarde->new($src,2);
 		
+		next unless $c;
+
 		my $name = $c->titre_ligne;
 		# my $src = $comps->{$cid}->{source};
 		#my $short_src = $comps->{$cid}->{source};
@@ -967,9 +975,9 @@ sub frm_checkin_list {
 	
 	_std_header($c->titre_ligne  ." Check-in", $JSCRIPT, "doLoad();");
 	
-	foreach my $fid (keys %$f)
+	# not sure this is needed... should just grep the keys statement below
+	foreach my $fid (grep /\d+/, (keys %$f))
 	{
-		next unless ($fid =~ /\d+$/);
 		$fencers->{$fid} = $f->{$fid};
 	}
 	
@@ -992,7 +1000,7 @@ sub frm_checkin_list {
 	print "</td>";
 	print "</tr></table>\n" ;
 	print "<table border=1 cellspacing=0 cellpadding=2>\n" ;
-	print "<tr><th>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</th><th>NAME</th><th>CLUB</th><th>NATION</th><th>LICENCE NO</th><th>CAT	</th><th>OWING</th><th></th></tr>\n" ;
+	print "<tr><th>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</th><th>NAME</th><th>CLUB</th><th>NATION</th><th>LICENCE NO</th><th>CAT	</th><th>OWING</th><th>NOTES</th><th></th></tr>\n" ;
 
 
 	# print Dumper(\$fencers);
@@ -1008,7 +1016,7 @@ sub frm_checkin_list {
 			# print "<br>$fid [$fencers->{$fid}->{presence}]";
 		}
 		
-		my ($name, $first, $club, $nation, $licence, $owing, $nva);
+		my ($name, $first, $club, $nation, $licence, $owing, $nva, $mode);
 		my $bgcolour = "green" ;
    
 		$nva = "";
@@ -1025,11 +1033,25 @@ sub frm_checkin_list {
 
 		my $link = "";
 		
+		$mode = $fencers->{$fid}->{mode};
+
 		if (!$fencers->{$fid}->{presence} || $fencers->{$fid}->{presence} ne "present") 
 		{
 			$link = "<a href=javascript:check('".$fid."',document.getElementById('row_$fid'))>Check-in</a>";
 			
-			if ($owing) 
+			if ( $mode =~ /^exp/i )
+			{
+				# set to red if membership expired
+				$bgcolour = "red";
+				$link = "";
+			}
+			elsif ( $mode =~ /^scr/i )
+			{
+				# set to yellow if scratched
+				$bgcolour = "yellow";
+				$link = "";
+			}
+			elsif ($owing) 
 			{
 				$owing  = "&pound;".$owing;
 				$bgcolour = "yellow";
@@ -1038,9 +1060,11 @@ sub frm_checkin_list {
 			} 
 			else 
 			{
+
 				$bgcolour = "white";
 			}
 		}
+
 		
     	$nva  = _age_cat($fencers->{$fid}->{date_nais}) if $fencers->{$fid}->{date_nais};
 		
@@ -1050,12 +1074,13 @@ sub frm_checkin_list {
 		
 		print "<tr bgcolor=\"$bgcolour\" id='row_$fid'>";
     	print "<td>$link</td>";
-    	print "<td >",$name,"</td>" ;
-    	print "<td bgcolor=\"",$bgcolour,"\">",$club || "","</td>" ;
-    	print "<td bgcolor=\"",$bgcolour,"\">",$nation || "","</td>" ;
-    	print "<td bgcolor=\"",$bgcolour,"\">",$licence || "","</td>" ;
-    	print "<td align='center' bgcolor=\"",$bgcolour,"\">$nva</td>" ;
-    	print "<td bgcolor=\"",$bgcolour,"\">",$owing || "","</td>" ;
+    	print "<td>",$name,"</td>" ;
+    	print "<td>",$club || "","</td>" ;
+    	print "<td>",$nation || "","</td>" ;
+    	print "<td>",$licence || "","</td>" ;
+    	print "<td align='center'>$nva</td>" ;
+    	print "<td>",$owing || "","</td>" ;
+    	print "<td>",$mode || "","</td>" ;
     	print "<td><a href=javascript:edit('".$fid."')>Edit</a></td>" ;
     	print "</tr>\n" ;
     	$row += 1;
@@ -1123,7 +1148,8 @@ sub frm_fencer_edit
 		[
 			td(["Surname :",textfield(-name=>'nom',-value=>$f->{nom},-size=>32,-maxlength=>32)]),
 			td(["Forename :",textfield(-name=>'prenom',-value=>$f->{prenom},-size=>32,-maxlength=>32)]),
-			td(["Licence No :",textfield(-name=>'licence',-value=>$f->{licence},-size=>32,-maxlength=>32)])
+			td(["Licence No :",textfield(-name=>'licence',-value=>$f->{licence},-size=>32,-maxlength=>32)]),
+			td(["Notes :",textfield(-name=>'mode',-value=>$f->{mode},-size=>32,-maxlength=>32)]),
 		])
 	);
 
@@ -1205,13 +1231,15 @@ sub _find_comps
 {
 	undef @available_comps;
 	
-	my @possibledirs = ("../../data/examples", "/share/Public/data/current");
+	my @possibledirs = ("../../data/examples", "/home/engarde/public/data/current");
 	my @dirs;
 
 	foreach (@possibledirs)
 	{
-        push @dirs, $_ if -d;
+		push @dirs, $_ if -d;
 	}
+	
+	HTMLdir("no top dir") unless @possibledirs;
 	
 	find (\&_wanted, @dirs);
 }
@@ -1343,7 +1371,7 @@ sub _std_header
 	start_html(
 		-title => $title,
 		-lang => 'en-GB',
-		-style => {'src' => './styles/std.css'},
+		-style => {'src' => './css/dt.css'},
 		-text => '#000000',
 		-vlink => '#000000',
 		-alink => '#999900',

@@ -3,6 +3,8 @@ package Engarde::Arbitre;
 use vars qw($VERSION @ISA);
 @ISA = qw(Engarde);
 
+$VERSION=1.00;
+
 use Data::Dumper;
 
 sub decode

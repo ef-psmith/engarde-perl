@@ -34,7 +34,7 @@ use vars qw($VERSION @ISA $ta);
 
 our @EXPORT = qw(debug);
 
-$VERSION = '1.00'; 
+$VERSION = '1.22'; 
 
 my %order = ( 
 			128 => [undef, 	1, 128, 65, 64, 33, 96, 97, 32, 17, 112, 81, 48, 49, 80, 113, 16, 
@@ -1561,19 +1561,18 @@ sub tireur_add_edit
 	# this will allow U/A implicitly
 	# not sure if that's correct really but it's consistent with Engarde
 	
-	if ($item->{club} == -1 && $item->{newclub})
+	if ($item->{club} == -1)
 	{
-		my $c = {};
-		$c->{nom} = uc($item->{newclub});
+		if ($item->{newclub})
+		{
+			my $c = {};
+			$c->{nom} = uc($item->{newclub});
 		
-		debug(1,"tireur_add_edit(): adding club " . Dumper($c));
-		
-		
-		my $cid = $self->club_add($c);
-		
-		debug(1,"tireur_add_edit(): got club $cid");
-		
-		$item->{club1} = $cid;
+			debug(1,"tireur_add_edit(): adding club " . Dumper($c));
+			my $cid = $self->club_add($c);
+			debug(1,"tireur_add_edit(): got club $cid");
+			$item->{club1} = $cid;
+		}
 		delete $item->{newclub};
 	}
 	else
