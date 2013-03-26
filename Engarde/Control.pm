@@ -19,7 +19,7 @@ no warnings 'io';
 use vars qw($VERSION @ISA);
 @ISA = qw(Engarde Exporter);
 
-$VERSION=1.24;
+$VERSION=1.27;
 
 our @EXPORT = qw(	frm_control frm_config frm_screen frm_checkin_desk frm_checkin_list frm_fencer_edit
 					config_read config_update_basic config_update_output config_update_ip config_trash
@@ -521,7 +521,9 @@ sub frm_control {
 		}
 		else
 		{
-			$lockstat = 1 unless `/opt/sbin/lsof $path/etat.txt`;
+			my $file = "$path/etat.txt";
+			$file =~ s/ /\\ /g;
+			$lockstat = 1 unless `lsof $file`;
 		}
 			
 		my $name = $c->titre_ligne;
@@ -561,7 +563,7 @@ sub frm_control {
 				{
 					if ($state eq "check-in") 
 					{
-						print "<td>Open</td>"; 
+						print "<td>Check-in Open</td>"; 
 						print "<td>$present/$total <a href=\"".url()."?wp=".$cid."&Action=update&Status=active\">Close check-in</a></td>";
 					} 
 					else 
