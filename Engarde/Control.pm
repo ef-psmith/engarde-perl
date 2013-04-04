@@ -1025,6 +1025,8 @@ sub frm_checkin_list {
 		
     	$owing  = $fencers->{$fid}->{paiement} || "";
 
+		$owing = "" if $owing eq "0.00";
+
 		$name = $fencers->{$fid}->{nom} . " " . $fencers->{$fid}->{prenom};
 		$club = $fencers->{$fid}->{club1};
 		$club = $clubs->{$club}->{nom} if $club;
