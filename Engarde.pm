@@ -1208,10 +1208,12 @@ sub tireurs
 		my $serie = $f->serie;
 		my $nation = $f->nation ? $c->nation($f->nation) : "";
 
-		# print "FPP: id = $id, club = $club " . Dumper($f);
-			
 		$output->{$id} = { nom=>$nom, club=>$club, serie=>$serie, nation=>$nation };
 	}
+
+	$output->{scratch} = $t->{scratch};
+	$output->{present} = $t->{present};
+	$output->{absent} = $t->{absent};
 
 	return $output;
 }

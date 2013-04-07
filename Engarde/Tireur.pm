@@ -26,6 +26,7 @@ sub decode
 	my $max = $self->{max} || 0;
 	my $present = $self->{present} || 0;
 	my $absent = $self->{absent} || 0;
+	my $scratch = $self->{scratch} || 0;
 
 	my @elements = split /[ \]]*\[/, $in;
 
@@ -82,12 +83,16 @@ sub decode
 		$absent += 1;
 	}
 
+	$scratch += 1 if ($item->{mode} && $item->{mode} =~ /^scr|/);
+
 	bless $item, "Engarde::Tireur";
 	$self->{$cle} = $item;
 
 	$self->{max} = $max;
 	$self->{present} = $present;
 	$self->{absent} = $absent;
+	$self->{scratch} = $scratch;
+	$self->{entries} = scalar (grep /\d+/, keys %$self);
 
 }
 
