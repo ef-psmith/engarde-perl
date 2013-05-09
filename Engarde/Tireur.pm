@@ -68,6 +68,9 @@ sub decode
 		}
 	}
 
+	$item->{category} = _age_cat($item->{date_nais});
+
+	
 	# print "TIREUR 6: cle = " . $item->{cle} . "\n\n\n";
 
 	$cle = $item->{cle};
@@ -92,8 +95,7 @@ sub decode
 	$self->{present} = $present;
 	$self->{absent} = $absent;
 	$self->{scratch} = $scratch;
-	$self->{entries} = scalar (grep /\d+/, keys %$self);
-
+	$self->{entries} = scalar grep (/\d+/, keys %$self);
 }
 
 
@@ -166,6 +168,32 @@ sub rangpou
 	}
 }
 
+
+sub _age_cat
+{
+	my $dob = shift;
+	return "" unless $dob;
+	$dob =~ s/~//g;
+	
+	my @parts = split /\//, $dob;
+	
+	# last part will be the year
+	my $yob = $parts[-1];
+	
+    my ($month, $year) = (localtime)[4..5];
+    $year += 1900;
+
+    my $age = $year - $yob - 1;
+    $age++ if $month > 9;
+	
+	return "U9" if $age < 9;
+	return "U11" if $age < 11;
+	return "U13" if $age < 13;
+	return "V" if $age >= 40;			# veteran is 40+ on 1st Jan
+	return "S" unless $age <20;			# Senior is most of the rest
+	return "J" if $age >= 17;			# Junior is 17-19 on 1st Jan
+	return "C" if $age <= 17;			# Cadet is 13 to 16 on 1st Jan
+}
 
 sub to_text
 {

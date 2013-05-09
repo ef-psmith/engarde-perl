@@ -443,7 +443,10 @@ sub match
 	$out->{nationB} = $nb if $nb;
 	$out->{idA} = $match->{idA} if $match->{idA};
 	$out->{idB} = $match->{idB} if $match->{idB};
-
+	
+	$out->{categoryA} = $fa->{category};
+	$out->{categoryB} = $fb->{category};
+	
 	if (defined $match->{'time'})
 	{
 		$out->{start_time} = _heure_to_time($match->{time});
@@ -755,6 +758,25 @@ sub tableau
 	return $self;
 }
 
+sub poules
+{
+	# return a selection of poules 
+	my $c = shift;
+	my $round = shift || 1;
+	my @poules = @_;
+	
+	my $out = {};
+	
+	foreach my $pn (@poules)
+	{
+		my $p = $c->poule($round, $pn);
+		$out->{$pn} = $p;
+		
+		delete $out->{$pn}->{parent};
+	}
+	
+	return $out;
+}
 
 sub poule
 {
@@ -877,7 +899,6 @@ sub ranking
 		return undef unless ($w[0] eq "tableau" || (defined($w[1]) && $w[1] >= $round) || $w[0] eq "termine");
 	}
 	
-
 	my $exempt = $c->entites_exemptees;
 	
 	my $ex = $$exempt[$round-1] || 0;
@@ -917,6 +938,7 @@ sub ranking
 				my $ind = $result[5] - $result[6];
 				my $name = $t->nom;
 				my $shortname = $t->nom_court;
+				my $category = $t->category;
 				my $cid = $t->club;
 				my $club = $cid ? $c->club($cid) : "";
 				my $nid = $t->nation;
@@ -926,7 +948,7 @@ sub ranking
 	
 				$seeds->{$result[2]} = { group=>$group , nom=>$name, nom_court=>$shortname, club=>$club, nation=>$nation, 
 							 	 	v=>$result[4], m=>$result[3], vm=>"$result[4]/$result[3]", hs=>$result[5], hr=>$result[6], 
-								 	ind=>"$ind", seed=>$result[1]+$ex, serie=>$serie };
+								 	ind=>"$ind", seed=>$result[1]+$ex, serie=>$serie, category=>$category };
 			}
 		}
 
@@ -1002,6 +1024,7 @@ sub ranking
 
 				my $rang = $t->rangpou;
 				my $nom = $t->nom;
+				my $category = $t->category;
 				my $nom_court = $t->nom_court;
 				my $clubid = $t->club;
 				my $club = $clubid ? $c->club($clubid) : "";
@@ -1010,7 +1033,7 @@ sub ranking
 
 				# do something unless $rang for those with byes...
 
-				$elim->{$e} = {nom=>$nom, nom_court=>$nom_court, nation=>$nation, club=>$club, rangpou=>$rang, group=>"elim_$taille"}; 
+				$elim->{$e} = {nom=>$nom, nom_court=>$nom_court, nation=>$nation, club=>$club, rangpou=>$rang, group=>"elim_$taille", category=>$category}; 
 			}
 
 			my $current_rang = $next_rang-1;
@@ -1046,7 +1069,10 @@ sub ranking
 				my $nation = defined($m->{idA}) && $nom eq $m->{fencerA} ? $m->{nationA} : $m->{nationB};
 				my $club = defined($m->{idB}) && $nom eq $m->{fencerA} ? $m->{clubA} : $m->{clubB};
 
-				$seeds->{$m->{winner}} = {nom=>$nom, nation=>$nation, club=>$club, seed=>1, group=>"elim_0"}; 
+				my $category = $nom eq $m->{fencerA} ? $m->{categoryA} : $m->{categoryB};
+				
+				# TODO - Add category - probably needs to come from the match object
+				$seeds->{$m->{winner}} = {nom=>$nom, nation=>$nation, club=>$club, seed=>1, group=>"elim_0", category=>$m}; 
 
 			}
 		}
@@ -1086,7 +1112,6 @@ sub fpp
 		$dom = "international" unless $dom;
 
 		$dom = "international" if $dom eq "championnat";
-
 
 		foreach my $id (@$tir)
 		{
@@ -1214,6 +1239,7 @@ sub tireurs
 	$output->{scratch} = $t->{scratch};
 	$output->{present} = $t->{present};
 	$output->{absent} = $t->{absent};
+	$output->{entries} = $t->{entries};
 
 	return $output;
 }

@@ -82,6 +82,8 @@ sub weapon_add
 	
 	my $path = shift;
 	
+	my @colours = qw/blue chartreuse coral cyan darkgreen deeppink dodgerblue gold hotpink magenta orange red seagreen tomato yellow/; 
+	
 	# initialise the hash if this is the first comp added
 	$config->{competition} = {} unless ref $config->{competition} eq "HASH";
 	
@@ -97,7 +99,7 @@ sub weapon_add
 	$comps->{$nextid}->{source} = $path;
 	$comps->{$nextid}->{enabled} = 'true';
 	$comps->{$nextid}->{nif} = 0;
-	$comps->{$nextid}->{background} = 'FF0000';
+	$comps->{$nextid}->{background} = $colours[$nextid - 1];
 	$comps->{$nextid}->{state} = 'active';
 	
 	config_write($config);
@@ -475,11 +477,14 @@ sub config_write
 sub frm_control {
 	my $config = config_read();
 
-	my $JSCRIPT="function doLoad() {\n  setTimeout('window.location.reload()',".$config->{statusTimeout}.");\n}";
-
+	#my $JSCRIPT="function doLoad() {\n  setTimeout('window.location.reload()',".$config->{statusTimeout}.");\n}";
+	my $JSCRIPT="function doLoad() {\n  setTimeout('window.location.reload()',900000);\n}";
+	
 	_std_header("$config->{tournamentname} Control Panel", $JSCRIPT, "doLoad()");
+	
+	# print "<script type=\"text/javascript\" src=\"script/status.js\"></script>\n";
  
-	print "<br><table border=1 cellspacing=0 cellpadding=4 width=1080\n";
+	print "<br><table border=1 cellspacing=0 cellpadding=4 \n";
 	print "<tr><td></td><th colspan=3 align=left>Status</th><th colspan=2 align=left>Actions</th></tr>\n" ;
 
 	# my $u = "escrime";
@@ -557,19 +562,23 @@ sub frm_control {
 			{
 				my $f = $c->tireur;
 				my $present = $f->{present};
-				my $total = (scalar keys %$f) - 7;
+				my $total = $f->{entries};
+				my $scratch = $f->{scratch};
+				
+				# my $total = (scalar grep /\d+/, keys %$f);
+				#my $total = (scalar keys %$f) - 7;
 				
 				if ($lockstat)
 				{
 					if ($state eq "check-in") 
 					{
 						print "<td>Check-in Open</td>"; 
-						print "<td>$present/$total <a href=\"".url()."?wp=".$cid."&Action=update&Status=active\">Close check-in</a></td>";
+						print "<td>$present/$total ($scratch scratched) <a href=\"".url()."?wp=".$cid."&Action=update&Status=active\">Close check-in</a></td>";
 					} 
 					else 
 					{
 						print "<td>Ready</td>";
-						print "<td>$present/$total <a href=\"".url()."?wp=".$cid."&Action=update&Status=check-in\">Open check-in</a></td>";
+						print "<td>$present/$total ($scratch scratched) <a href=\"".url()."?wp=".$cid."&Action=update&Status=check-in\">Open check-in</a></td>";
 					}
 				}
 				else
@@ -593,13 +602,37 @@ sub frm_control {
 				{
 					my @p = (@w);
 					shift @p;
-					shift @p;
- 					print scalar(@p)." poules running.<br>@p</td>";
+					my $round = shift @p;
+					
+					my $poules = $c->poules($round, @p);
+					
+					# HTMLdie(Dumper(\$poules));
+					
+					
+ 					print scalar(@p)." poules running.<br>";
+					
+					print start_table({-class=>"table1"});
+					print "<tr><th>Poule</th>";
+					foreach (sort { $a <=> $b } keys %$poules) 
+					{
+						print "<td>$_</td>";
+					}
+					
+					print "</tr>";
+					print "<tr><th>Piste</th>";
+					
+					foreach (sort { $a <=> $b } keys %$poules) 
+					{
+						print "<td>$poules->{$_}->{piste_no}</td>";
+					}
+					
+					print "</tr>";
+					print end_table;
 				} 
 				else 
 				{
-					print "complete.</td>";
-					print "<td><a href=\"".url()."?wp=".$cid."&Action=details&Name=$name\">Details</a></td>";
+					# print "complete.</td>";
+					# print "<td><a href=\"".url()."?wp=".$cid."&Action=details&Name=$name\">Details</a></td>";
 				}
 				last SWITCH;
 			}
@@ -612,24 +645,59 @@ sub frm_control {
 				}
 				elsif ($w[1])
 				{
-					print "<td>D.E.</td><td>" ;
+					print "<td>D.E.</td>" ;
 				
-					my @levels = split / /, $c->tableaux_en_cours;
+					# my @levels = split / /, $c->tableaux_en_cours;
 					
 					my $matchlist = $c->matchlist(1);
-											
-					foreach my $l (keys %$matchlist)
-					{
-						my $ll = $$matchlist{$l};
-						# print STDERR Dumper($ll);
+					
+					print "<td>";
+					
+					
+					# HTMLdie(Dumper(\$matchlist));
 						
-						print "<font size=+2><b>" . uc($l) . "</b></font> ";
+					foreach my $l (sort keys %$matchlist)
+					{
+						my $ll = $matchlist->{$l};
+						
+						print start_table({-class=>"table1"});
+						
+						print "<tr>";
+						
+						print "<th rowspan=2><font size=+2><b>" . uc($l) . "</b></font></th>";
+						
+						my $data = {};
+						
+						my $pistes;
+						
 						foreach my $m (sort {$a <=> $b} keys %$ll)
 						{
 							next unless ($ll->{$m}->{idA} && $ll->{$m}->{idB} && not $ll->{$m}->{winnerid});
-							print "$m ";
+						
+							# $data->{$m}->{$ll->{$m}->{piste}} = 
+							print "<td class='hint--bottom hint--rounded hint--info' data-hint='$ll->{$m}->{fencerA} -v- $ll->{$m}->{fencerB}'>$m</td>";
+							$pistes->{$m} = $ll->{$m};
 						}
-						print "<br>";
+						
+						# HTMLdie(Dumper(\@pistes));
+						
+						print "</tr>";
+						# print Tr( td({-style=>'border: thin solid red; padding: 0; width: 10px;'},[@pistes] ));
+						
+						print "<tr>";
+						
+						foreach (sort keys %$pistes)
+						{
+							my ($min, $hr) = (localtime($pistes->{$_}->{end_time}))[1,2];
+							
+							print td({-class=>"hint--bottom hint--rounded hint--info", 'data-hint'=> "End: $hr:$min"}, ($pistes->{$_}->{piste} || ""));
+							# print td({-class=>"hint--bottom hint--rounded hint--info", 'data-hint'=> Dumper($pistes->{$_})}, $pistes->{$_}->{piste});
+						}
+						
+						print "</tr>";
+						
+						print end_table;
+						# print "<br>";
 					}
 					
 					print "</td>";
@@ -1004,18 +1072,13 @@ sub frm_checkin_list {
 	print "<table border=1 cellspacing=0 cellpadding=2>\n" ;
 	print "<tr><th>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</th><th>NAME</th><th>CLUB</th><th>NATION</th><th>LICENCE NO</th><th>CAT	</th><th>OWING</th><th>NOTES</th><th></th></tr>\n" ;
 
-
 	# print Dumper(\$fencers);
 	
 	foreach my $fid (sort {$fencers->{$a}->{nom} cmp $fencers->{$b}->{nom}} keys %{$fencers})
 	{
-		# next unless ($fid =~ /^\d+$/);	
-		# print $fid . "<br>";
-	
 		if (!$showall)
 		{	
 			next if $fencers->{$fid}->{presence} && $fencers->{$fid}->{presence} eq "present";
-			# print "<br>$fid [$fencers->{$fid}->{presence}]";
 		}
 		
 		my ($name, $first, $club, $nation, $licence, $owing, $nva, $mode);
@@ -1024,7 +1087,7 @@ sub frm_checkin_list {
 		$nva = "";
 		
     	$owing  = $fencers->{$fid}->{paiement} || "";
-
+		
 		$owing = "" if $owing eq "0.00";
 
 		$name = $fencers->{$fid}->{nom} . " " . $fencers->{$fid}->{prenom};
@@ -1043,16 +1106,16 @@ sub frm_checkin_list {
 		{
 			$link = "<a href=javascript:check('".$fid."',document.getElementById('row_$fid'))>Check-in</a>";
 			
-			if ( $mode =~ /^exp/i )
+			if ( $mode =~ /^exp.*\|/i )
 			{
 				# set to red if membership expired
 				$bgcolour = "red";
 				$link = "";
 			}
-			elsif ( $mode =~ /^scr/i )
+			elsif ( $mode =~ /^scr\|/i )
 			{
-				# set to yellow if scratched
-				$bgcolour = "yellow";
+				# set to grey if scratched
+				$bgcolour = "grey";
 				$link = "";
 			}
 			elsif ($owing) 
@@ -1064,13 +1127,13 @@ sub frm_checkin_list {
 			} 
 			else 
 			{
-
 				$bgcolour = "white";
 			}
 		}
 
+    	# $nva  = _age_cat($fencers->{$fid}->{date_nais}) if $fencers->{$fid}->{date_nais};
 		
-    	$nva  = _age_cat($fencers->{$fid}->{date_nais}) if $fencers->{$fid}->{date_nais};
+		$nva = $fencers->{$fid}->{category};
 		
 		# $nva = $nva ? "*" : "";
     	
@@ -1088,7 +1151,6 @@ sub frm_checkin_list {
     	print "<td><a href=javascript:edit('".$fid."')>Edit</a></td>" ;
     	print "</tr>\n" ;
     	$row += 1;
-
   	}
   	print "</table>" ;
   	print "</td></tr></table>" ;
@@ -1116,7 +1178,7 @@ sub frm_fencer_edit
 	
 	if ($item != -1)
 	{
-		$f 			= $c->tireur($item);
+		$f = $c->tireur($item);
 	}
 	else
 	{
@@ -1181,7 +1243,7 @@ sub frm_fencer_edit
 	print "<fieldset><legend>Additional Information</legend>\n";
   
 	print start_table({border => 0, cellspacing=>2, cellpadding=>0});
-	my $cat  = _age_cat($f->{date_nais});
+	my $cat  = $f->{category};
 	
 	print	Tr({},
 			[
@@ -1235,7 +1297,8 @@ sub _find_comps
 {
 	undef @available_comps;
 	
-	my @possibledirs = ("../../data/examples", "/home/engarde/public/data/current");
+	my @possibledirs = ("../../data/BIFT","../../data/examples", "/home/engarde/public/data/current");
+
 	my @dirs;
 
 	foreach (@possibledirs)
@@ -1336,32 +1399,6 @@ sub _release
    close( $fh );
 } 
 
-sub _age_cat
-{
-	my $dob = shift;
-	return "" unless $dob;
-	$dob =~ s/~//g;
-	
-	my @parts = split /\//, $dob;
-	
-	# last part will be the year
-	my $yob = $parts[-1];
-	
-    my ($month, $year) = (localtime)[4..5];
-    $year += 1900;
-
-    my $age = $year - $yob - 1;
-    $age++ if $month > 9;
-	
-	return "U9" if $age < 9;
-	return "U11" if $age < 11;
-	return "U13" if $age < 13;
-	return "V" if $age >= 40;			# veteran is 40+ on 1st Jan
-	return "S" unless $age <20;			# Senior is most of the rest
-	return "J" if $age >= 17;			# Junior is 17-19 on 1st Jan
-	return "C" if $age <= 17;			# Cadet is 13 to 16 on 1st Jan
-}
-
 sub _std_header
 {
 	# prints the standard CGI.pm blurb
@@ -1375,7 +1412,7 @@ sub _std_header
 	start_html(
 		-title => $title,
 		-lang => 'en-GB',
-		-style => {'src' => './css/dt.css'},
+		-style => {'src' => ['./css/dt.css', './css/hint.css']},
 		-text => '#000000',
 		-vlink => '#000000',
 		-alink => '#999900',
@@ -1491,19 +1528,6 @@ sub _dob_to_date
 	return "~$dob";
 }
 
-
-sub _colour_list
-{
-	my $sel = shift || "blue";
-	
-	my @colours = qw/blue chartreuse coral cyan darkgreen deeppink dodgerblue gold hotpink magenta orange red seagreen tomato yellow/; 
-	
-	return popup_menu(	-name=>'colour',
-						-values=>\@colours,
-						-default=>$sel,
-						-onchange=>"this.parent.color = value"
-					);
-}
 
 sub _lock
 {
