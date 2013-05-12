@@ -1034,7 +1034,7 @@ sub frm_checkin_list {
 	my $nations = $c->nation;
 	
 	my $JSCRIPT="function edit(item) {\n  window.location.href=\"".url()."?wp=".$cid."&Action=Edit&Item=\" + item;\n}\n";
-	$JSCRIPT=$JSCRIPT."function check(item,row) {\n  row.style.backgroundColor = 'green'; window.location.href = \"".url()."?wp=$cid&Action=Check&Item=\" + item\n}\n";
+	$JSCRIPT=$JSCRIPT."function check(item,row) {\n  var m=document.getElementById('openModal'); m.style.opacity=1; m.style.pointerEvents='auto'; row.style.backgroundColor = 'green'; window.location.href = \"".url()."?wp=$cid&Action=Check&Item=\" + item\n}\n";
 	$JSCRIPT=$JSCRIPT."function doLoad() {\n  setTimeout('window.location.reload()'," . $config->{checkintimeout} . ");\n}\n\n";
 	$JSCRIPT=$JSCRIPT."function showAll(val) { \n document.cookie='showAll='+val; window.location.reload();}";
 
@@ -1044,6 +1044,12 @@ sub frm_checkin_list {
 	my $fencers = {};
 	
 	_std_header($c->titre_ligne  ." Check-in", $JSCRIPT, "doLoad();");
+	
+	print "<div id=\"openModal\" class=\"modalDialog\">";
+	print "<div class=\"labeled\"><div class=\"spinner\"><div class=\"bar1\"></div><div class=\"bar2\"></div><div class=\"bar3\"></div>";
+	print "<div class=\"bar4\"></div><div class=\"bar5\"></div><div class=\"bar6\"></div><div class=\"bar7\"></div><div class=\"bar8\"></div>";
+	print "<div class=\"bar9\"></div><div class=\"bar10\"></div><div class=\"bar11\"></div><div class=\"bar12\"></div></div>Please wait&hellip;</div>";
+	print "</div>";
 	
 	# not sure this is needed... should just grep the keys statement below
 	foreach my $fid (grep /\d+/, (keys %$f))
