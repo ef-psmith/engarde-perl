@@ -54,7 +54,7 @@ sub load
 	while (<IN>)
 	{
 		chomp;
-		s///g;
+		s/\R//g;
 		$unparsed .= $_;
 	}
 
@@ -62,7 +62,7 @@ sub load
 
 	my @matches = split /[\]\} ]*\{\[match /, $unparsed;
 
-	print STDERR "DEBUG: Tableau::decode(): matches = " . Dumper(\@matches) if $Engarde::DEBUGGING > 2;
+	Engarde::debug(3, "tableau::decode(): matches = " . Dumper(\@matches));
 
 	my $i;
 	my @eliminated;
@@ -79,7 +79,10 @@ sub load
  		# 101 () () 101 97 32)] [piste_no 1]} {[match (78 nobody () () 78 17 112)] [piste_no
  		# 1]} {[match (65 118 () () () 81 48)] [piste_no 1]} {[match (34 39 () () () 49 80)]
 		# 
-		print STDERR "DEBUG: Tableau::decode(): match $i = " . Dumper(\$matches[$i]) if $Engarde::DEBUGGING > 2;
+		
+		$matches[$i] =~ s/\R//g;
+		
+		Engarde::debug(3, "tableau::decode(): match $i = " . Dumper(\$matches[$i]));
 		
 		($item->{'idA'},$item->{'idB'},$item->{'scoreA'},$item->{'scoreB'},$item->{'winnerid'},$item->{'seedA'},$item->{'seedB'})
 			= $matches[$i] =~ m/^\((.*) (.*) (.*) (.*) (.*) ([0-9]*) ([0-9]*)\)/;
@@ -89,13 +92,19 @@ sub load
 
 		if ($matches[$i] =~ /heure/)
 		{
-			($item->{'piste'}, $item->{'time'}) = $matches[$i] =~ m/.*\[piste_no (.*)\]*.*\[heure "~(.*)\"/;
+			#($item->{'piste'}, $item->{'time'}) = $matches[$i] =~ m/.*\[piste_no (.*)\]*.*\[heure \"~(.*)\"/;
+			($item->{'time'}) = $matches[$i] =~ m/.*\[heure \"~(.*)\".*/;
+			Engarde::debug(3, "tableau::load: $i time $item->{time} set from heure");
+			
 		}
-		else
+		
+		if ($matches[$i] =~ /piste_no/)
 		{
 			($item->{'piste'}) = $matches[$i] =~ m/.*\[piste_no (.*).*/;
 		}
 
+		Engarde::debug(3,"tableau::decode(): item $i = " . Dumper(\$item));
+		
 		# remove [imprime vrai
 		$item->{'piste'} =~ s/\].*$// if $item->{'piste'};
 

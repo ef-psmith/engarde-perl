@@ -396,6 +396,7 @@ sub match
 	my $tab = $c->tableau($t);
 
 	return undef unless $tab;
+	
 
 	my $match = $tab->match($m);
 
@@ -404,6 +405,8 @@ sub match
 
 	my $out = {};
 
+	$out->{num} = $tab->{prefix} . "$m";
+	
 	my $fa = $c->tireur($match->{idA}) if $match->{idA};
 	my $fb = $c->tireur($match->{idB}) if $match->{idB};
 
@@ -447,12 +450,17 @@ sub match
 	$out->{categoryA} = $fa->{category};
 	$out->{categoryB} = $fb->{category};
 	
-	if (defined $match->{'time'})
+	if (defined $match->{time})
 	{
+		debug(3, "match: $t $m start_time calculated from $match->{time}");
+		
 		$out->{start_time} = _heure_to_time($match->{time});
+		
+		debug(3, "match: start_time = " . localtime($out->{start_time}));
 	}
 	else
 	{
+		debug(3, "match: $t $m start_time calculated from ctime");
 		$out->{start_time} = $tab->ctime + 900;		# 15 minutes after tableau creation
 	}
 
@@ -703,7 +711,12 @@ sub tableau
 		$self->{taille} = $c->{tableauxactifs}->{$level}->{taille};
 		$self->{suite} = uc($c->{tableauxactifs}->{$level}->{suite});
 		$self->{is_rep} = $c->{tableauxactifs}->{$level}->{is_rep};
-
+		
+		$self->{size} = $num;
+		
+		my @prefixes = (undef, "A", "B", "C", "D", "E", "F", "G", "H");
+		$self->{prefix} = $prefixes[log($num) / log(2)];
+		
 		bless $self, "Engarde::Tableau";
 
 		$self->parent($c);
@@ -1152,52 +1165,86 @@ sub matchlist
 	my $raw = shift || 0;
 
 	my $output = {};
+	my $by_piste = {};
 
+	my $now = time;
+	
 	my @ta = split / /,$c->tableaux_en_cours;
 
-	print STDERR "DEBUG: matchlist(): tableaux = " . Dumper(\@ta) if $DEBUGGING > 1;
+	debug(2,"matchlist(): tableaux = " . Dumper(\@ta));
 
 	foreach my $t (@ta)
 	{
 		my $tab = $c->tableau($t, 1);
 
-		print STDERR "DEBUG: matchlist(): tab = " . Dumper(\$tab) if $DEBUGGING > 2;
+		debug(3, "matchlist(): tab = " . Dumper(\$tab));
 
-		foreach my $id (keys %$tab)
+		foreach my $id (sort keys %$tab)
 		{
 			next unless $id =~ /\d+/;
 
 			# my $match = $tab->match($id);
+			
 			my $match = $c->match($t, $id);
+			
+			next unless $match->{'idA'} && $match->{'idB'};
+				
+			my $p = $match->{piste} || -1;
+			
+			debug(2,"matchlist(): match ($id on piste $p) = " . Dumper(\$match));
+			# $match->{piste} = -1 unless defined $match->{piste};
+			
+			if ($p)
+			{
+				$by_piste->{$p}->{total_matches} += 1;
+				$match->{sequence} = $by_piste->{$p}->{total_matches};
 
-			next if $match->{'winnerid'};
-
-			print STDERR "DEBUG: matchlist(): *****************************************************\n" if $DEBUGGING > 1;
-			print STDERR "DEBUG: matchlist(): processing id $id\n" if $DEBUGGING > 1;
-			print STDERR "DEBUG: matchlist(): match = " . Dumper(\$match) if $DEBUGGING > 1;
+				$by_piste->{$p}->{start_time} = $match->{start_time} unless $by_piste->{$p}->{start_time};
+				$by_piste->{$p}->{start_time} = $match->{start_time} if $match->{start_time} < $by_piste->{$p}->{start_time};
+			}
+			
+			next if $match->{winnerid};
+			
+			$match->{end_time} = $by_piste->{$p}->{start_time} + (1200 * ($match->{sequence} || 1));	# 20 minutes after start per match
+			$match->{status} = $match->{end_time} < $now ? "late" : "ok";
+	
+			$by_piste->{$p}->{end_time} = $match->{end_time} unless $by_piste->{$p}->{end_time};
+			$by_piste->{$p}->{end_time} = $match->{end_time} if $match->{end_time} > $by_piste->{$p}->{end_time};
+	
+			$by_piste->{$p}->{unfinished_matches} += 1;
+			
+			debug(1,"matchlist: adding match " . $tab->{prefix} . "$id to unfinished for piste $p");
+			
+			$by_piste->{$p}->{status} = "late" if $match->{status} eq "late";
+				
+			debug(2, "matchlist(): *****************************************************");
+			debug(2, "matchlist(): processing id $id");
+			debug(3, "matchlist(): match = " . Dumper(\$match));
 
 			unless ($raw)
 			{
 				next unless $match->{'idA'} && $match->{'idB'};
 				next if $match->{'idA'} eq 'nobody' || $match->{'idB'} eq 'nobody';
 
-				print STDERR "DEBUG: matchlist(): waiting for match = " . Dumper($match) if $DEBUGGING > 1;
+				debug(3, "matchlist(): waiting for match = " . Dumper($match));
 
 				#$t =~ s/[A-Z]*//;
 
-				$output->{$match->{'fencerA_court'}} = { 'round'=>$t, 'piste'=> $match->{'piste'}, 'time'=>$match->{'time'} };
-				$output->{$match->{'fencerB_court'}} = { 'round'=>$t, 'piste'=> $match->{'piste'}, 'time'=>$match->{'time'} };
+				$output->{$match->{'fencerA_court'}} = { round=>$t, piste=> $p, time=>$match->{time} };
+				$output->{$match->{'fencerB_court'}} = { round=>$t, piste=> $p, time=>$match->{time} };
 
-				print STDERR "DEBUG: matchlist(): output = " . Dumper(\$output) if $DEBUGGING > 1;
-
+				debug(2, "matchlist(): output = " . Dumper(\$output));
 			}
 			else
 			{
 				$output->{$t}->{$id} = $match ;
+				
+				$by_piste->{$p}->{$t}->{$id} = $match;
 			}
 		}
 	}
 
+	return $by_piste if $raw > 1;
 	return $output;
 }
 
@@ -1271,8 +1318,7 @@ sub load
 	while (<IN>)
 	{
 		chomp;
-		s///g;
-
+		s/\R//g;
 
 		# print "load: $_\n";
 	

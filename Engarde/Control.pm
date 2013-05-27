@@ -47,8 +47,7 @@ use XML::Simple;
 my @available_comps;
 
 
-
-#########################################################
+########################################################
 #
 # General purpose error handler
 #
@@ -649,34 +648,63 @@ sub frm_control {
 				
 					# my @levels = split / /, $c->tableaux_en_cours;
 					
-					my $matchlist = $c->matchlist(1);
+					my $matchlist = $c->matchlist(2);
+					
+					# my %by_piste = map {$_ => $matchlist->{$_}->{nom} } @ckeys;
 					
 					print "<td>";
 					
-					
-					# HTMLdie(Dumper(\$matchlist));
+					# print STDERR Dumper(\$matchlist);
 						
-					foreach my $l (sort keys %$matchlist)
+					foreach my $piste (sort { $a <=> $b } keys %$matchlist)
 					{
-						my $ll = $matchlist->{$l};
+						my $ll = $matchlist->{$piste};
+						
+						next unless $ll->{unfinished_matches};
+						
+						Engarde::debug(1,"frm_control: piste = $piste");
+						
+						# HTMLdie("piste = $piste: " . Dumper(\$ll));
 						
 						print start_table({-class=>"table1"});
 						
 						print "<tr>";
 						
-						print "<th rowspan=2><font size=+2><b>" . uc($l) . "</b></font></th>";
+						my $end = sprintf ("%02d:%02d", (localtime($ll->{end_time}))[2,1]);
+						my $start = sprintf("%02d:%02d", (localtime($ll->{start_time}))[2,1]);
 						
-						my $data = {};
+						my $late = "";
 						
-						my $pistes;
+						$late = "late" if $ll->{status}  && $ll->{status} eq "late";
 						
-						foreach my $m (sort {$a <=> $b} keys %$ll)
+						print th({-class=>"hint--bottom hint--rounded hint--info $late", 'data-hint'=> "$ll->{total_matches} bouts, $ll->{unfinished_matches} unfinished. Start: $start, End: $end"}, "<font size=+1><b>" . uc($piste eq "-1" ? "None" : $piste) . "</b></font>");
+						
+						# my $data = {};
+						
+						# my $pistes;
+						
+						# change this sort order to by piste and add secondary sort on match no
+						# { ($ll->{$a}->{piste_no} || "" . $a) <=> ($ll->{$b}->{piste_no} || "" . $b) } perhaps
+						
+						foreach (grep /\d+/, (keys %$ll))
 						{
-							next unless ($ll->{$m}->{idA} && $ll->{$m}->{idB} && not $ll->{$m}->{winnerid});
+							my $lll = $ll->{$_};
 						
-							# $data->{$m}->{$ll->{$m}->{piste}} = 
-							print "<td class='hint--bottom hint--rounded hint--info' data-hint='$ll->{$m}->{fencerA} -v- $ll->{$m}->{fencerB}'>$m</td>";
-							$pistes->{$m} = $ll->{$m};
+							Engarde::debug(1,"frm_control: tableau = $_");
+						
+						
+							# HTMLdie(Dumper($ll));
+							
+							foreach my $m (sort {$a <=> $b} keys %$lll)
+							{
+								next unless ($lll->{$m}->{idA} && $lll->{$m}->{idB} && not $lll->{$m}->{winnerid});
+						
+								Engarde::debug(1,"frm_control: match = $m");
+						
+								# $data->{$m}->{$ll->{$m}->{piste}} = 
+								print "<td class='hint--bottom hint--rounded hint--info' data-hint=\"$lll->{$m}->{fencerA_court} -v- $lll->{$m}->{fencerB_court}\">$lll->{$m}->{num}</td>";
+								# $pistes->{$m} = $lll->{$m};
+							}
 						}
 						
 						# HTMLdie(Dumper(\@pistes));
@@ -686,13 +714,13 @@ sub frm_control {
 						
 						print "<tr>";
 						
-						foreach (sort keys %$pistes)
-						{
-							my ($min, $hr) = (localtime($pistes->{$_}->{end_time}))[1,2];
+						#foreach (sort keys %$pistes)
+						#{
+						#	my ($min, $hr) = (localtime($pistes->{$_}->{end_time}))[1,2];
 							
-							print td({-class=>"hint--bottom hint--rounded hint--info", 'data-hint'=> "End: $hr:$min"}, ($pistes->{$_}->{piste} || ""));
+						#	print td({-class=>"hint--bottom hint--rounded hint--info", 'data-hint'=> "End: $hr:$min"}, ($pistes->{$_}->{piste} || ""));
 							# print td({-class=>"hint--bottom hint--rounded hint--info", 'data-hint'=> Dumper($pistes->{$_})}, $pistes->{$_}->{piste});
-						}
+						#}
 						
 						print "</tr>";
 						
