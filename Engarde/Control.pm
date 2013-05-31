@@ -410,7 +410,8 @@ sub config_read
 		{
 			my $dir = cwd();
 			
-			my @locations = (	"/home/engarde/eng-live/web/live.xml",
+			my @locations = (	"/home/engarde/live/web/live.xml",
+								"/home/engarde/eng-live/web/live.xml",
 								"$dir/web/live.xml",
 								"$dir/live.xml",
 								"$dir/../live.xml",
@@ -442,7 +443,8 @@ sub config_write
 	{
 		my $dir = cwd();
 		
-		my @locations = (	"/home/engarde/eng-live/web/live.xml",
+		my @locations = (	"/home/engarde/live/web/live.xml",
+							"/home/engarde/eng-live/web/live.xml",
 							"$dir/web/live.xml",
 							"$dir/live.xml",
 							"$dir/../live.xml",
