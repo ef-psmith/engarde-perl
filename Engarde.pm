@@ -1406,12 +1406,12 @@ sub tableaux_sort
 	my $dest_a = $ta->{$a}->{destination_battus};
 	my $dest_b = $ta->{$b}->{destination_battus};
 
-	debug(3,"tableaux_sort(): BEFORE: \n\ta = $a, \n\tb = $b, \n\trang_a = $rang_a, \n\trang_b = $rang_b, \n\tdest_a = $dest_a, \n\tdest_b = $dest_b");
+	#debug(3,"tableaux_sort(): BEFORE: \n\ta = $a, \n\tb = $b, \n\trang_a = $rang_a, \n\trang_b = $rang_b, \n\tdest_a = $dest_a, \n\tdest_b = $dest_b");
 
 	$rang_a = $ta->{$dest_a}->{rang_premier_battu} + 1 unless $rang_a;
 	$rang_b = $ta->{$dest_b}->{rang_premier_battu} + 1 unless $rang_b;
 
-	debug(3,"tableaux_sort(): AFTER: rang_a = $rang_a, rang_b = $rang_b, dest_a = $dest_a, dest_b = $dest_b");
+	#debug(3,"tableaux_sort(): AFTER: rang_a = $rang_a, rang_b = $rang_b, dest_a = $dest_a, dest_b = $dest_b");
 	debug(3,"tableaux_sort(): $a $b $dest_a $dest_b");
 
 	return $rang_b <=> $rang_a;
@@ -1754,7 +1754,12 @@ sub debug
 	my $level = shift;
 	my $text = shift || "";
 	
-	print STDERR "DEBUG($level): $text\n" if ($level le $Engarde::DEBUGGING);
+	if ($level le $Engarde::DEBUGGING)
+	{
+		my @t = localtime();
+		sprintf STDERR, "%02d:$02d:%02d DEBUG(%d): %s\n",$t[0],$t[1],$t[2],$level,$text);
+	}
+	
 }
 
 
