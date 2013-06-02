@@ -29,7 +29,8 @@ use Time::Local;
 # use HTML::Entities;
 our $DEBUGGING = 0;
 # get rid of the STDERR reopened... warning
-no warn 'io';
+no warnings 'io';
+
 
 use vars qw($VERSION @ISA $ta);
 @ISA = qw(Exporter);
