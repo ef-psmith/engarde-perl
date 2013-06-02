@@ -5,6 +5,7 @@ use vars qw($VERSION @ISA);
 @ISA = qw(Engarde);
 
 use Data::Dumper;
+no warnings 'io';
 
 # Poules need a custom load / decode method
 sub load
@@ -20,7 +21,7 @@ sub load
 
 	chomp $tir;
 
-	$tir =~ s///g;
+	$tir =~ s/\R//g;
 	$tir =~ s/\[les_tir_feuille \(//;
 	$tir =~ s/\)\]$//;
 

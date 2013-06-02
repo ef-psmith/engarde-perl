@@ -2,6 +2,7 @@
 package Engarde::Tableau;
 
 use strict;
+no warnings 'io';
 
 use vars qw($VERSION @ISA);
 @ISA = qw(Engarde);
@@ -30,7 +31,7 @@ sub load
 	chomp $taille;
 	$taille =~ s/\]//;
 	$taille =~ s/\[taille[ \t]*//;
-	$taille =~ s///g;
+	$taille =~ s/\R//g;
 
 	$self->{taille} = substr($taille,1);
 
@@ -39,7 +40,7 @@ sub load
 	my $etat = <IN>;
 
 	chomp $etat;
-	$etat =~ s///g;
+	$etat =~ s/\R//g;
 
 	# print "etat = [$etat]\n";
 

@@ -1211,7 +1211,7 @@ sub matchlist
 	
 			$by_piste->{$p}->{unfinished_matches} += 1;
 			
-			debug(1,"matchlist: adding match " . $tab->{prefix} . "$id to unfinished for piste $p");
+			debug(2,"matchlist(): adding match " . $tab->{prefix} . "$id to unfinished for piste $p");
 			
 			$by_piste->{$p}->{status} = "late" if $match->{status} eq "late";
 				
