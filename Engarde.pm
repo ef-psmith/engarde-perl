@@ -28,6 +28,8 @@ use Engarde::Arbitre;
 use Time::Local;
 # use HTML::Entities;
 our $DEBUGGING = 0;
+# get rid of the STDERR reopened... warning
+no warn 'io';
 
 use vars qw($VERSION @ISA $ta);
 @ISA = qw(Exporter);
@@ -1411,8 +1413,8 @@ sub tableaux_sort
 	$rang_a = $ta->{$dest_a}->{rang_premier_battu} + 1 unless $rang_a;
 	$rang_b = $ta->{$dest_b}->{rang_premier_battu} + 1 unless $rang_b;
 
-	#debug(3,"tableaux_sort(): AFTER: rang_a = $rang_a, rang_b = $rang_b, dest_a = $dest_a, dest_b = $dest_b");
-	debug(3,"tableaux_sort(): $a $b $dest_a $dest_b");
+	# debug(3,"tableaux_sort(): AFTER: rang_a = $rang_a, rang_b = $rang_b, dest_a = $dest_a, dest_b = $dest_b");
+	# debug(3,"tableaux_sort(): $a $b $dest_a $dest_b");
 
 	return $rang_b <=> $rang_a;
 }
