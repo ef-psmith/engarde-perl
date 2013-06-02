@@ -262,9 +262,9 @@ sub _init_tableaux
 		{
 			chomp;
 
-			s///g;
+			s/\R//g;
 
-			print STDERR "DEBUG: _init_tableaux(): _ = $_\n" if $DEBUGGING > 1;
+			debug(3,"_init_tableaux(): _ = $_");
 
 			if (/\[classe description_tableau/ && $unparsed)
 			{
@@ -272,7 +272,7 @@ sub _init_tableaux
 
 				if ($item->{nom})
 				{
-					print STDERR "DEBUG: _init_tableaux(): adding " . $item->{nom} . " to tableauxactifs\n" if $DEBUGGING > 1;
+					debug(3,"_init_tableaux(): adding " . $item->{nom} . " to tableauxactifs");
 					$self->{tableauxactifs}->{$item->{nom}} = $item unless $item->{inactif};
 				}
 
@@ -283,7 +283,7 @@ sub _init_tableaux
 			{
 				s/.*classe description_tableau\] //;
 				$unparsed .= $_;
-				print STDERR "DEBUG: _init_tableaux(): fall through: unparsed = $_\n" if $DEBUGGING > 1;
+				debug(3,"_init_tableaux(): fall through: unparsed = $_");
 			}
 		}
 
@@ -293,7 +293,7 @@ sub _init_tableaux
 
 			if ($item->{nom})
 			{
-				print STDERR "DEBUG: _init_tableaux(): adding " . $item->{nom} . " to tableauxactifs\n" if $DEBUGGING > 1;
+				debug(3,"_init_tableaux(): adding " . $item->{nom} . " to tableauxactifs");
 				$self->{tableauxactifs}->{$item->{nom}} = $item unless $item->{inactif};
 			}
 		}
@@ -301,7 +301,7 @@ sub _init_tableaux
 		close IN;
 	}
 
-	print STDERR "DEBUG: _init_tableau(): tableauxactifs = " . Dumper($self->{tableauxactifs}) if $DEBUGGING > 1;
+	debug(3,"_init_tableau(): tableauxactifs = " . Dumper($self->{tableauxactifs}));
 }
 
 
@@ -317,15 +317,13 @@ sub _decode_tableau
 	my $item = {};
 	my @elements = split /[ \]]*\[/, $unparsed;
 
-	# print STDERR "DEBUG: new(): elements = @elements\n" if $DEBUGGING;
-
 	foreach (@elements)
 	{
 		my @keywords = qw/suite nom nom_etendu rang_premier_battu inactif taille destination_vainqueurs destination_battus/;
 
 		s/\]//;
 
-		print STDERR "DEBUG: _decode_tableau(): element = $_\n" if $DEBUGGING > 1;
+		debug(3,"_decode_tableau(): element = $_");
 
 		foreach my $key (@keywords)
 		{
@@ -977,7 +975,7 @@ sub ranking
 			# q;1;160;6;6;30;8;
 			
 			chomp;
-			s///g;
+			s/\R//g;
 	
 			my @result = split /;/, $_;
 	
@@ -1005,10 +1003,11 @@ sub ranking
 		foreach my $t (@tab)
 		{
 			my $round = $c->tableau($t);
-
+			next unless $round;
+			
 			my $etat = $round->etat;
 
-			print STDERR "DEBUG: ranking(): round $t, etat = $etat\n" if $DEBUGGING > 1;
+			debug(2,"ranking(): round $t, etat = $etat");
 
 			next unless $etat eq "termine";
 
@@ -1018,7 +1017,7 @@ sub ranking
 
 			my $eliminated = $round->eliminated;
 
-			debug(1, "ranking(): eliminated = " . Dumper(\$eliminated));
+			debug(2, "ranking(): eliminated = " . Dumper(\$eliminated));
 
 			my $next_rang = $round->rang_premier_battu;
 
@@ -1363,7 +1362,7 @@ sub tableaux
 
 	local $ta = $self->tableauxactifs;
 
-	print STDERR "DEBUG: tableaux(): tableauxactifs = " . Dumper(\$ta) if $DEBUGGING > 1;
+	debug(2,"tableaux(): tableauxactifs = " . Dumper(\$ta));
 
 	my $initial;
 	my @tableaux;
@@ -1376,17 +1375,12 @@ sub tableaux
 
 #	foreach my $key (sort tableaux_sort keys %$ta)
 	#{
-		#print STDERR "DEBUG: tableaux(): current tableau = $key\n" if $DEBUGGING ;
-
+	
 		#my $tab = $self->tableau($key);
 
 		#next unless $tab;
 
-		#print STDERR "DEBUG: tableaux(): tab = " . Dumper(\$tab) if $DEBUGGING > 2;
-
 		#my $etat = $tab->etat;
-
-		#print STDERR "DEBUG: tableaux(): etat = $etat\n" if $DEBUGGING;
 
 		#push @tableaux, $key if ($etat eq "en_cours");
 		#push @tableaux, $key if ($etat eq "tableaux");
@@ -1394,11 +1388,9 @@ sub tableaux
 		#push @tableaux, $key if ($etat eq "vide" &&  not $current);
 		
 		#$initial = $key if $etat eq "termine";
-		# print STDERR "DEBUG: tableaux(): initial tableau = $initial\n" if $DEBUGGING;
 	#}
 
 	$initial = $tableaux[0] unless $initial;
-	# print "TABLEAUX: result @result\n";
 
 	# return reverse @result unless $current == 2;
 	return @tableaux unless $current == 2;
@@ -1414,20 +1406,13 @@ sub tableaux_sort
 	my $dest_a = $ta->{$a}->{destination_battus};
 	my $dest_b = $ta->{$b}->{destination_battus};
 
-	print STDERR "DEBUG: taleaux_sort(): BEFORE: \n\ta = $a, \n\tb = $b, \n\trang_a = $rang_a, \n\trang_b = $rang_b, \n\tdest_a = $dest_a, \n\tdest_b = $dest_b\n" 
-		if $DEBUGGING > 2;;
-	# print STDERR "DEBUG: taleaux_sort(): BEFORE: next_dest_a = " . $ta->{$dest_a}->{rang_premier_battu} . "\n";
-	# print STDERR "DEBUG: taleaux_sort(): BEFORE: next_dest_b = " . $ta->{$dest_b}->{rang_premier_battu} . "\n";
+	debug(3,"tableaux_sort(): BEFORE: \n\ta = $a, \n\tb = $b, \n\trang_a = $rang_a, \n\trang_b = $rang_b, \n\tdest_a = $dest_a, \n\tdest_b = $dest_b");
 
 	$rang_a = $ta->{$dest_a}->{rang_premier_battu} + 1 unless $rang_a;
 	$rang_b = $ta->{$dest_b}->{rang_premier_battu} + 1 unless $rang_b;
 
-	print STDERR "DEBUG: taleaux_sort(): AFTER: rang_a = $rang_a, rang_b = $rang_b, dest_a = $dest_a, dest_b = $dest_b\n" if $DEBUGGING > 2;
-
-	# my $series_a = substr($a,0,1);
-	# my $series_b = substr($b,0,1);
-
-	print STDERR "DEBUG: tableaux_sort(): $a $b $dest_a $dest_b\n" if $DEBUGGING > 2;
+	debug(3,"tableaux_sort(): AFTER: rang_a = $rang_a, rang_b = $rang_b, dest_a = $dest_a, dest_b = $dest_b");
+	debug(3,"tableaux_sort(): $a $b $dest_a $dest_b");
 
 	return $rang_b <=> $rang_a;
 }
@@ -1452,7 +1437,7 @@ sub next_tableau_in_suite
 
 	my @tab = $self->tableaux();
 
-	print STDERR "DEBUG: next_tableau_in_suite(): tab = [@tab]\n" if $DEBUGGING > 2;
+	debug(2,"next_tableau_in_suite(): tab = [@tab]");
 
 	while ($tab[0] ne $level)
 	{
@@ -1510,7 +1495,7 @@ sub whereami
 		
 			my $tab = uc($self->tableaux_en_cours);
 	
-			print "DEBUG: whereami: tab = $tab\n" if $DEBUGGING > 1;
+			debug(2,"whereami: tab = $tab");
 
 			$result = "tableau $tab";
 
@@ -1540,7 +1525,7 @@ sub whereami
 		$result = "poules $nutour $waiting";
 	}
 
-	print STDERR "DEBUG: whereami: result = $result\n" if $DEBUGGING > 1;
+	debug(2,"whereami: result = $result");
 	return $result; 
 }
 
@@ -1595,7 +1580,7 @@ sub _heure_to_time
 	my $in = shift;
 	my ($hr, $min) = ($in =~ m/(\d*):(\d*)/);
 
-	print STDERR "DEBUG: _heure_to_time(): in = $in, hr = $hr, min = $min\n" if $DEBUGGING > 1;
+	debug(3,"_heure_to_time(): in = $in, hr = $hr, min = $min");
 
 	# since we only have a hh:mm string we need to convert this to a time value
 	# assuming the other values are "today"
@@ -1609,7 +1594,7 @@ sub _heure_to_time
 	$tm[2] = $hr;
 
 	my $out = timelocal(@tm);
-	print STDERR "DEBUG: _heure_to_time(): returning " . localtime($out) . "\n" if $DEBUGGING > 1;
+	debug(3,"_heure_to_time(): returning " . localtime($out));
 	return $out;
 }
 
@@ -1702,7 +1687,7 @@ sub piste_status
 
 			unless ($p) 
 			{
-				print STDERR "DEBUG: piste_status(): poule object for round $round poule no $pn not found\n" if $DEBUGGING;
+				debug(2,"piste_status(): poule object for round $round poule no $pn not found");
 				next;
 			}
 
@@ -1729,11 +1714,11 @@ sub piste_status
 			next unless $m =~ /^\d+$/;
 			next unless ($round->{$m}->{idA} && $round->{$m}->{idB});
 
-			print STDERR "DEBUG: piste_status(): match = " . Dumper(\$round->{$m}) if $DEBUGGING > 1;
+			debug(3,"piste_status(): match = " . Dumper(\$round->{$m}));
 
 			my $pn = $round->{$m}->{'piste'} || "unknown";
 
-			print STDERR "DEBUG: piste_status(): pn = [$pn]\n" if $DEBUGGING > 1;
+			debug(3,"piste_status(): pn = [$pn]");
 
 			$out->{$pn}->{'count'} += 1;
 			$out->{$pn}->{'what'} = "tableau " . $round->nom;
