@@ -682,17 +682,17 @@ sub tableau
 	my $self;
 	my $old_mtime = 0;
 
-	print STDERR "DEBUG: tableau(): procesing $level\n" if $DEBUGGING > 1;
+	debug(2,"tableau(): procesing $level");
 
 	if ($c->{tableau}->{$level})
 	{
-		print STDERR "DEBUG: tableau(): level $level exists\n" if $DEBUGGING > 1;
+		debug(2,"tableau(): level $level exists");
 		$self = $c->{tableau}->{$level};
 		$old_mtime = $self->mtime();
 	}
 	else
 	{
-		print STDERR "DEBUG: tableau(): level $level does not exist yet\n" if $DEBUGGING > 1;
+		debug(2,"tableau(): level $level does not exist yet");
 		$self = {};
 		$self->{file} = "$dir/tableau$level.txt";
 		$self->{nom} = $level;
@@ -703,7 +703,7 @@ sub tableau
 
 		if ( $c->{tableauxactifs}->{$level}->{destination_battus})
 		{
-			print STDERR "DEBUG: destination_battus = " . $c->{tableauxactifs}->{$level}->{destination_battus} . "\n";
+			debug(2, "tableau(): destination_battus = " . $c->{tableauxactifs}->{$level}->{destination_battus});
 			$self->{destination_battus} = $c->{tableauxactifs}->{$level}->{destination_battus};
 			$c->{tableauxactifs}->{$self->{destination_battus}}->{is_rep} = 1;
 		}
@@ -724,25 +724,25 @@ sub tableau
 
 	unless (-r $self->{file})
 	{
-		print STDERR "DEBUG: tableau() cannot read " . $self->{file} . "\n" if $DEBUGGING;
+		debug(1,"tableau() cannot read " . $self->{file});
 		return undef;
 	}
 
 	$self->{mtime} = (stat("$self->{file}"))[9];
 	$self->{ctime} = (stat("$self->{file}"))[10];
 
-	print STDERR "DEBUG: tableau(): mtime = $self->{mtime}\n" if $DEBUGGING > 1;
+	debug(2,"tableau(): mtime = $self->{mtime}");
 
 	if ($self->{mtime} && $self->{mtime} > $old_mtime)
 	{
-		print STDERR "DEBUG: tableau(): re-loading level $level\n" if $DEBUGGING > 1;
+		debug(2,"tableau(): re-loading level $level");
 		# print "Loading $level data...\n";
 		$self->load($level);
 		$c->{tableau}->{$level} = $self;
 	}
 	else
 	{
-		print STDERR "DEBUG: tableau(): not re-loading level $level\n" if $DEBUGGING > 1;
+		debug(2,"tableau(): not re-loading level $level");
 		# print "Not loading $level data...\n";
 	}
 
@@ -750,19 +750,15 @@ sub tableau
 
 	return $self unless $decode;
 
-	print STDERR "DEBUG: tableau(): decoding level $level\n" if $DEBUGGING > 1;
-	print STDERR "DEBUG: tableau(): level $level = " , Dumper(\$self) if $DEBUGGING > 1;
+	debug(2,"tableau(): decoding level $level");
+	debug(2,"tableau(): level $level = " , Dumper(\$self));
 
 	foreach my $m (keys %$self)
 	{
 		if ($m =~ /\d+/)
 		{
-			print STDERR "DEBUG: tableau(): decoding $level match $m\n" if $DEBUGGING > 1;
+			debug(2,"tableau(): decoding $level match $m");
 			my $match = $c->match($level, $m);
-
-			# print "m = $m\n";
-			# print "old match = " . Dumper(\$self->{$m});
-			# print STDERR "new match = " . Dumper(\$match);
 
 			$self->{$m} = $match;
 		}
