@@ -1757,7 +1757,7 @@ sub debug
 	if ($level le $Engarde::DEBUGGING)
 	{
 		my @t = localtime();
-		printf STDERR "%02d:$02d:%02d DEBUG(%d): %s\n",$t[0],$t[1],$t[2],$level,$text;
+		printf STDERR "%02d:%02d:%02d DEBUG(%d): %s\n" ,$t[2],$t[1],$t[0],$level,$text;
 	}
 	
 }
