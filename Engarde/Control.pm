@@ -1470,12 +1470,21 @@ sub _std_header
 
 sub _std_footer
 {
+
 	print "<br>";
-	print "<a href='index.html'>Home</a><br>\n";
-	print "<a href='check-in.cgi'>Check-in Desk</a><br>\n";
-	print "<a href='status.cgi'>Status / Control</a><br>\n";
-	print "<a href='screens.cgi'>Screen Configuration</a><br>\n";
-	print "<a href='config.cgi'>General Configuration</a><br>\n";
+	
+	print table
+	(
+		Tr(
+			td( [
+					"<a href='index.html'>Home</a>",
+					"<a href='check-in.cgi'>Check-in Desk</a>",
+					"<a href='status.cgi'>Status / Control</a>",
+					"<a href='screens.cgi'>Screen Configuration</a>",
+					"<a href='config.cgi'>General Configuration</a>"
+				])
+		)
+	);
 	
 	print "</body></html>";
 }
