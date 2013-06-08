@@ -936,7 +936,7 @@ sub ranking
 			# q;1;160;6;6;30;8;
 			
 			chomp;
-			s///g;
+			s/\R//g;
 	
 			my @result = split /;/, $_;
 	
@@ -1083,7 +1083,7 @@ sub ranking
 				my $category = $nom eq $m->{fencerA} ? $m->{categoryA} : $m->{categoryB};
 				
 				# TODO - Add category - probably needs to come from the match object
-				$seeds->{$m->{winner}} = {nom=>$nom, nation=>$nation, club=>$club, seed=>1, group=>"elim_0", category=>$m}; 
+				$seeds->{$m->{winner}} = {nom=>$nom, nation=>$nation, club=>$club, seed=>1, group=>"elim_0", category=>$category}; 
 
 			}
 		}
