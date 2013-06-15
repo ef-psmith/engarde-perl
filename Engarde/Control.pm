@@ -1140,7 +1140,8 @@ sub frm_checkin_list {
 
 		if (!$fencers->{$fid}->{presence} || $fencers->{$fid}->{presence} ne "present") 
 		{
-			$link = "<a href=javascript:check('".$fid."',document.getElementById('row_$fid'))>Check-in</a>";
+			# $link = "<a href=javascript:check('".$fid."',document.getElementById('row_$fid'))>Check-in</a>";
+			$link = "<button onclick=javascript:check('".$fid."',document.getElementById('row_$fid'))>Check-in</button>";
 			
 			if ( $mode =~ /^exp.*\|/i )
 			{
@@ -1184,7 +1185,7 @@ sub frm_checkin_list {
     	print "<td align='center'>$nva</td>" ;
     	print "<td>",$owing || "","</td>" ;
     	print "<td>",$mode || "","</td>" ;
-    	print "<td><a href=javascript:edit('".$fid."')>Edit</a></td>" ;
+    	print "<td><button onclick=javascript:edit('".$fid."')>Edit</button></td>" ;
     	print "</tr>\n" ;
     	$row += 1;
   	}

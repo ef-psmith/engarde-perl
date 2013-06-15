@@ -1167,7 +1167,7 @@ sub matchlist
 
 	my $now = time;
 	
-	my @ta = split / /,$c->tableaux_en_cours;
+	my @ta = split / /,uc($c->tableaux_en_cours);
 
 	debug(2,"matchlist(): tableaux = " . Dumper(\@ta));
 
