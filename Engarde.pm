@@ -1308,32 +1308,23 @@ sub load
 
 	my $file = $self->{file};
 
-	# print "LOAD: " . Dumper(\$self);
-
 	open IN, "$file" || die $!;
 	my $unparsed;
 
-	while (<IN>)
 	{
-		chomp;
-		s/\R//g;
-
-		# print "load: $_\n";
-	
-		if (/^\{\[classe / && $unparsed)
-		{
-			$self->decode($unparsed);
-			$unparsed = $_;
-		}
-		else
-		{
-			$unparsed .= $_;
-		}
+		local $/ = undef; 
+		$unparsed = <IN>; 
 	}
-
-	$self->decode($unparsed) if $unparsed;
-
 	close IN;
+	
+	my @lines = split /{\[classe/, $unparsed;
+	
+	foreach (@lines)
+	{
+		s/\R//g;
+		$self->decode($_) if $_;
+	}
+	
 }
 
 

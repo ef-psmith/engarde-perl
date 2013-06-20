@@ -24,7 +24,7 @@ $VERSION=1.27;
 our @EXPORT = qw(	frm_control frm_config frm_screen frm_checkin_desk frm_checkin_list frm_fencer_edit
 					config_read config_update_basic config_update_output config_update_ip config_trash
 					weapon_add weapon_delete weapon_disable weapon_enable weapon_series_update weapon_config_update 
-					fencer_checkin fencer_edit
+					fencer_checkin fencer_scratch fencer_edit
 					HTMLdie );
 
 use Data::Dumper;
@@ -274,6 +274,57 @@ sub fencer_checkin
 	
 }
 
+sub fencer_scratch
+{
+	# HTMLdie(Dump());
+	
+	my $cid = param("wp");
+	my $fid = param("Item");
+	my $paid = shift;
+
+	print STDERR "DEBUG: fencer_scratch(): starting config_read() at " . localtime() . "\n";
+
+	my $config=config_read();
+
+	
+	#HTMLdie(Dumper($config->{competition}->{$cid}));
+	
+	print STDERR "DEBUG: fencer_scratch(): starting new() at " . localtime() . "\n";
+	my $c = Engarde->new($config->{competition}->{$cid}->{source} . "/competition.egw", 2);
+	HTMLdie("invald compeition $cid") unless $c;
+	
+	# my $ETAT;
+	open(ETAT, "+< " . $c->{dir} . "/etat.txt"); 
+	
+	# HTMLdie("lock error: $!") unless ETAT;
+	
+	my $lockstat = flock(ETAT,LOCK_EX);
+
+	#HTMLdie("calling _running");
+	
+	HTMLdie("Competition Locked: $^E") unless $lockstat;
+	
+	my $f = $c->tireur;
+	
+	$f->{$fid}->{scratched} = 1;
+	$f->{$fid}->{presence} = "absent";
+	$f->{$fid}->{comment} = "scratched at check in";
+	
+	flock(ETAT,LOCK_UN);
+	close ETAT;
+	# _release($ETAT);
+	
+	print STDERR "DEBUG: fencer_scratch(): starting to_text() at " . localtime() . "\n";
+	#HTMLdie("calling to_text");
+	$f->to_text;
+
+	print STDERR "DEBUG: fencer_scratch(): redirecting at " . localtime() . "\n";
+
+	print redirect(-uri=>"check-in.cgi?wp=$cid&Action=list");
+	
+}
+
+
 sub fencer_edit
 {
 	my $config=config_read();
@@ -288,12 +339,14 @@ sub fencer_edit
 	
 	my $item = {};
 	
-	for (qw/nom prenom licence presence club newclub nation mode/)
+	for (qw/nom prenom licence presence club newclub nation comment/)
 	{
 		#Engarde::debug(1,"fencer_edit: setting $_ to " . param($_));
 		$item->{$_} = param($_);
 	}
-	
+
+	$item->{scratched} = "scr" if param("scratched");
+	$item->{expired} = "exp" if param("expired");
 	$item->{presence} = "absent" unless $item->{presence};
 	$item->{nom} = uc($item->{nom});
 	$item->{prenom} = ucfirst($item->{prenom});
@@ -1055,6 +1108,7 @@ sub frm_checkin_list {
 	my %cookies=CGI::Cookie->fetch;
 	
 	my $c = Engarde->new($config->{competition}->{$cid}->{source} . "/competition.egw");
+	
 	HTMLdie("invalid competition") unless $c;
 
 	HTMLdie("Check-in no longer actvive") unless $config->{competition}->{$cid}->{state} eq "check-in";
@@ -1065,6 +1119,7 @@ sub frm_checkin_list {
 	
 	my $JSCRIPT="function edit(item) {\n  window.location.href=\"".url()."?wp=".$cid."&Action=Edit&Item=\" + item;\n}\n";
 	$JSCRIPT=$JSCRIPT."function check(item,row) {\n  var m=document.getElementById('openModal'); m.style.opacity=1; m.style.pointerEvents='auto'; row.style.backgroundColor = 'green'; window.location.href = \"".url()."?wp=$cid&Action=Check&Item=\" + item\n}\n";
+	$JSCRIPT=$JSCRIPT."function scratch(item,row) {\n  var m=document.getElementById('openModal'); m.style.opacity=1; m.style.pointerEvents='auto'; row.style.backgroundColor = 'grey'; window.location.href = \"".url()."?wp=$cid&Action=scratch&Item=\" + item\n}\n";
 	$JSCRIPT=$JSCRIPT."function doLoad() {\n  setTimeout('window.location.reload()'," . $config->{checkintimeout} . ");\n}\n\n";
 	$JSCRIPT=$JSCRIPT."function showAll(val) { \n document.cookie='showAll='+val; window.location.reload();}";
 
@@ -1106,9 +1161,9 @@ sub frm_checkin_list {
 	print "</td>";
 	print "</tr></table>\n" ;
 	print "<table border=1 cellspacing=0 cellpadding=2>\n" ;
-	print "<tr><th>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</th><th>NAME</th><th>CLUB</th><th>NATION</th><th>LICENCE NO</th><th>CAT	</th><th>OWING</th><th>NOTES</th><th></th></tr>\n" ;
+	print "<tr><th>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</th><th>NAME</th><th>CLUB</th><th>NATION</th><th>LICENCE NO</th><th>CAT	</th><th>OWING</th><th>NOTES</th><th></th><th></th></tr>\n" ;
 
-	# print Dumper(\$fencers);
+	# HTMLdie(Dumper(\$fencers));
 	
 	foreach my $fid (sort {$fencers->{$a}->{nom} cmp $fencers->{$b}->{nom}} keys %{$fencers})
 	{
@@ -1117,7 +1172,7 @@ sub frm_checkin_list {
 			next if $fencers->{$fid}->{presence} && $fencers->{$fid}->{presence} eq "present";
 		}
 		
-		my ($name, $first, $club, $nation, $licence, $owing, $nva, $mode);
+		my ($name, $first, $club, $nation, $licence, $owing, $nva, $comment);
 		my $bgcolour = "green" ;
    
 		$nva = "";
@@ -1136,25 +1191,26 @@ sub frm_checkin_list {
 
 		my $link = "";
 		
-		$mode = $fencers->{$fid}->{mode};
-
+		$comment = $fencers->{$fid}->{comment};
+		
+	
 		if (!$fencers->{$fid}->{presence} || $fencers->{$fid}->{presence} ne "present") 
 		{
-			# $link = "<a href=javascript:check('".$fid."',document.getElementById('row_$fid'))>Check-in</a>";
 			$link = "<button onclick=javascript:check('".$fid."',document.getElementById('row_$fid'))>Check-in</button>";
 			
-			if ( $mode =~ /^exp.*\|/i )
-			{
-				# set to red if membership expired
-				$bgcolour = "red";
-				$link = "";
-			}
-			elsif ( $mode =~ /^scr\|/i )
+			if ( $fencers->{$fid}->{scratched} )
 			{
 				# set to grey if scratched
 				$bgcolour = "grey";
 				$link = "";
 			}
+			elsif ( $fencers->{$fid}->{expired} )
+			{
+				# set to red if membership expired
+				$bgcolour = "red";
+				$link = "";
+			}
+			
 			elsif ($owing) 
 			{
 				$owing  = "&pound;".$owing;
@@ -1168,11 +1224,7 @@ sub frm_checkin_list {
 			}
 		}
 
-    	# $nva  = _age_cat($fencers->{$fid}->{date_nais}) if $fencers->{$fid}->{date_nais};
-		
 		$nva = $fencers->{$fid}->{category};
-		
-		# $nva = $nva ? "*" : "";
     	
 		$nva = "" if $nva eq "S";
 		
@@ -1184,8 +1236,9 @@ sub frm_checkin_list {
     	print "<td>",$licence || "","</td>" ;
     	print "<td align='center'>$nva</td>" ;
     	print "<td>",$owing || "","</td>" ;
-    	print "<td>",$mode || "","</td>" ;
+    	print "<td>",$comment || "","</td>" ;
     	print "<td><button onclick=javascript:edit('".$fid."')>Edit</button></td>" ;
+		print $fencers->{$fid}->{scratched} ? "<td></td>" : "<td><button onclick=javascript:scratch('".$fid."',document.getElementById('row_$fid'))>Scratch</button></td>" ;
     	print "</tr>\n" ;
     	$row += 1;
   	}
@@ -1252,7 +1305,7 @@ sub frm_fencer_edit
 			td(["Surname :",textfield(-name=>'nom',-value=>$f->{nom},-size=>32,-maxlength=>32)]),
 			td(["Forename :",textfield(-name=>'prenom',-value=>$f->{prenom},-size=>32,-maxlength=>32)]),
 			td(["Licence No :",textfield(-name=>'licence',-value=>$f->{licence},-size=>32,-maxlength=>32)]),
-			td(["Notes :",textfield(-name=>'mode',-value=>$f->{mode},-size=>32,-maxlength=>32)]),
+			td(["Notes :",textfield(-name=>'comment',-value=>$f->{comment},-size=>32,-maxlength=>32)]),
 		])
 	);
 
@@ -1293,10 +1346,10 @@ sub frm_fencer_edit
 			]
 		);
 	
-	if ($f->{paiement}) 
-	{
-		print "<tr bgcolor='yellow'><td>&pound;" . $f->{paiement}. " outstanding</td><td>" . checkbox(-name=>'paid',-value=>1,-checked=>0,-label=>'Paid') . "</td></tr>";
-	}
+	#if ($f->{paiement}) 
+	#{
+		print "<tr bgcolor='yellow'><td>&pound;" . ($f->{paiement} || "0.00") . " outstanding</td><td>" . checkbox(-name=>'paid',-value=>1,-checked=>0,-label=>'Paid') . "</td></tr>";
+	#}
   
 	print end_table;
 	
@@ -1306,16 +1359,23 @@ sub frm_fencer_edit
 	if ($state eq "check-in") 
 	{
 		print checkbox(-name=>'presence',-value=>'present',-checked=> (($f->{presence} && $f->{presence} eq "present") ? 1 : 0),-label=>'Present');
+		print checkbox(-name=>'scratched',-value=>'scratched',-checked=> ($f->{scratched} ? 1 : 0),-label=>'Scratched');
+		print checkbox(-name=>'expired',-value=>'expired',-checked=> ($f->{expired} ? 1 : 0),-label=>'Expired');
+		
 	} 
 	else 
 	{
 		print hidden(-name=>'presence',-value=>$f->presence,-override=>'true');
+		print hidden(-name=>'scratched',-value=>$f->scratched,-override=>'true');
+		print hidden(-name=>'expired',-value=>$f->expired,-override=>'true');
 	}
 	
 	print "<br>";
 	print "</fieldset>\n";
   
 	print submit(-label=>'Update Record');
+	
+	print "<button onclick=\"javascript:window.history.back();\">Cancel</button>";
   
 	print end_form();
 
@@ -1471,11 +1531,11 @@ sub _std_header
 
 sub _std_footer
 {
-
-	print "<br>";
+	# print "<br>";
 	
 	print table
 	(
+		{ cellpadding=>20 },
 		Tr(
 			td( [
 					"<a href='index.html'>Home</a>",
@@ -1574,7 +1634,6 @@ sub _dob_to_date
 	return "~$dob";
 }
 
-
 sub _lock
 {
 	my $c = shift;
@@ -1594,14 +1653,12 @@ sub _lock
 		
 		}
 	}
-	
 }
 
 sub _unlock
 {
 	my $c = shift;
-	my $dir = $c->dir;
-			
+	my $dir = $c->dir;		
 }
 
 

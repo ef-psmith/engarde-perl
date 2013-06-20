@@ -7,7 +7,7 @@ use Data::Dumper;
 use Fcntl qw(:flock);
 #use HTML::Entities;
 
-$VERSION=1.21;
+$VERSION=2.01;
 
 sub decode
 {
@@ -68,8 +68,11 @@ sub decode
 		}
 	}
 
+	_demode($item);
+	
 	$item->{category} = _age_cat($item->{date_nais});
 
+	Engarde::debug(3,"Tiruer::decode: item = " . Dumper(\$item));
 	
 	# print "TIREUR 6: cle = " . $item->{cle} . "\n\n\n";
 
@@ -86,7 +89,7 @@ sub decode
 		$absent += 1;
 	}
 
-	$scratch += 1 if ($item->{mode} && $item->{mode} =~ /^scr|/);
+	$scratch += 1 if $item->{scratched};
 
 	bless $item, "Engarde::Tireur";
 	$self->{$cle} = $item;
@@ -245,11 +248,21 @@ sub to_text
 	
 	my @keywords1 = qw/nom prenom licence mobile licence_fie mode date_nais/;
    	my @keywords2 = qw/club1 nation1 presence serie cle sexe paiement/;
-
+	
 	foreach my $id (sort {$self->{$a}->{nom} cmp $self->{$b}->{nom}} grep /\d+/,keys %$self)
 	{
 		Engarde::debug(3,"tireur: to_text(): processing id $id");
-				
+
+		# if (defined $self->{$id}->{comment})
+		#{
+		
+		$self->{$id}->{mode} = $self->{$id}->{comment} || "";
+		
+		$self->{$id}->{mode} .= "|exp" if $self->{$id}->{expired};
+		$self->{$id}->{mode} .= "|scr" if $self->{$id}->{scratched};
+		
+		#}
+		
 		my $out;	
 		$out = "{[classe tireur] [status normal] [points 0.00]";
 		
@@ -259,7 +272,7 @@ sub to_text
 			
 			if (length($out) > 60)
 			{
-				print $FH $out . "\r\n";
+				print $FH $out . "\r";
 				$out = "";
 			}
 		}
@@ -270,12 +283,12 @@ sub to_text
 			
 			if (length($out) > 80)
 			{
-				print $FH $out . "\r\n";
+				print $FH $out . "\r";
 				$out = "";
 			}
 		}
 		
-		$out .= "}\r\n";
+		$out .= "}\r";
 		
 		Engarde::debug(3,"tireur: to_text(): id $id = $out");
 		
@@ -319,6 +332,35 @@ sub add_edit
 	$self->to_text;
 	
 	return $self->{cle};
+}
+
+
+sub _demode 
+{
+	my $f = shift;
+	my $m = $f->{mode} || "";
+	
+	# set defaults
+	$f->{scratched} = "";
+	$f->{expired} = "";
+	
+	# return unless $m;
+	
+	my @m = split /\|/, $m;
+	
+	$f->{comment} = shift @m;
+	
+	foreach (@m)
+	{
+		if ($_ =~ /^exp.*/i)
+		{
+			$f->{expired} = $_;
+		}
+		elsif($_ =~ /^scr.*/i)
+		{
+			$f->{scratched} = $_;
+		}
+	}
 }
 
 1;
