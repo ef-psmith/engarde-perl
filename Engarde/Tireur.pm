@@ -112,7 +112,7 @@ sub decode
 sub nom
 {
 	my $self = shift;
-	return $self->{nom} . " " . ($self->{prenom} | "");
+	return $self->{nom} . " " . ($self->{prenom} || "");
 }
 
 
