@@ -141,7 +141,7 @@ sub new {
 	{
 		chomp;
 
-		s///g;
+		s/\R//g;
 		
 		if ((/^\(def ma_competition/ || /^\(def ma_formule/ || $inside))
 		{
@@ -213,7 +213,7 @@ sub _init_poules
 			chomp;
 			# print "NEW: $_\n";
 			#
-			s///g;
+			s/\R//g;
 
 			if ( /nombre_poules/ )
 			{
@@ -710,7 +710,7 @@ sub tableau
 		}
 
 		$self->{taille} = $c->{tableauxactifs}->{$level}->{taille};
-		$self->{suite} = uc($c->{tableauxactifs}->{$level}->{suite});
+		$self->{suite} = uc($c->{tableauxactifs}->{$level}->{suite} || "");
 		$self->{is_rep} = $c->{tableauxactifs}->{$level}->{is_rep};
 		
 		$self->{size} = $num;
@@ -1064,6 +1064,7 @@ sub ranking
 				$seeds->{$e}->{seed} = $current_rang;
 				$seeds->{$e}->{seed} = 3 if $current_rang == 4;
 			}
+			
 			debug(2, "ranking(): seeds = " . Dumper(\$seeds));
 
 			if ($taille == 2)
@@ -1083,7 +1084,7 @@ sub ranking
 				my $category = $nom eq $m->{fencerA} ? $m->{categoryA} : $m->{categoryB};
 				
 				# TODO - Add category - probably needs to come from the match object
-				$seeds->{$m->{winner}} = {nom=>$nom, nation=>$nation, club=>$club, seed=>1, group=>"elim_0", category=>$category}; 
+				$seeds->{$m->{winnerid}} = {nom=>$nom, nation=>$nation, club=>$club, seed=>1, group=>"elim_0", category=>$category}; 
 
 			}
 		}
@@ -1487,11 +1488,24 @@ sub whereami
 			#my @tab = $self->tableaux(1);
 			#my $initial = $self->tableaux(2);
 		
-			my $tab = uc($self->tableaux_en_cours);
+			my @tab = split / /,uc($self->tableaux_en_cours);
 	
-			debug(2,"whereami: tab = $tab");
+			if (scalar @tab == 1)
+			{
+				if ($tab[0] eq "A2")
+				{
+					$tab[0] = "A4";
+					$tab[1] = "A2";
+				}
+				else
+				{
+					push @tab, $self->next_tableau($tab[0]); 
+				}
+			}
+	
+			debug(2,"whereami: tab = @tab");
 
-			$result = "tableau $tab";
+			$result = "tableau " . join(" ", @tab);
 
 			# $result = "tableau $initial $tab[0]";
 			
