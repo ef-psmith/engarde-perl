@@ -1497,10 +1497,10 @@ sub whereami
 					$tab[0] = "A4";
 					$tab[1] = "A2";
 				}
-				else
-				{
-					push @tab, $self->next_tableau($tab[0]); 
-				}
+				#else
+				#{
+				#	push @tab, $self->next_tableau($tab[0]); 
+				#}
 			}
 	
 			debug(2,"whereami: tab = @tab");
