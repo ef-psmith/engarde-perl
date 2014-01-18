@@ -5,7 +5,7 @@ use strict;
 use vars qw($VERSION @ISA);
 @ISA = qw(Engarde);
 
-$VERSION=1.22;
+$VERSION=1.25;
 
 use Data::Dumper;
 use Fcntl qw(:flock);
@@ -19,7 +19,7 @@ sub decode
 
 	chomp $in;
 
-	$in =~ s///g;
+	$in =~ s/\R//g;
 
 	# print "CLUB: in = $in\n";
 

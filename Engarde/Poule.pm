@@ -4,6 +4,8 @@ use strict;
 use vars qw($VERSION @ISA);
 @ISA = qw(Engarde);
 
+$VERSION=1.25;
+
 use Data::Dumper;
 no warnings 'io';
 
@@ -39,7 +41,7 @@ sub load
 	while (<IN>)
 	{
 		chomp;
-		s///g;
+		s/\R//g;
 
 		# print "POULE: in = $_\n";
 
@@ -261,7 +263,7 @@ sub grid
 			$affiliation = "$affiliation " . $c->club($fencer->club) if $fencer->club;
 		}
 		
-		$affiliation = $c->club($fencer->club) if $domain eq "national" && $fencer->club;
+		$affiliation = $c->club($fencer->club) if $domain eq "national";
 
 		# print "GRID: f = $f, fencer = " . Dumper(\$fencer);
 		# print "GRID: affiliation = $affiliation\n\n";
