@@ -1495,12 +1495,22 @@ sub whereami
 				if ($tab[0] eq "A2")
 				{
 					$tab[0] = "A4";
-					$tab[1] = "A2";
+					# $tab[1] = "A2";
 				}
 				#else
 				#{
 				#	push @tab, $self->next_tableau($tab[0]); 
 				#}
+			}
+			else
+			{
+				foreach my $i (1..$#tab)
+				{
+					if (substr($tab[$i-1],0,1) eq substr($tab[$i],0,1)
+					{
+						delete $tab[$i];
+					}
+				}	
 			}
 	
 			debug(2,"whereami: tab = @tab");
