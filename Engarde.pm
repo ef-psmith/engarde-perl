@@ -1090,7 +1090,7 @@ sub ranking
 		}
 	}
 
-	debug(2,"ranking(): seeds = " . Dumper(\$seeds));
+	# debug(2,"ranking(): seeds = " . Dumper(\$seeds));
 	return $seeds;
 }
 
@@ -1506,7 +1506,7 @@ sub whereami
 			{
 				foreach my $i (1..$#tab)
 				{
-					if (substr($tab[$i-1],0,1) eq substr($tab[$i],0,1)
+					if (substr $tab[$i-1],0,1  eq substr $tab[$i],0,1)
 					{
 						delete $tab[$i];
 					}
