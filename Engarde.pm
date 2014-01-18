@@ -1513,7 +1513,7 @@ sub whereami
 				}	
 			}
 	
-			debug(2,"whereami: tab = @tab");
+			# debug(2,"whereami: tab = @tab");
 
 			$result = "tableau " . join(" ", @tab);
 
