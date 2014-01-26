@@ -1138,11 +1138,11 @@ sub fpp
 			my $heure = $p->heure;
 			my $piste_no = $p->piste_no;
 		
-			my $aff = $dom eq "national" ? "$club" : "$nation";
+			my $aff = $dom eq "national" ? "$club" : "$nation $club";
 
 			# print "FPP: id = $id, club = $club " . Dumper($f);
 			
-			$output->{$id} = { nom=>$nom, club=>$aff, serie=>$serie, nation=>$nation, poule=>$i, heure=>$heure, piste_no=>$piste_no };
+			$output->{$id} = { nom=>$nom, aff=>$aff, club=>$club, serie=>$serie, nation=>$nation, poule=>$i, heure=>$heure, piste_no=>$piste_no };
 		}
 
 		$i++;
@@ -1506,9 +1506,9 @@ sub whereami
 			{
 				foreach my $i (1..$#tab)
 				{
-					if (substr $tab[$i-1],0,1  eq substr $tab[$i],0,1)
+					if ((substr $tab[$i-1],0,1)  eq (substr $tab[$i],0,1))
 					{
-						delete $tab[$i];
+						splice(@tab,$i,1);
 					}
 				}	
 			}
