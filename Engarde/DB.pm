@@ -38,6 +38,18 @@ sub tireur
 	
 	my $data = $sth->fetchall_hashref('entry_id');
 	
+	my ($present, $absent, $scratched);
+	
+	foreach my $id (keys %$data)
+	{
+		$present +=1 if $data->{$id}->{presence} eq "present";
+		$absent +=1 if $data->{$id}->{presence} eq "absent";
+	}
+	
+	$data->{present} = $present;
+	$data->{absent} = $absent;
+	$data->{scratched} = $scratched;
+	
 	return $data;
 }
 
