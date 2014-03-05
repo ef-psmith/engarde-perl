@@ -1149,7 +1149,7 @@ sub frm_checkin_list {
 	
 	if (defined $Engarde::DB::VERSION)
 	{
-		$f = Engarde:DB::tireur();
+		$f = Engarde::DB::tireur();
 		$titre_ligne = $config->{competition}->{$cid}->{titre_ligne};
 	}
 	else
