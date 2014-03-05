@@ -1113,8 +1113,6 @@ sub frm_checkin_desk {
 
 		my $state = $w->{'state'};
 
-		next unless $state eq "check-in";
-
 		my ($name, $path);
 		
 		if (defined $Engarde::DB::VERSION)
@@ -1124,6 +1122,7 @@ sub frm_checkin_desk {
 		}
 		else
 		{
+			next unless $state eq "check-in";
 			my $c = Engarde->new($w->{source} . "/competition.egw", 2);
 			next unless defined $c;
 
@@ -1146,15 +1145,24 @@ sub frm_checkin_list {
 
 	my %cookies=CGI::Cookie->fetch;
 	
-	my $c = Engarde->new($config->{competition}->{$cid}->{source} . "/competition.egw");
+	my ($f, $clubs, $nations, $titre_ligne);
 	
-	HTMLdie("invalid competition") unless $c;
-
-	HTMLdie("Check-in no longer actvive") unless $config->{competition}->{$cid}->{state} eq "check-in";
+	if (defined $Engarde::DB::VERSION)
+	{
+		$f = Engarde:DB::tireur();
+		$titre_ligne = $config->{competition}->{$cid}->{titre_ligne};
+	}
+	else
+	{
+		my $c = Engarde->new($config->{competition}->{$cid}->{source} . "/competition.egw");
+		HTMLdie("invalid competition") unless $c;
+		HTMLdie("Check-in no longer actvive") unless $config->{competition}->{$cid}->{state} eq "check-in";
 	
-	my $f = $c->tireur;
-	my $clubs = $c->club;
-	my $nations = $c->nation;
+		$f = $c->tireur;
+		$clubs = $c->club;
+		$nations = $c->nation;
+		$titre_ligne = $c->titre_ligne;
+	}
 	
 	my $JSCRIPT="function edit(item) {\n  window.location.href=\"".url()."?wp=".$cid."&Action=Edit&Item=\" + item;\n}\n";
 	$JSCRIPT=$JSCRIPT."function check(item,row) {\n  var m=document.getElementById('openModal'); m.style.opacity=1; m.style.pointerEvents='auto'; row.style.backgroundColor = 'green'; window.location.href = \"".url()."?wp=$cid&Action=Check&Item=\" + item\n}\n";
@@ -1167,7 +1175,7 @@ sub frm_checkin_list {
 
 	my $fencers = {};
 	
-	_std_header($c->titre_ligne  ." Check-in", $JSCRIPT, "doLoad();");
+	_std_header($titre_ligne  ." Check-in", $JSCRIPT, "doLoad();");
 	
 	print "<div id=\"openModal\" class=\"modalDialog\">";
 	print "<div class=\"labeled\"><div class=\"spinner\"><div class=\"bar1\"></div><div class=\"bar2\"></div><div class=\"bar3\"></div>";
