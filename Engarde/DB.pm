@@ -25,7 +25,7 @@ BEGIN
 				{'RaiseError' => 1, AutoCommit => 1}
 			) or die $DBI::errstr;
 	
-	print Dumper($dbh);
+	# print Dumper($dbh);
 }
 
 
@@ -34,7 +34,7 @@ sub config_read
 {
 	my $data;
 	
-	my $sth = $dbh->prepare("select key, value from control");
+	my $sth = $dbh->prepare("select config_key, config_value from control");
 	
 	print Dumper(\$sth);
 	
@@ -42,9 +42,8 @@ sub config_read
 
 	$sth->execute();
 				
-	print $DBI::errstr;
+	# print $DBI::errstr;
 
-	
 	my ($key, $value);
 	$sth->bind_columns(\$key, \$value);
 	
