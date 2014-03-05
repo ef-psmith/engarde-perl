@@ -1260,8 +1260,17 @@ sub tireurs
 	my $present = shift || 0;
 	my $output = {};
 
-	my $t = $c->tireur;
-
+	my $t;
+	
+	if (defined $Engarde::DB::VERSION)
+	{
+		$t = $Engarde::DB::tireur();
+	}
+	else
+	{	
+		$t = $c->tireur;
+	}
+	
 	# print "tireurs: t = " . Dumper(\$t);
 
 	foreach my $id (keys %$t)

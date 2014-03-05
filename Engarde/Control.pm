@@ -1094,11 +1094,22 @@ sub frm_checkin_desk {
 
 		next unless $state eq "check-in";
 
-		my $c = Engarde->new($w->{source} . "/competition.egw", 2);
-		next unless defined $c;
+		my ($name, $path);
+		
+		if (defined $Engarde::DB::VERSION)
+		{
+			$name = $w->{'titre_ligne'};
+			$path = $w->{'source'};
+		}
+		else
+		{
+			my $c = Engarde->new($w->{source} . "/competition.egw", 2);
+			next unless defined $c;
 
-		my $name = $c->titre_ligne;
-		my $path = $c->dir();
+			$name = $c->titre_ligne;
+			$path = $c->dir();
+		}
+		
 		print "<tr><td><a href=".url()."?wp=$cid&Action=list>$cid - $name<br><font color='grey' size=1>$path</font></a></td></tr>" ;
   	}
 
