@@ -48,8 +48,6 @@ sub config_read
 	_config_read_core($data);	
 	_config_read_events($data);	
 
-	# print Dumper($data);
-
 	return $data;
 }
 
