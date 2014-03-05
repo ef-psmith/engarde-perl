@@ -28,7 +28,16 @@ BEGIN
 	# print Dumper($dbh);
 }
 
-
+sub tireur
+{
+	my $cid = shift;
+	
+	my $sth = $dbh->prepare("select * from v_event_entries where event_id = ?");
+	
+	$sth->execute($cid);
+	
+	return $sth->fetchall_hashref('entry_id');
+}
 
 sub config_read
 {
@@ -68,7 +77,7 @@ sub _config_read_events
 	
 	$data->{competition} = $sth->fetchall_hashref('id');
 
-	print Dumper(\$data);
+	#print Dumper(\$data);
 }
 
 1;

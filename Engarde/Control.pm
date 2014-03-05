@@ -633,7 +633,7 @@ sub frm_control {
 				
 				if (defined $Engarde::DB::VERSION)
 				{
-					$f = Engarde::DB::tireur();
+					$f = Engarde::DB::tireur($cid);
 				}
 				else
 				{
