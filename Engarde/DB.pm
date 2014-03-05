@@ -36,7 +36,9 @@ sub tireur
 	
 	$sth->execute($cid);
 	
-	return $sth->fetchall_hashref('entry_id');
+	my $data = $sth->fetchall_hashref('entry_id');
+	
+	return $data;
 }
 
 sub config_read
