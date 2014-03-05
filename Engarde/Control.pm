@@ -572,6 +572,7 @@ sub frm_control {
 			$name = $w->{'titre_ligne'};
 			$path = $w->{'source'};
 			$etat = $w->{'state'};
+			$lockstat = 1;
 		}
 		else
 		{
