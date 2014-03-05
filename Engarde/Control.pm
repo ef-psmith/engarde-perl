@@ -564,7 +564,7 @@ sub frm_control {
 		# HTMLdie(Dumper($w));
 		my $state = $w->{'state'};
 
-		my ($name, $path, $etat);
+		my ($name, $path, $etat, @w);
 		my $lockstat = 0;
 		
 		if (defined $Engarde::DB::VERSION)
@@ -601,7 +601,7 @@ sub frm_control {
 			$name = $c->titre_ligne;
 			
 			my $where = $c->whereami;
-			my @w = split (/\s+/,$where);
+			@w = split (/\s+/,$where);
 			$etat = $c->etat;
       
 			# print "DEBUG: etat = $etat";
@@ -629,7 +629,17 @@ sub frm_control {
 
  			if ($etat eq "debut") 
 			{
-				my $f = $c->tireur;
+				my $f;
+				
+				if (defined $Engarde::DB::VERSION)
+				{
+					$f = Engarde::DB::tireur();
+				}
+				else
+				{
+					$f = $c->tireur;
+				}
+				
 				my $present = $f->{present};
 				my $total = $f->{entries};
 				my $scratch = $f->{scratch};
