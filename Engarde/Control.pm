@@ -19,7 +19,7 @@ no warnings 'io';
 use vars qw($VERSION @ISA);
 @ISA = qw(Engarde Exporter);
 
-$VERSION=1.27;
+$VERSION=1.28;
 
 our @EXPORT = qw(	frm_control frm_config frm_screen frm_checkin_desk frm_checkin_list frm_fencer_edit
 					config_read config_update_basic config_update_output config_update_ip config_trash
@@ -455,30 +455,44 @@ sub config_trash
 }
 
 
+sub _config_location
+{
+	return "DB" if $Engarde::USEDB;
+	
+	my $dir = cwd();
+
+	my @locations = (	"/home/engarde/live/web/live.xml",
+						"/home/engarde/eng-live/web/live.xml",
+						"c:/users/psmith/Documents/prs2712\@gmail.com/escrime/eng-live/web/live.xml",
+						"$dir/web/live.xml",
+						"$dir/live.xml",
+						"$dir/../live.xml",
+					);
+	
+	foreach (@locations)
+	{
+		return $_ if -r $_ ;
+	}
+}
+
 sub config_read
- {
-        my $cf = shift;
-		
-		unless ($cf)
-		{
-			my $dir = cwd();
-			
-			my @locations = (	"/home/engarde/live/web/live.xml",
-								"/home/engarde/eng-live/web/live.xml",
-								"$dir/web/live.xml",
-								"$dir/live.xml",
-								"$dir/../live.xml",
-							);
-			foreach (@locations)
-			{
-				$cf = $_ if ( -r $_ && not $cf );
-			}
-		}
+{
+        my $cf = shift || _config_location();
 		
 		return undef unless $cf;
 		
-        #my $data = XMLin($cf, KeyAttr=>'id', ForceArray=>qr/competition message/); 
-		my $data = XMLin($cf, KeyAttr=>'id', ForceArray=>1); 
+		# need to initialise this as $data = {} possibly
+		my $data;
+		
+		if ($cf eq "DB")
+		{
+			Engarde::DB::config_read($data);
+		}
+		else
+		{
+			#my $data = XMLin($cf, KeyAttr=>'id', ForceArray=>qr/competition message/); 
+			$data = XMLin($cf, KeyAttr=>'id', ForceArray=>1); 
+		}
 		
 		my $debug = $data->{debug};
 		
@@ -490,26 +504,10 @@ sub config_read
 sub config_write
 {
 	my $data = shift;
-	my $cf = shift;
-
-	unless ($cf)
-	{
-		my $dir = cwd();
-		
-		my @locations = (	"/home/engarde/live/web/live.xml",
-							"/home/engarde/eng-live/web/live.xml",
-							"$dir/web/live.xml",
-							"$dir/live.xml",
-							"$dir/../live.xml",
-						);
-		foreach (@locations)
-		{
-			$cf = $_ if ( -w $_ && not $cf );
-		}		
-	}
+	my $cf = shift || _config_location();
 
 	return undef unless $cf;
-		
+
 	open my $FH, ">$cf" . ".tmp" or HTMLdie ("Could not open $cf.tmp for writing: $!");
 	flock($FH, LOCK_EX) || HTMLdie ("Couldn't obtain exclusive lock on $cf");
 
@@ -816,6 +814,8 @@ sub frm_control {
 sub frm_screen
 {
 	my $config = config_read();
+	
+	HTMLdie("no config file found: " . cwd()) unless $config;
 	_std_header("Screen Configuration");
 
 	###########################################
@@ -1394,10 +1394,10 @@ sub _find_comps
 {
 	undef @available_comps;
 	
-	my @possibledirs = ("../../data/BIFT","../../data/examples", "/home/engarde/public/data/current");
+	my @possibledirs = ("../../data/examples", "/home/engarde/public/data/current", "c:/users/psmith/Documents/prs2712\@gmail.com/escrime/DATA/examples");
 
 	my @dirs;
-
+	
 	foreach (@possibledirs)
 	{
 		push @dirs, $_ if -d;
