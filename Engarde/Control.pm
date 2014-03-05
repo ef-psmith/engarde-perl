@@ -564,7 +564,7 @@ sub frm_control {
 		# HTMLdie(Dumper($w));
 		my $state = $w->{'state'};
 
-		my ($name, $path, $etat, @w);
+		my ($c, $name, $path, $etat, @w);
 		my $lockstat = 0;
 		
 		if (defined $Engarde::DB::VERSION)
@@ -575,7 +575,7 @@ sub frm_control {
 		}
 		else
 		{
-			my $c = Engarde->new($w->{source} . "/competition.egw", 1);
+			$c = Engarde->new($w->{source} . "/competition.egw", 1);
 	
 			next unless $c;
 		
