@@ -36,9 +36,9 @@ sub config_read
 	
 	my $sth = $dbh->prepare("select config_key, config_value from control");
 	
-	print Dumper(\$sth);
+	# print Dumper(\$sth);
 	
-	print $DBI::errstr;
+	# print $DBI::errstr;
 
 	$sth->execute();
 				
