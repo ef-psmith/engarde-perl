@@ -1264,7 +1264,7 @@ sub tireurs
 	
 	if (defined $Engarde::DB::VERSION)
 	{
-		$t = $Engarde::DB::tireur();
+		$t = Engarde::DB::tireur();
 	}
 	else
 	{	

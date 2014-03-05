@@ -564,34 +564,49 @@ sub frm_control {
 		# HTMLdie(Dumper($w));
 		my $state = $w->{'state'};
 
-		my $c = Engarde->new($w->{source} . "/competition.egw", 1);
-	
-		next unless $c;
-		
-		my $path = $c->dir();
-		
+		my ($name, $path, $etat);
 		my $lockstat = 0;
 		
-		# test to see if Engarde is running
-		
-		if ($^O =~ /Win32/)
+		if (defined $Engarde::DB::VERSION)
 		{
-			open(ETAT, "+< $path/etat.txt"); 
-			$lockstat = flock(ETAT,LOCK_EX);
-		
-			# immediately release the lock just in case
-			flock(ETAT,LOCK_UN);
-			close ETAT;
+			$name = $w->{'titre_ligne'};
+			$path = $w->{'source'};
+			$etat = $w->{'state'};
 		}
 		else
 		{
-			my $file = "$path/etat.txt";
-			$file =~ s/ /\\ /g;
-			$lockstat = 1 unless `lsof $file`;
-		}
+			my $c = Engarde->new($w->{source} . "/competition.egw", 1);
+	
+			next unless $c;
+		
+			$path = $c->dir();
+				
+			# test to see if Engarde is running
+		
+			if ($^O =~ /Win32/)
+			{
+				open(ETAT, "+< $path/etat.txt"); 
+				$lockstat = flock(ETAT,LOCK_EX);
+		
+				# immediately release the lock just in case
+				flock(ETAT,LOCK_UN);
+				close ETAT;
+			}
+			else
+			{
+				my $file = "$path/etat.txt";
+				$file =~ s/ /\\ /g;
+				$lockstat = 1 unless `lsof $file`;
+			}
+			$name = $c->titre_ligne;
 			
-		my $name = $c->titre_ligne;
-
+			my $where = $c->whereami;
+			my @w = split (/\s+/,$where);
+			$etat = $c->etat;
+      
+			# print "DEBUG: etat = $etat";
+		}
+		
 		print "<tr><th align=left>$cid - $name<br><font color='grey' size=1>$path</font></th>" ;
 				
 		if ($lockstat)
@@ -603,12 +618,7 @@ sub frm_control {
 			print "<td><img src='./graphics/lock-small.png' /></td>";
 		}
 
-		my $where = $c->whereami;
-		my @w = split (/\s+/,$where);
-		my $etat = $c->etat;
-      
-		# print "DEBUG: etat = $etat";
-
+		
 		SWITCH: 
 		{
 			if ($etat eq "termine") 
