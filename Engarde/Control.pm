@@ -457,7 +457,7 @@ sub config_trash
 
 sub _config_location
 {
-	return "DB" if $Engarde::USEDB;
+	return "DB" if defined $Engarde::DB::VERSION;
 	
 	my $dir = cwd();
 
@@ -486,7 +486,7 @@ sub config_read
 		
 		if ($cf eq "DB")
 		{
-			Engarde::DB::config_read($data);
+			$data = Engarde::DB::config_read();
 		}
 		else
 		{
@@ -508,16 +508,23 @@ sub config_write
 
 	return undef unless $cf;
 
-	open my $FH, ">$cf" . ".tmp" or HTMLdie ("Could not open $cf.tmp for writing: $!");
-	flock($FH, LOCK_EX) || HTMLdie ("Couldn't obtain exclusive lock on $cf");
+	if ($cf eq "DB")
+	{
+		Engarde::DB::config_read($data);
+	}
+	else
+	{
+		open my $FH, ">$cf" . ".tmp" or HTMLdie ("Could not open $cf.tmp for writing: $!");
+		flock($FH, LOCK_EX) || HTMLdie ("Couldn't obtain exclusive lock on $cf");
 
-	my $out = "<?xml version=\"1.0\"?>\n";
-	$out .= XMLout($data, KeyAttr=>'id', AttrIndent=>1, SuppressEmpty => undef, RootName=>'config');
+		my $out = "<?xml version=\"1.0\"?>\n";
+		$out .= XMLout($data, KeyAttr=>'id', AttrIndent=>1, SuppressEmpty => undef, RootName=>'config');
 
-	print $FH "$out";
-	close $FH;
+		print $FH "$out";
+		close $FH;
 	
-	rename "$cf.tmp", $cf or HTMLDie("rename failed: $!");
+		rename "$cf.tmp", $cf or HTMLDie("rename failed: $!");
+	}
 }
 
 #########################################################

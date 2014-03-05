@@ -32,18 +32,24 @@ BEGIN
 
 sub config_read
 {
-	my $data;
-	
-	my $sth = $dbh->prepare("select config_key, config_value from control");
-	
-	# print Dumper(\$sth);
-	
-	# print $DBI::errstr;
+	my $data = {};
 
+	_config_read_core($data);	
+	_config_read_events($data);	
+
+	# print Dumper($data);
+
+	return $data;
+}
+
+
+sub _config_read_core
+{
+	my $data = shift;
+
+	my $sth = $dbh->prepare("select config_key, config_value from control");
 	$sth->execute();
 				
-	# print $DBI::errstr;
-
 	my ($key, $value);
 	$sth->bind_columns(\$key, \$value);
 	
@@ -51,9 +57,18 @@ sub config_read
 	{
 		$data->{$key} = $value;
 	}
-	
-	print Dumper($data);
 }
 
+sub _config_read_events
+{
+	my $data = shift;
+
+	my $sth = $dbh->prepare("select * from events");
+	$sth->execute();
+	
+	$data->{competition} = $sth->fetchall_hashref('id');
+
+	print Dumper(\$data);
+}
 
 1;
