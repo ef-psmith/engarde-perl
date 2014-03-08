@@ -80,6 +80,7 @@ sub weapon_add
 	my $config = config_read();
 	
 	my $path = shift;
+	my $titre = shift;
 	
 	my @colours = qw/blue chartreuse coral cyan darkgreen deeppink dodgerblue gold hotpink magenta orange red seagreen tomato yellow/; 
 	
@@ -96,6 +97,7 @@ sub weapon_add
 	}
 	
 	$comps->{$nextid}->{source} = $path;
+	$comps->{$nextid}->{titre_ligne} = $titre;
 	$comps->{$nextid}->{enabled} = 'true';
 	$comps->{$nextid}->{nif} = 0;
 	$comps->{$nextid}->{background} = $colours[$nextid - 1];
