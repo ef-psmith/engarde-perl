@@ -98,7 +98,7 @@ sub _config_write_events
 	foreach my $key (keys %$comp)
 	{
 		$sth->execute($key, $comp->{$key}->{source}, $comp->{$key}->{titre_ligne}, $comp->{$key}->{state}, 
-			$comp->{$key}->{enabled}, $comp->{$key}->{nif}, $comp->{$key}->{background}, $comp->{$key}->{message});
+			$comp->{$key}->{enabled}, $comp->{$key}->{nif}, $comp->{$key}->{background}, ref $comp->{$key}->{message} eq "ARRAY" ? ${$comp->{$key}->{message}}[0] : $comp->{$key}->{message});
 	}
 
 	1;
