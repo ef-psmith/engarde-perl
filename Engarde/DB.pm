@@ -160,7 +160,7 @@ sub _config_read_series
 			push @comps, $_ if ($value & 1<<$_);
 		}
 		
-		$data->{series}->{$key}->{competition} = \@comps;
+		$data->{series}->{$id}->{competition} = \@comps;
 	}
 	# needs to end up as $data->{series}->{id:1-12}->{competition} = @array
 
