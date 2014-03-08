@@ -93,7 +93,7 @@ sub _config_write_events
 	
 	foreach my $key (keys %$comp)
 	{
-		$sth->execute($key}, $comp->{$key}->{source}, $comp->{$key}->{titre_ligne}, $comp->{$key}->{state}, $comp->{$key}->{enabled}, $comp->{$key}->{nif}, $comp->{$key}->{background});
+		$sth->execute($key, $comp->{$key}->{source}, $comp->{$key}->{titre_ligne}, $comp->{$key}->{state}, $comp->{$key}->{enabled}, $comp->{$key}->{nif}, $comp->{$key}->{background});
 	}
 
 	1;
