@@ -55,6 +55,7 @@ sub tireur
 
 sub config_write
 {
+	Engarde::debug(1,"DB::config_write starting");
 	my $data = shift;
 
 	_config_write_core($data);	
@@ -66,6 +67,7 @@ sub config_write
 
 sub _config_write_core
 {
+	Engarde::debug(1,"DB::config_write_core starting");
 	my $data = shift;
 
 	my $sth = $dbh->prepare("update control set config_value = ? where config_key = ?");
@@ -81,6 +83,7 @@ sub _config_write_core
 
 sub _config_write_events
 {
+	Engarde::debug(1,"DB::config_write_events starting");
 	my $data = shift;
 	
 	my $comp = $data->{competition};
@@ -93,7 +96,7 @@ sub _config_write_events
 	
 	foreach my $key (keys %$comp)
 	{
-		$sth->execute($key, $comp->{$key}->{source}, $comp->{$key}->{titre_ligne}, $comp->{$key}->{state}, $comp->{$key}->{enabled}, $comp->{$key}->{nif}, $comp->{$key}->{background});
+		$sth->execute($key, $comp->{$key}->{source}, $comp->{$key}->{titre_ligne}, $comp->{$key}->{state}, $comp->{$key}->{enabled}, $comp->{$key}->{nif}, $comp->{$key}->{background}) || die $DBI::errstr;
 	}
 
 	1;
