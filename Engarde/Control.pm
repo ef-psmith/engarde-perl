@@ -1475,6 +1475,10 @@ sub _series_by_comp
 	# but it could be changed for consistency
 	my $config = shift;
 	
+	# live.xml format is
+	# <series id="1">
+	#	<competition>1</competition>
+	# </series>
 	my $series = $config->{series};
 	
 	#HTMLdie(Dumper\$series);

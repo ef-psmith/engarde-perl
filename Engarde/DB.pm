@@ -108,7 +108,8 @@ sub config_read
 
 	_config_read_core($data);	
 	_config_read_events($data);	
-
+	_config_read_series($data);
+	
 	return $data;
 }
 
@@ -139,6 +140,20 @@ sub _config_read_events
 	$data->{competition} = $sth->fetchall_hashref('id');
 
 	#print Dumper(\$data);
+}
+
+sub _config_read_series
+{
+	my $data = shift;
+
+	my $sth = $dbh->prepare("select * from series");
+	$sth->execute();
+	
+	$data->{series} = $sth->fetchall_hashref('id');
+	
+	# needs to end up as $data->{series}->{id:1-12}->{competition} = @array
+
+	# print Dumper(\$data);
 }
 
 1;
