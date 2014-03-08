@@ -559,6 +559,12 @@ sub frm_control {
 		my ($c, $name, $path, $etat, @w);
 		my $lockstat = 0;
 		
+		$c = Engarde->new($w->{source} . "/competition.egw", 1);
+		next unless $c;
+
+		my $where = $c->whereami;
+		@w = split (/\s+/,$where);
+		
 		if (defined $Engarde::DB::VERSION)
 		{
 			$name = $w->{'titre_ligne'};
@@ -568,12 +574,10 @@ sub frm_control {
 		}
 		else
 		{
-			$c = Engarde->new($w->{source} . "/competition.egw", 1);
-	
-			next unless $c;
-		
+			$name = $c->titre_ligne;
 			$path = $c->dir();
-				
+			$etat = $c->etat;
+			
 			# test to see if Engarde is running
 		
 			if ($^O =~ /Win32/)
@@ -591,13 +595,6 @@ sub frm_control {
 				$file =~ s/ /\\ /g;
 				$lockstat = 1 unless `lsof $file`;
 			}
-			$name = $c->titre_ligne;
-			
-			my $where = $c->whereami;
-			@w = split (/\s+/,$where);
-			$etat = $c->etat;
-      
-			# print "DEBUG: etat = $etat";
 		}
 		
 		print "<tr><th align=left>$cid - $name<br><font color='grey' size=1>$path</font></th>" ;
@@ -610,7 +607,6 @@ sub frm_control {
 		{
 			print "<td><img src='./graphics/lock-small.png' /></td>";
 		}
-
 		
 		SWITCH: 
 		{
@@ -807,7 +803,7 @@ sub frm_control {
 				last SWITCH;
 			}
 
-			print "<td>Error</td><td>Unknown</td><td></td><td></td>" ;
+			print "<td>Error</td><td>Unknown</td>" ;
 		}
 
 		my $hold = $w->{hold} || 0;

@@ -46,6 +46,7 @@ sub tireur
 		$absent +=1 if $data->{$id}->{presence} eq "absent";
 	}
 	
+	$data->{entries} = scalar keys %$data;
 	$data->{present} = $present;
 	$data->{absent} = $absent;
 	$data->{scratched} = $scratched;
