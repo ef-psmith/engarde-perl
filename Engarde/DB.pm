@@ -124,6 +124,8 @@ sub _config_write_series
 		}
 	}
 	
+	Engarde::debug(1, Dumper(\$comps));
+	
 	foreach (keys %$comps)
 	{
 		$sth->execute($_, $comps->{$_});
