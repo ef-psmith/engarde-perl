@@ -110,7 +110,7 @@ sub _config_write_series
 
 	my $series = $data->{series};
 	
-	my $sth = $dbh->prepare("replace into series (comp_id, mask_value) values (?, ?)");
+	my $sth = $dbh->prepare("replace into series (comp_id, series_mask) values (?, ?)");
 
 	my $comps = {};
 	
@@ -185,7 +185,7 @@ sub _config_read_series
 	while ($sth->fetch)
 	{
 		# my @comps;
-		for (1..12)
+		for (0..12)
 		{
 			push @{$s->{$_}->{competition}}, $cid if ($value & 1<<$_);
 		}
