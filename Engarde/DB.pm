@@ -60,6 +60,7 @@ sub config_write
 
 	_config_write_core($data);	
 	_config_write_events($data);	
+	_config_write_series($data);	
 
 	1;
 }
@@ -101,6 +102,32 @@ sub _config_write_events
 	}
 
 	1;
+}
+
+sub _config_write_series
+{
+	my $data = shift;
+
+	my $series = $data->{series};
+	
+	my $sth = $dbh->prepare("replace into series (comp_id, mask_value) values (?, ?)");
+
+	my $comps = {};
+	
+	foreach my $key (keys %$series)
+	{
+		my @c = $series->{$key}->{competition};
+		
+		foreach (@c)
+		{
+			$comps->{$_} |= 1<<$key;
+		}
+	}
+	
+	foreach (keys %$comps)
+	{
+		$sth->execute($_, $comps->{$_});
+	}
 }
 
 sub config_read
