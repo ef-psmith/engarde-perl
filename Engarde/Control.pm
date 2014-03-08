@@ -182,18 +182,18 @@ sub weapon_series_update
 	if ($message)
 	{
 		# this is clunky, but forces the message to be an element
-		my @msg;
-		push @msg, $message;
-	
-		$config->{competition}->{$cid}->{message} = \@msg;
+		# my @msg;
+		# push @msg, $message;
+		# $config->{competition}->{$cid}->{message} = \@msg;
+		
+		$config->{competition}->{$cid}->{message} = $message;
 	}
 	else
 	{
 		delete $config->{competition}->{$cid}->{message};
 	}
 	
-	config_write($config);
-	
+	config_write($config);	
 	print redirect(url());
 }
 
@@ -229,7 +229,6 @@ sub fencer_checkin
 
 	my $config=config_read();
 
-	
 	#HTMLdie(Dumper($config->{competition}->{$cid}));
 	
 	print STDERR "DEBUG: fencer_checkin(): starting new() at " . localtime() . "\n";
