@@ -904,7 +904,8 @@ sub frm_screen
 			print "<td>" . checkbox(-name=>"screens", -value=>$i, -checked=>${$seriescomps->{$cid}}[$i], -label=>"") . "</td>";
 		}
 		
-		my $msg = ${$comps->{$cid}->{message}}[0]; 
+		# my $msg = ${$comps->{$cid}->{message}}[0]; 
+		my $msg = $comps->{$cid}->{message}; 
 		
 		# cope with an empty message element
 		$msg = "" if ref $msg eq "HASH";
