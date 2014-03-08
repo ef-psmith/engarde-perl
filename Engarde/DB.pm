@@ -116,9 +116,9 @@ sub _config_write_series
 	
 	foreach my $key (keys %$series)
 	{
-		my @c = $series->{$key}->{competition};
+		# my @c = @{$series->{$key}->{competition}};
 		
-		foreach (@c)
+		foreach (@{$series->{$key}->{competition}})
 		{
 			$comps->{$_} |= 1<<$key;
 		}
