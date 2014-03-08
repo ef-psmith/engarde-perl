@@ -110,14 +110,12 @@ sub _config_write_series
 
 	my $series = $data->{series};
 	
-	my $sth = $dbh->prepare("replace into series (comp_id, series_mask) values (?, ?)");
-
-	my $new_series = {};
+	my $sth = $dbh->prepare("insert into series (comp_id, series_mask) values (?, ?)");
 	
-	foreach (1..12)
-	{
-		$new_series->{$_} = 0;
-	}
+	my $delete_sth = $dbh->prepare("delete from series");
+	$delete_sth->execute();
+
+	my $new_comps = {};
 	
 	foreach my $key (keys %$series)
 	{
@@ -125,15 +123,15 @@ sub _config_write_series
 		
 		foreach (@{$series->{$key}->{competition}})
 		{
-			$new_series->{$_} |= 1<<$key;
+			$new_comps->{$_} |= 1<<$key;
 		}
 	}
 	
-	Engarde::debug(1, Dumper(\$new_series));
+	Engarde::debug(1, Dumper(\$new_comps));
 	
-	foreach (keys %$new_series)
+	foreach (keys %$new_comps)
 	{
-		$sth->execute($_, $new_series->{$_});
+		$sth->execute($_, $new_comps->{$_});
 	}
 	
 }
