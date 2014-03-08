@@ -160,7 +160,7 @@ sub _config_read_series
 		# my @comps;
 		for (1..12)
 		{
-			push $s->{$_}, $cid if ($value & 1<<$_);
+			push @{$s->{$_}}, $cid if ($value & 1<<$_);
 		}
 		
 		$data->{series} = $s;
