@@ -153,15 +153,17 @@ sub _config_read_series
 	my ($cid, $value);
 	$sth->bind_columns(\$cid, \$value);
 	
+	my $s = {1=>[],2=>[],3=>[],4=>[],5=>[],6=>[],7=>[],8=>[],9=>[],10=>[],11=>[],12=>[]};
+	
 	while ($sth->fetch)
 	{
-		my @comps;
+		# my @comps;
 		for (1..12)
 		{
-			push @comps, $_ if ($value & 1<<$_);
+			push $s->{$_}, $cid if ($value & 1<<$_);
 		}
 		
-		$data->{series}->{$cid}->{competition} = \@comps;
+		$data->{series} = $s;
 	}
 	
 	# needs to end up as $data->{series}->{id:1-12}->{competition} = @array
