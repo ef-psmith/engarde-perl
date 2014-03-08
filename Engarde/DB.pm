@@ -88,15 +88,16 @@ sub _config_write_events
 	
 	my $comp = $data->{competition};
 
-	my $sth = $dbh->prepare("insert into events (id, source, titre_ligne, state, enabled, nif, background) 
-							values (?,?,?,?,?,?,?) on duplicate key update 
+	my $sth = $dbh->prepare("insert into events (id, source, titre_ligne, state, enabled, nif, background, message) 
+							values (?,?,?,?,?,?,?,?) on duplicate key update 
 							source=values(source), titre_ligne=values(titre_ligne), 
 							state=values(state), enabled=values(enabled), nif=values(nif), 
-							background=values(background)");
+							background=values(background), message=values(message)");
 	
 	foreach my $key (keys %$comp)
 	{
-		$sth->execute($key, $comp->{$key}->{source}, $comp->{$key}->{titre_ligne}, $comp->{$key}->{state}, $comp->{$key}->{enabled}, $comp->{$key}->{nif}, $comp->{$key}->{background}) || die $DBI::errstr;
+		$sth->execute($key, $comp->{$key}->{source}, $comp->{$key}->{titre_ligne}, $comp->{$key}->{state}, 
+			$comp->{$key}->{enabled}, $comp->{$key}->{nif}, $comp->{$key}->{background}, $comp->{$key}->{message});
 	}
 
 	1;
@@ -146,11 +147,11 @@ sub _config_read_series
 {
 	my $data = shift;
 
-	my $sth = $dbh->prepare("select id, mask from series");
+	my $sth = $dbh->prepare("select comp_id, series_mask from series");
 	$sth->execute();
 					
-	my ($id, $value);
-	$sth->bind_columns(\$id, \$value);
+	my ($cid, $value);
+	$sth->bind_columns(\$cid, \$value);
 	
 	while ($sth->fetch)
 	{
@@ -160,8 +161,9 @@ sub _config_read_series
 			push @comps, $_ if ($value & 1<<$_);
 		}
 		
-		$data->{series}->{$id}->{competition} = \@comps;
+		$data->{series}->{$cid}->{competition} = \@comps;
 	}
+	
 	# needs to end up as $data->{series}->{id:1-12}->{competition} = @array
 
 	# print Dumper(\$data);

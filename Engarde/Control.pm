@@ -115,31 +115,20 @@ sub weapon_delete
 	
 	my $seriescomps = _series_by_comp($config);
 	
-	#my $msg;
-	
 	foreach my $s (0..11)
 	{
 		# skip non-existant series
 		next unless ${$seriescomps->{$cid}}[$s];
-		
-		#$msg .= "cid $cid: " . Dumper($seriescomps->{$cid}) . "<br>";
-		
-		#$msg .= "series comps pre $s: " . Dumper($config->{series}->{$s+1}->{competition}) . "<br>";
-		
+				
 		my @result = grep { $_ ne $cid } @{$config->{series}->{$s+1}->{competition}};
 		
 		$config->{series}->{$s+1}->{competition} = \@result;
-		
-		#$msg .= "series comps post $s: " . Dumper($config->{series}->{$s+1}->{competition}) . "<br><br>";
 	}
-	
-	# HTMLdie($msg);
 	
 	delete $config->{competition}->{$cid};
 	config_write($config);
 	
 	print redirect(url());
-	
 }
 
 sub weapon_disable
@@ -164,7 +153,7 @@ sub weapon_enable
 	
 	config_write($config);
 		
-	print "Location: " . url() . "\n\n" ;
+#	print "Location: " . url() . "\n\n" ;
 	print redirect(url());
 }
 
@@ -1478,6 +1467,7 @@ sub _series_by_comp
 	# live.xml format is
 	# <series id="1">
 	#	<competition>1</competition>
+	#	<competition>2</competition>
 	# </series>
 	my $series = $config->{series};
 	
