@@ -80,7 +80,9 @@ sub weapon_add
 	my $config = config_read();
 	
 	my $path = shift;
-	my $titre = shift;
+	
+	my $c = Engarde->new($path . "/competition.egw", 2);
+	my $titre = $c->titre_ligne;
 	
 	my @colours = qw/blue chartreuse coral cyan darkgreen deeppink dodgerblue gold hotpink magenta orange red seagreen tomato yellow/; 
 	
@@ -900,7 +902,6 @@ sub frm_screen
 		for my $i (0..11)
 		{
 			# push @default,$i if ${$seriescomps->{$cid}}[$i];
-			
 			print "<td>" . checkbox(-name=>"screens", -value=>$i, -checked=>${$seriescomps->{$cid}}[$i], -label=>"") . "</td>";
 		}
 		
