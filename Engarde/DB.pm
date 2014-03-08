@@ -146,11 +146,22 @@ sub _config_read_series
 {
 	my $data = shift;
 
-	my $sth = $dbh->prepare("select * from series");
+	my $sth = $dbh->prepare("select id, mask from series");
 	$sth->execute();
+					
+	my ($id, $value);
+	$sth->bind_columns(\$id, \$value);
 	
-	$data->{series} = $sth->fetchall_hashref('id');
-	
+	while ($sth->fetch)
+	{
+		my @comps;
+		for (1..12)
+		{
+			push @comps, $_ if ($value & 1<<$_);
+		}
+		
+		$data->{series}->{$key}->{competition} = \@comps;
+	}
 	# needs to end up as $data->{series}->{id:1-12}->{competition} = @array
 
 	# print Dumper(\$data);
