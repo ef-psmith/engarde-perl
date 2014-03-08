@@ -9,16 +9,16 @@ use DBI;
 
 my $dbh;
 
-$VERSION=0.02;
+$VERSION=0.03;
 
 BEGIN 
 {
 	# print "begin block running\n";
 
 	# connect to db
-	my $dsn = "DBI:mysql:database=engarde";
+	# my $dsn = "DBI:mysql:database=engarde";
 
-    #$dbh = DBI->connect($dsn, "engarde", "engarde");
+    #  $dbh = DBI->connect($dsn, "engarde", "engarde");
 
 	$dbh = DBI->connect_cached("DBI:mysql:engarde:127.0.0.1",
 				"engarde", "engarde", 
@@ -51,6 +51,52 @@ sub tireur
 	$data->{scratched} = $scratched;
 	
 	return $data;
+}
+
+sub config_write
+{
+	my $data = shift;
+
+	_config_write_core($data);	
+	_config_write_events($data);	
+
+	1;
+}
+
+
+sub _config_write_core
+{
+	my $data = shift;
+
+	my $sth = $dbh->prepare("update control set config_value = ? where config_key = ?");
+	
+	foreach my $key (keys %$data)
+	{
+		next if $key eq "competition";
+		next if $key eq "controlIP";
+		
+		$sth->execute($data->{$key}, $key);
+	}
+}
+
+sub _config_write_events
+{
+	my $data = shift;
+	
+	my $comp = $data->{competition};
+
+	my $sth = $dbh->prepare("insert into events (id, source, titre_ligne, state, enabled, nif, background) 
+							values (?,?,?,?,?,?,?) on duplicate key update 
+							source=values(source), titre_ligne=values(titre_ligne), 
+							state=values(state), enabled=values(enabled), nif=values(nif), 
+							background=values(background)");
+	
+	foreach my $key (keys %$comp)
+	{
+		$sth->execute($key}, $comp->{$key}->{source}, $comp->{$key}->{titre_ligne}, $comp->{$key}->{state}, $comp->{$key}->{enabled}, $comp->{$key}->{nif}, $comp->{$key}->{background});
+	}
+
+	1;
 }
 
 sub config_read

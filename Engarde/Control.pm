@@ -457,7 +457,7 @@ sub config_trash
 
 sub _config_location
 {
-	return "DB" if defined $Engarde::DB::VERSION;
+	# return "DB" if defined $Engarde::DB::VERSION;
 	
 	my $dir = cwd();
 
@@ -510,7 +510,7 @@ sub config_write
 
 	if ($cf eq "DB")
 	{
-		Engarde::DB::config_read($data);
+		Engarde::DB::config_write($data);
 	}
 	else
 	{
