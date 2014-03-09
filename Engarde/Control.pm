@@ -214,11 +214,20 @@ sub weapon_config_update
 	my $key = shift;
 	my $value = shift;
 	
-	# return unless ($id && $key && $value);
+	if (defined $Engarde::DB::VERSION)
+	{
+		Engarde::debug(1,"weapon_config_update: cid = $cid, key = $key, value = $value");
+		Engarde::DB::weapon_config_update($id, $key, $value);
+	}
+	else
+	{
+		# return unless ($id && $key && $value);
 	
-	my $config = config_read();
-	$config->{competition}->{$id}->{$key} = $value;
-	config_write($config);
+		my $config = config_read();
+		$config->{competition}->{$id}->{$key} = $value;
+		config_write($config);
+	}
+	
 	print redirect(url());
 }
 
@@ -561,11 +570,6 @@ sub frm_control {
 	print "<br><table border=1 cellspacing=0 cellpadding=4 \n";
 	print "<tr><td></td><th colspan=3 align=left>Status</th><th colspan=2 align=left>Actions</th></tr>\n" ;
 
-	# my $u = "escrime";
-	# my $p = "escrime";
-
-	# my $dbh = DBI->connect("DBI:mysql:escrime:127.0.0.1", $u, $p);
-	
 	my $comps = $config->{competition};
 
 	$comps = {} unless ref $comps eq "HASH";
