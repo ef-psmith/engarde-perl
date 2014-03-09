@@ -230,16 +230,18 @@ sub fencer_checkin_list
 {
 	my $cid = shift;
 	
-	my $t = tireur($cid);
-	my @out;
+	my $t = Engarde::DB::tireur($cid);
 
-	my $absent = {};
-	my $present = {};
-	my $scratched = {};
+
+	my $out = {};
+
+	my @absent;
+	my @present;
+	my @scratched;
 	
-	$absent->{count} = $t->{absent} || 0;
-	$present->{count} = $t->{present} || 0;
-	$scratched->{count} = $t->{scratched} || 0;
+	# $absent->{count} = $t->{absent} || 0;
+	# $present->{count} = $t->{present} || 0;
+	# $scratched->{count} = $t->{scratched} || 0;
 
 	foreach my $k (grep /\d+/, keys %$t)
 	{
@@ -248,12 +250,14 @@ sub fencer_checkin_list
 		my $v = $t->{$k};
 		# print Dumper($v);
 
-		{$p}->{$k} = $v;
+		push @absent,$v if $p eq "absent";
+		push @present,$v if $p eq "present";
+		push @scratched,$v if $p eq "scratched";
 	}
 	
-	push @out, $present;
-	push @out, $absent;
-	push @out, $scratched;
+	$out->{present} = \@present;
+	$out->{absent} = \@absent;
+	$out->{scratched} = \@scratched;
 	
 	print "Content-Type: application/json\r\n\r\n";	
 	print encode_json $out;
