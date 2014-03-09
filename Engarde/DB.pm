@@ -205,4 +205,52 @@ sub _config_read_series
 	# print Dumper(\$data);
 }
 
+sub fencer_checkin
+{
+	my $cid = shift;
+	my $fid = shift;
+
+	_fencer_presence($cid, $fid, "present");
+}
+
+sub fencer_scratch
+{
+	my $cid = shift;
+	my $fid = shift;
+
+	_fencer_presence($cid, $fid, "scratched", "scratched at check-in");
+}
+
+sub fencer_absent
+{
+	my $cid = shift;
+	my $fid = shift;
+
+	_fencer_presence($cid, $fid, "absent");
+}
+
+sub _fencer_presence 
+{
+	my $cid = shift;
+	my $fid = shift;
+	my $presence = shift;
+	my $comment = shift || undef;
+	
+	my $sth = $dbh->prepare("update entries set presence = ?, comment = ? where event_id = ? and person_id = ?");
+
+	$sth->execute($presence, $comment, $cid, $fid);
+}
+
+sub weapon_delete
+{
+	# should really make sure to_text has been called before we do this so there is a backup
+	my $cid = shift;
+	
+	my $sth = $dbh->prepare("delete from entries where event_id = ?");
+	my $sth2 = $dbh->prepare("delete from events where id = ?");
+	
+	$sth->execute($cid);
+	$sth2->execute($cid);
+}
+
 1;

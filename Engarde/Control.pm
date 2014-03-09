@@ -112,23 +112,32 @@ sub weapon_add
 
 sub weapon_delete
 {
-	my $config = config_read();
 	my $cid = shift;
 	
-	my $seriescomps = _series_by_comp($config);
-	
-	foreach my $s (0..11)
+	if (defined $Engarde::DB::VERSION)
 	{
-		# skip non-existant series
-		next unless ${$seriescomps->{$cid}}[$s];
-				
-		my @result = grep { $_ ne $cid } @{$config->{series}->{$s+1}->{competition}};
-		
-		$config->{series}->{$s+1}->{competition} = \@result;
+		Engarde::DB::weapon_delete($cid);
 	}
+	else
+	{
+		my $config = config_read();
 	
-	delete $config->{competition}->{$cid};
-	config_write($config);
+		my $seriescomps = _series_by_comp($config);
+	
+		foreach my $s (0..11)
+		{
+			# skip non-existant series
+			next unless ${$seriescomps->{$cid}}[$s];
+				
+			my @result = grep { $_ ne $cid } @{$config->{series}->{$s+1}->{competition}};
+		
+			$config->{series}->{$s+1}->{competition} = \@result;
+		}
+	
+		delete $config->{competition}->{$cid};
+	
+		config_write($config);
+	}
 	
 	print redirect(url());
 }
@@ -225,54 +234,60 @@ sub fencer_checkin
 	
 	my $cid = param("wp");
 	my $fid = param("Item");
-	my $paid = shift;
+	my $paid = shift;   # why?
 
-	print STDERR "DEBUG: fencer_checkin(): starting config_read() at " . localtime() . "\n";
+	Engarde::debug(2,"fencer_checkin(): starting config_read() at " . localtime());
 
 	my $config=config_read();
 
 	#HTMLdie(Dumper($config->{competition}->{$cid}));
 	
-	print STDERR "DEBUG: fencer_checkin(): starting new() at " . localtime() . "\n";
-	my $c = Engarde->new($config->{competition}->{$cid}->{source} . "/competition.egw", 2);
-	HTMLdie("invald compeition $cid") unless $c;
+	Engarde::debug(2,"fencer_checkin(): starting new() at " . localtime());
 	
-	# my $ETAT;
-	open(ETAT, "+< " . $c->{dir} . "/etat.txt"); 
+	if (defined $Engarde::DB::VERSION)
+	{
+		Engarde::DB::fencer_checkin($cid, $fid);
+	}
+	else
+	{
+		my $c = Engarde->new($config->{competition}->{$cid}->{source} . "/competition.egw", 2);
 	
-	# HTMLdie("lock error: $!") unless ETAT;
+		HTMLdie("invald compeition $cid") unless $c;
 	
-	my $lockstat = flock(ETAT,LOCK_EX);
+		# my $ETAT;
+		open(ETAT, "+< " . $c->{dir} . "/etat.txt"); 
+	
+		# HTMLdie("lock error: $!") unless ETAT;
+	
+		my $lockstat = flock(ETAT,LOCK_EX);
 
-	#HTMLdie("calling _running");
+		#HTMLdie("calling _running");
 	
-	HTMLdie("Competition Locked: $^E") unless $lockstat;
+		HTMLdie("Competition Locked: $^E") unless $lockstat;
 	
-	my $f = $c->tireur;
+		my $f = $c->tireur;
 	
-	$f->{$fid}->{presence} = "present";
+		$f->{$fid}->{presence} = "present";
 	
-	flock(ETAT,LOCK_UN);
-	close ETAT;
-	# _release($ETAT);
+		flock(ETAT,LOCK_UN);
+		close ETAT;
+		# _release($ETAT);
 	
-	print STDERR "DEBUG: fencer_checkin(): starting to_text() at " . localtime() . "\n";
-	#HTMLdie("calling to_text");
-	$f->to_text;
-
-	print STDERR "DEBUG: fencer_checkin(): redirecting at " . localtime() . "\n";
-
+		Engarde::debug(2,"fencer_checkin(): starting to_text() at " . localtime());
+		
+		$f->to_text;
+	}
+	
+	Engarde::debug(2,"fencer_checkin(): redirecting at " . localtime());
+	
 	print redirect(-uri=>"check-in.cgi?wp=$cid&Action=list");
-	
 }
 
 sub fencer_scratch
 {
-	# HTMLdie(Dump());
-	
 	my $cid = param("wp");
 	my $fid = param("Item");
-	my $paid = shift;
+	my $paid = shift;   # why?
 
 	print STDERR "DEBUG: fencer_scratch(): starting config_read() at " . localtime() . "\n";
 
@@ -316,6 +331,11 @@ sub fencer_scratch
 	
 }
 
+sub fencer_absent
+{
+	Engarde::DB::fencer_absent(shift, shift, shift);
+	print redirect(-uri=>"check-in.cgi?wp=$cid&Action=list");
+}
 
 sub fencer_edit
 {
@@ -1100,6 +1120,7 @@ sub frm_checkin_desk {
 		next unless $w->{enabled} eq "true";
 
 		my $state = $w->{'state'};
+		next unless $state eq "check-in";
 
 		my ($name, $path);
 		
@@ -1110,7 +1131,6 @@ sub frm_checkin_desk {
 		}
 		else
 		{
-			next unless $state eq "check-in";
 			my $c = Engarde->new($w->{source} . "/competition.egw", 2);
 			next unless defined $c;
 
