@@ -286,7 +286,7 @@ sub _fencer_presence
 
 	$sth->execute($presence, $comment, $cid, $fid);
 	
-	fencer_checkin_list();
+	fencer_checkin_list($cid);
 }
 
 sub weapon_delete
