@@ -259,12 +259,23 @@ sub weapon_config_update
 	my $key = shift;
 	my $value = shift;
 	
-	my $holdsth = $dbh->prepare("update events set hold = ? where id = ?");
-	my $statesth = $dbh->prepare("update events set state = ? where id = ?");
+	my $sth;
 	
-	$holdsth->execute($value, $cid) if $key eq "hold";
-	$statesth->execute($value, $cid) if $key eq "state";
-
+	if ($key eq "hold")
+	{
+		$sth = $dbh->prepare("update events set hold = ? where id = ?");
+	}
+	else if ($key eq "state")
+	{
+		$sth = $dbh->prepare("update events set state = ? where id = ?");
+	}
+	else
+	{
+		Engarde::debug(1,"DB::weapon_config_update: unknown key $key");
+		return undef;
+	}
+	
+	$sth->execute($value, $cid);
 }
 
 1;
