@@ -230,7 +230,7 @@ sub fencer_checkin_list
 {
 	my $cid = shift;
 	
-	my $t = Engarde::DB::tireur($cid);
+	my $t = tireur($cid);
 
 
 	my $out = {};
