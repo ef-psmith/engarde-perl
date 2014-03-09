@@ -739,7 +739,7 @@ sub frm_control {
 				{
 					print "<td>Poules</td><td>Finished" ;						
 				}
-				elsif ($w[1])
+				else # if ($w[1])
 				{
 					print "<td>D.E.</td>" ;
 				
