@@ -55,6 +55,25 @@ sub tireur
 	return $data;
 }
 
+
+sub club
+{
+	my $sth = $dbh->prepare("select * from clubs");
+	$sth->execute();
+	
+	my $data = $sth->fetchall_hashref('id');
+	return $data;
+}
+
+sub nation
+{
+	my $sth = $dbh->prepare("select * from nations");
+	$sth->execute();
+	
+	my $data = $sth->fetchall_hashref('cle');
+	return $data;
+}
+
 sub config_write
 {
 	Engarde::debug(1,"DB::config_write starting");

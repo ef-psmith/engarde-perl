@@ -1166,6 +1166,8 @@ sub frm_checkin_list {
 	if (defined $Engarde::DB::VERSION)
 	{
 		$f = Engarde::DB::tireur($cid);
+		$clubs = Engarde::DB::club();
+		$nations = Engarde::DB::nation();
 		$titre_ligne = $config->{competition}->{$cid}->{titre_ligne};
 	}
 	else
@@ -1664,9 +1666,9 @@ sub _nation_list
 	
 	my $defaultNation = "GBR";
 
-	my @nkeys = sort {uc($n->{$a}->{'nom'}) cmp uc($n->{$b}->{'nom'})} (grep /\d+/, keys(%$n));
+	my @nkeys = sort {uc($n->{$a}->{'nom_etendu'}) cmp uc($n->{$b}->{'nom_etendu'})} (grep /\d+/, keys(%$n));
 
-	%nationnames = map {$_ => "$n->{$_}->{nom} => $n->{$_}->{nom_etendu}" } @nkeys;
+	%nationnames = map {$_ => "$n->{$_}->{nom_etendu} => $n->{$_}->{nom}" } @nkeys;
 
 	# %nationnames = map {$_ => $n->{$_}->{nom} } @nkeys;
 
