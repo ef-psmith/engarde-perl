@@ -564,19 +564,19 @@ sub frm_control {
 
 		my $where = $c->whereami;
 		@w = split (/\s+/,$where);
+		$etat = $c->etat;
 		
 		if (defined $Engarde::DB::VERSION)
 		{
 			$name = $w->{'titre_ligne'};
 			$path = $w->{'source'};
-			$etat = $w->{'state'};
+			# $etat = $w->{'state'};
 			$lockstat = 1;
 		}
 		else
 		{
 			$name = $c->titre_ligne;
-			$path = $c->dir();
-			$etat = $c->etat;
+			$path = $c->dir();	
 			
 			# test to see if Engarde is running
 		
