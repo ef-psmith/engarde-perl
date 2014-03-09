@@ -803,7 +803,7 @@ sub frm_control {
 				last SWITCH;
 			}
 
-			print "<td>Error</td><td>Unknown</td>" ;
+			print "<td>Error</td><td>Unknown ($etat)</td>" ;
 		}
 
 		my $hold = $w->{hold} || 0;
