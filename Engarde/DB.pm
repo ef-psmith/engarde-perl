@@ -265,7 +265,7 @@ sub weapon_config_update
 	{
 		$sth = $dbh->prepare("update events set hold = ? where id = ?");
 	}
-	else if ($key eq "state")
+	elsif ($key eq "state")
 	{
 		$sth = $dbh->prepare("update events set state = ? where id = ?");
 	}
