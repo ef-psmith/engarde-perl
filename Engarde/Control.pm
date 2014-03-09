@@ -333,7 +333,10 @@ sub fencer_scratch
 
 sub fencer_absent
 {
-	Engarde::DB::fencer_absent(shift, shift, shift);
+	my $cid = shift;
+	my $fid = shift;
+	
+	Engarde::DB::fencer_absent(shift, shift);
 	print redirect(-uri=>"check-in.cgi?wp=$cid&Action=list");
 }
 
