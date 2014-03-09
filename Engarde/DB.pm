@@ -6,10 +6,11 @@ use vars qw($VERSION @ISA);
 
 use Data::Dumper;
 use DBI;
+use JSON;
 
 my $dbh;
 
-$VERSION=0.03;
+$VERSION=0.04;
 
 BEGIN 
 {
@@ -223,6 +224,33 @@ sub _config_read_series
 	# needs to end up as $data->{series}->{id:1-12}->{competition} = @array
 
 	# print Dumper(\$data);
+}
+
+sub checkin_list_json
+{
+	my $cid = shift;
+	my $config = config_read();
+
+	# my %cookies=CGI::Cookie->fetch;
+	
+	my $t = tireur($cid);
+	my $out = {};
+
+	$out->{absent}->{count} = $t->{absent} || 0;
+	$out->{present}->{count} = $t->{present} || 0;
+	$out->{scratched}->{count} = $t->{scratched} || 0;
+
+	foreach my $k (grep /\d+/, keys %$t)
+	{
+		# print "$k $t->{$k}->{presence}\n";
+		my $p = $t->{$k}->{presence};
+		my $v = $t->{$k};
+		# print Dumper($v);
+
+		$out->{$p}->{$k} = $v;
+	}
+
+	print encode_json $out;
 }
 
 sub fencer_checkin
