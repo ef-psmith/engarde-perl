@@ -654,7 +654,7 @@ sub frm_control {
 				
 				my $present = $f->{present};
 				my $total = $f->{entries};
-				my $scratch = $f->{scratch};
+				my $scratch = $f->{scratched};
 				
 				# my $total = (scalar grep /\d+/, keys %$f);
 				#my $total = (scalar keys %$f) - 7;

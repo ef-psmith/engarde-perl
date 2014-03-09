@@ -253,4 +253,18 @@ sub weapon_delete
 	$sth2->execute($cid);
 }
 
+sub weapon_config_update
+{
+	my $cid = shift;
+	my $key = shift;
+	my $value = shift;
+	
+	my $holdsth = $dbh->prepare("update events set hold = ? where id = ?");
+	my $statesth = $dbh->prepare("update events set state = ? where id = ?");
+	
+	$holdsth->execute($value, $cid) if $key eq "hold";
+	$statesth->execute($value, $cid) if $key eq "state";
+
+}
+
 1;
