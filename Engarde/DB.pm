@@ -231,11 +231,15 @@ sub fencer_checkin_list
 	my $cid = shift;
 	
 	my $t = tireur($cid);
-	my $out = {};
+	my @out;
 
-	$out->{absent}->{count} = $t->{absent} || 0;
-	$out->{present}->{count} = $t->{present} || 0;
-	$out->{scratched}->{count} = $t->{scratched} || 0;
+	my $absent = {};
+	my $present = {};
+	my $scratched = {};
+	
+	$absent->{count} = $t->{absent} || 0;
+	$present->{count} = $t->{present} || 0;
+	$scratched->{count} = $t->{scratched} || 0;
 
 	foreach my $k (grep /\d+/, keys %$t)
 	{
@@ -244,8 +248,12 @@ sub fencer_checkin_list
 		my $v = $t->{$k};
 		# print Dumper($v);
 
-		$out->{$p}->{$k} = $v;
+		{$p}->{$k} = $v;
 	}
+	
+	push @out, $present;
+	push @out, $absent;
+	push @out, $scratched;
 	
 	print "Content-Type: application/json\r\n\r\n";	
 	print encode_json $out;
@@ -283,7 +291,6 @@ sub _fencer_presence
 	my $comment = shift || undef;
 	
 	my $sth = $dbh->prepare("update entries set presence = ?, comment = ? where event_id = ? and person_id = ?");
-
 	$sth->execute($presence, $comment, $cid, $fid);
 	
 	fencer_checkin_list($cid);
