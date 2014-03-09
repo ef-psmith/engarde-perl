@@ -47,9 +47,9 @@ sub tireur
 	}
 	
 	$data->{entries} = scalar keys %$data;
-	$data->{present} = $present;
-	$data->{absent} = $absent;
-	$data->{scratched} = $scratched;
+	$data->{present} = $present || 0;
+	$data->{absent} = $absent || 0;
+	$data->{scratched} = $scratched || 0;
 	
 	return $data;
 }
