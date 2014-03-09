@@ -302,7 +302,6 @@ sub fencer_scratch
 
 	my $config=config_read();
 
-	
 	#HTMLdie(Dumper($config->{competition}->{$cid}));
 	
 	print STDERR "DEBUG: fencer_scratch(): starting new() at " . localtime() . "\n";
@@ -592,6 +591,8 @@ sub frm_control {
 		my $where = $c->whereami;
 		@w = split (/\s+/,$where);
 		$etat = $c->etat;
+		
+		Engarde::debug(1, "frm_control: cid = $cid, etat = $etat, w = @w");
 		
 		if (defined $Engarde::DB::VERSION)
 		{
