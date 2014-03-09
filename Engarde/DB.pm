@@ -229,9 +229,6 @@ sub _config_read_series
 sub checkin_list_json
 {
 	my $cid = shift;
-	my $config = config_read();
-
-	# my %cookies=CGI::Cookie->fetch;
 	
 	my $t = tireur($cid);
 	my $out = {};
@@ -249,7 +246,9 @@ sub checkin_list_json
 
 		$out->{$p}->{$k} = $v;
 	}
-
+	
+	print "HTTP/1.1 200 Accepted\n";
+	print "Content-Type: application/json\n\n";
 	print encode_json $out;
 }
 
