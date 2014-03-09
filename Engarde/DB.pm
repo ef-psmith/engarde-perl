@@ -20,7 +20,8 @@ BEGIN
 
     #  $dbh = DBI->connect($dsn, "engarde", "engarde");
 
-	$dbh = DBI->connect_cached("DBI:mysql:engarde:127.0.0.1",
+	# $dbh = DBI->connect_cached("DBI:mysql:engarde:127.0.0.1",
+	$dbh = DBI->connect("DBI:mysql:engarde:127.0.0.1",
 				"engarde", "engarde", 
 				{'RaiseError' => 1, AutoCommit => 1}
 			) or die $DBI::errstr;
