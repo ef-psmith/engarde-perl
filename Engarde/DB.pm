@@ -226,7 +226,7 @@ sub _config_read_series
 	# print Dumper(\$data);
 }
 
-sub checkin_list_json
+sub fencer_checkin_list
 {
 	my $cid = shift;
 	
@@ -285,6 +285,8 @@ sub _fencer_presence
 	my $sth = $dbh->prepare("update entries set presence = ?, comment = ? where event_id = ? and person_id = ?");
 
 	$sth->execute($presence, $comment, $cid, $fid);
+	
+	fencer_checkin_list();
 }
 
 sub weapon_delete
