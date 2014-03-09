@@ -247,10 +247,7 @@ sub checkin_list_json
 		$out->{$p}->{$k} = $v;
 	}
 	
-	print "HTTP/1.1 200 OK\r\n";
-	print "Content-Type: application/json\r\n";
-	print "\r\n";
-	
+	print "Content-Type: application/json\r\n\r\n";	
 	print encode_json $out;
 }
 
