@@ -216,7 +216,7 @@ sub weapon_config_update
 	
 	if (defined $Engarde::DB::VERSION)
 	{
-		Engarde::debug(1,"weapon_config_update: cid = $cid, key = $key, value = $value");
+		Engarde::debug(1,"weapon_config_update: cid = $id, key = $key, value = $value");
 		Engarde::DB::weapon_config_update($id, $key, $value);
 	}
 	else
