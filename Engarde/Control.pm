@@ -362,32 +362,42 @@ sub fencer_edit
 	
 	my $item = {};
 	
-	for (qw/nom prenom licence presence club newclub nation comment/)
+	for (qw/nom prenom licence presence club newclub nation comment ranking/)
 	{
 		#Engarde::debug(1,"fencer_edit: setting $_ to " . param($_));
 		$item->{$_} = param($_);
 	}
 
-	$item->{scratched} = "scr" if param("scratched");
-	$item->{expired} = "exp" if param("expired");
+	# $item->{scratched} = "scr" if param("scratched");
+	# $item->{expired} = "exp" if param("expired");
 	$item->{presence} = "absent" unless $item->{presence};
 	$item->{nom} = uc($item->{nom});
 	$item->{prenom} = ucfirst($item->{prenom});
 	$item->{cle} = $cle;
 	$item->{date_nais} = _dob_to_date(param("dob"));
-	
+
+	# need a drop down for status rather than 2/3 params
+	$item->{status} = "scratched" if param("scratched");
+	# $item->{status} = "scratched" if param("scratched");
+
 	if (param("paid"))
 	{
 		delete $item->{paiement};
 	}
-	
-	
-	my $c=Engarde->new($config->{competition}->{$wp}->{source}, 2);
-	
-	HTMLdie("invalid competition") unless $c;
-	
-	my $id = $c->tireur_add_edit($item);
-	
+
+	if (defined $Engarde::DB::VERSION)
+	{
+		# arguments are reversed here to allow for fencer add without entry to an event
+		Engarde::DB::tireur_add_edit($item, $wp);
+	}
+	else
+	{
+		my $c=Engarde->new($config->{competition}->{$wp}->{source}, 2);
+
+		HTMLdie("invalid competition") unless $c;
+		my $id = $c->tireur_add_edit($item);
+	}
+
 	print redirect(-uri=>"check-in.cgi?wp=$wp&Action=list");
 }
 
@@ -1155,6 +1165,7 @@ sub frm_checkin_desk {
 }
 
 
+
 sub frm_checkin_list {
 	my $cid = shift;
 	my $config = config_read();
@@ -1167,7 +1178,78 @@ sub frm_checkin_list {
 	{
 		$f = Engarde::DB::tireur($cid);
 		$clubs = Engarde::DB::club();
-		$nations = Engarde::DB::nation();
+		# $nations = Engarde::DB::nation();
+		Engarde::debug(1,"Engarde::Control::frm_checkin_list: clubs = " . Dumper(\$clubs));
+		$titre_ligne = $config->{competition}->{$cid}->{titre_ligne};
+	}
+	else
+	{
+		my $c = Engarde->new($config->{competition}->{$cid}->{source} . "/competition.egw");
+		HTMLdie("invalid competition") unless $c;
+		HTMLdie("Check-in no longer actvive") unless $config->{competition}->{$cid}->{state} eq "check-in";
+	
+		$f = $c->tireur;
+		$clubs = $c->club;
+		$nations = $c->nation;
+		$titre_ligne = $c->titre_ligne;
+	}
+	
+	my $JSCRIPT="var compid = $cid;";
+	
+	_std_header($titre_ligne  ." Check-in", $JSCRIPT, "GetFencers();", "script/check-in.js");
+
+	print "<div id=\"openModal\" class=\"modalDialog\">";
+	print "<div class=\"labeled\"><div class=\"spinner\"><div class=\"bar1\"></div><div class=\"bar2\"></div><div class=\"bar3\"></div>";
+	print "<div class=\"bar4\"></div><div class=\"bar5\"></div><div class=\"bar6\"></div><div class=\"bar7\"></div><div class=\"bar8\"></div>";
+	print "<div class=\"bar9\"></div><div class=\"bar10\"></div><div class=\"bar11\"></div><div class=\"bar12\"></div></div>Please wait&hellip;</div>";
+	print "</div>";
+
+	print br, br, "<div class=\"absent\">";
+	print h2("Fencers to be checked in");
+	
+	print "<table id=\"Absent\" class=\"table1\"><thead>";
+	print "<th>&nbsp;</th><th class=\"name\">Name</th><th class=\"club\">Club</th><th class=\"nation\">Nation</th><th>&nbsp;</th><th>&nbsp;</th>";
+	print "</thead>";
+	print "</table>";
+	print "</div>";
+	print "<div class=\"present\">";
+	print "<h2>Recent Check-ins &amp; Scratches</h2>";
+	print "<table id=\"Recent\" class=\"table1\">";
+	print "<thead>";
+	print "<th>&nbsp;</th><th class=\"name\">Name</th><th class=\"club\">Club</th><th class=\"nation\">Nation</th><th>&nbsp;</th><th>&nbsp;</th>";
+	print "</thead>";
+	print "</table>";
+	print "<h2>Scratched</h2>";
+
+	print "<table id=\"Scratched\" class=\"table1\"><thead>";
+	print "<th>&nbsp;</th><th class=\"name\">Name</th><th class=\"club\">Club</th><th class=\"nation\">Nation</th><th>&nbsp;</th><th>&nbsp;</th>";
+	print "</thead>";	
+	print "</table>";
+
+	print h2("Present");
+	print "<table id=\"Present\" class=\"table1\"><thead>";
+	print "<th>&nbsp;</th><th class=\"name\">Name</th><th class=\"club\">Club</th><th class=\"nation\">Nation</th><th>&nbsp;</th><th>&nbsp;</th>";
+	print "</thead>";
+	print "</table>";
+	print "</div>";
+	
+  	_std_footer();
+}
+
+sub frm_checkin_list_old {
+	my $cid = shift;
+	my $config = config_read();
+
+	my %cookies=CGI::Cookie->fetch;
+	
+	my ($f, $clubs, $nations, $titre_ligne);
+	
+	if (defined $Engarde::DB::VERSION)
+	{
+		$f = Engarde::DB::tireur($cid);
+		$clubs = Engarde::DB::club();
+		# $nations = Engarde::DB::nation();
+		Engarde::debug(1,"Engarde::Control::frm_checkin_list: clubs = " . Dumper(\$clubs));
 		$titre_ligne = $config->{competition}->{$cid}->{titre_ligne};
 	}
 	else
@@ -1321,7 +1403,7 @@ sub frm_fencer_edit
 
 	my $c=Engarde->new($config->{competition}->{$weaponPath}->{source} . "/competition.egw", 2);
 	HTMLdie("invalid competition") unless $c;
-	
+
 	# check lock state here
 	# actually...only check it on update as this form may be on the screen for some time
 	
@@ -1333,7 +1415,14 @@ sub frm_fencer_edit
 	
 	if ($item != -1)
 	{
-		$f = $c->tireur($item);
+		if (defined $Engarde::DB::VERSION)
+		{
+			$f = Engarde::DB::tireur($weaponPath, $item)
+		}
+		else
+		{
+			$f = $c->tireur($item);
+		}
 	}
 	else
 	{
@@ -1359,6 +1448,10 @@ sub frm_fencer_edit
         hidden(
           -name=>'Item',
           -value=>param('Item'),
+          -override=>'true'),
+		hidden(
+          -name=>'entry_id',
+          -value=>param('entry_id'),
           -override=>'true'
 	);
 
@@ -1403,7 +1496,7 @@ sub frm_fencer_edit
 	print	Tr({},
 			[
 				td( [	"Date of Birth :",
-						textfield(-name=>'dob',-value=>blessed($f) ? $f->dob : ""),
+						textfield(-name=>'dob',-value=>blessed($f) ? $f->dob : $f->{dob}),
 						textfield(-name=>'cat',-size=>5, -value=>$cat,-checked=>1,-label=>'Veteran',-disabled=>1),
 						"Enter the DoB as d/m/yyyy or just yyyy.  Only a year is needed to work out the age category"
 					]
@@ -1413,6 +1506,7 @@ sub frm_fencer_edit
 	
 	#if ($f->{paiement}) 
 	#{
+ 
 		print "<tr bgcolor='yellow'><td>&pound;" . ($f->{paiement} || "0.00") . " outstanding</td><td>" . checkbox(-name=>'paid',-value=>1,-checked=>0,-label=>'Paid') . "</td></tr>";
 	#}
   
@@ -1420,19 +1514,29 @@ sub frm_fencer_edit
 	
 	print "</fieldset>\n";
 	print "<fieldset><legend>Flags</legend>\n";
-  
+
+
+	print "Presence: ";
+	
 	if ($state eq "check-in") 
 	{
-		print checkbox(-name=>'presence',-value=>'present',-checked=> (($f->{presence} && $f->{presence} eq "present") ? 1 : 0),-label=>'Present');
-		print checkbox(-name=>'scratched',-value=>'scratched',-checked=> ($f->{scratched} ? 1 : 0),-label=>'Scratched');
-		print checkbox(-name=>'expired',-value=>'expired',-checked=> ($f->{expired} ? 1 : 0),-label=>'Expired');
+		my @presence = ("absent", "present", "scratched");
+		
+		print popup_menu(
+        -name    => 'presence',
+        -values  => \@presence,
+        -default => $f->{presence});
+		
+		# print checkbox(-name=>'presence',-value=>'present',-checked=> (($f->{presence} && $f->{presence} eq "present") ? 1 : 0),-label=>'Present');
+		#print checkbox(-name=>'scratched',-value=>'scratched',-checked=> ($f->{scratched} ? 1 : 0),-label=>'Scratched');
+		#print checkbox(-name=>'expired',-value=>'expired',-checked=> ($f->{expired} ? 1 : 0),-label=>'Expired');
 		
 	} 
 	else 
 	{
 		print hidden(-name=>'presence',-value=>$f->presence,-override=>'true');
-		print hidden(-name=>'scratched',-value=>$f->scratched,-override=>'true');
-		print hidden(-name=>'expired',-value=>$f->expired,-override=>'true');
+		#print hidden(-name=>'scratched',-value=>$f->scratched,-override=>'true');
+		#print hidden(-name=>'expired',-value=>$f->expired,-override=>'true');
 	}
 	
 	print "<br>";
@@ -1574,6 +1678,7 @@ sub _std_header
 	my $title = shift || "Engarde.pm";
 	my $JSCRIPT = shift || "";
 	my $onload = shift || "";
+	my $js	=	shift || "";
 	
   	print header(),
 	start_html(
@@ -1584,7 +1689,7 @@ sub _std_header
 		-vlink => '#000000',
 		-alink => '#999900',
 		-link => '#000000',
-		-script => $JSCRIPT,
+		-script => [ $JSCRIPT, { -src=>$js } ],
 		-onload => $onload
 	);
 
@@ -1603,6 +1708,8 @@ sub _std_footer
 {
 	# print "<br>";
 	
+	print "<div class=\"footer\">";
+	
 	print table
 	(
 		{ cellpadding=>20 },
@@ -1617,6 +1724,7 @@ sub _std_footer
 		)
 	);
 	
+	print "</div>";
 	print "</body></html>";
 }
 
@@ -1630,7 +1738,16 @@ sub _club_list
 	my @ckeys;
 	my %clubnames;
 
-	my $clublist = $c->club;
+	my $clublist;
+	
+	if (defined $Engarde::DB::VERSION)
+	{
+		$clublist = Engarde::DB::club();
+	}
+	else
+	{
+		$clublist = $c->club;
+	}
 	
 	# Generate Club List
 	

@@ -33,6 +33,7 @@ BEGIN
 sub tireur
 {
 	my $cid = shift;
+	my $fid = shift;
 	
 	my $sth = $dbh->prepare("select * from v_event_entries where event_id = ?");
 	
@@ -53,6 +54,7 @@ sub tireur
 	$data->{absent} = $absent || 0;
 	$data->{scratched} = $scratched || 0;
 	
+	return $data->{$fid} if $fid;
 	return $data;
 }
 
@@ -64,6 +66,8 @@ sub club
 	
 	my $data = $sth->fetchall_hashref('id');
 	return $data;
+	
+	# return selectall_hashref("select * from clubs");
 }
 
 sub nation
@@ -71,8 +75,8 @@ sub nation
 	my $sth = $dbh->prepare("select * from nations");
 	$sth->execute();
 	
-	my $data = $sth->fetchall_hashref('cle');
-	return $data;
+	# my $data = $sth->fetchall_hashref('cle');
+	# return $data;
 }
 
 sub config_write
@@ -229,10 +233,7 @@ sub _config_read_series
 sub fencer_checkin_list
 {
 	my $cid = shift;
-	
 	my $t = tireur($cid);
-
-
 	my $out = {};
 
 	my @absent;
@@ -298,6 +299,85 @@ sub _fencer_presence
 	$sth->execute($presence, $comment, $cid, $fid);
 	
 	fencer_checkin_list($cid);
+}
+
+sub tireur_add_edit
+{
+	# my $cid = shift;
+	my $item = shift;
+	my $cid = shift;
+	
+	# my $t = tireur();
+	# Engarde::debug(1,"Engarde::DB::tireur_add_edit(): starting item " . Dumper($item));
+	
+	if ($item->{nation} > 0)
+	{
+		$item->{nation1} = $item->{nation};
+	}
+	delete $item->{nation};
+	
+	# this will allow U/A implicitly
+	# not sure if that's correct really but it's consistent with Engarde
+	
+	if ($item->{club} == -1)
+	{
+		if ($item->{newclub})
+		{
+			my $c = {};
+			$c->{nom} = uc($item->{newclub});
+			$c->{nation1} = $item->{nation1} || undef;
+			
+			# Engarde::debug(1,"Engarde::DB::tireur_add_edit(): adding club " . Dumper($c));
+			my $club = club_add($c);
+			Engarde::debug(1,"Engarde::DB::tireur_add_edit(): added club $club");
+			$item->{club1} = $club;
+		}
+		delete $item->{newclub};
+	}
+	else
+	{
+		$item->{club1} = $item->{club};
+	}
+	
+	delete $item->{club};
+	
+	Engarde::debug(1,"Engarde::DB::tireur_add_edit(): processing item = " . Dumper($item));
+	
+	# if cid is null, just add to people otherwise add to people and add an entry to the comp
+	
+	my $sth = $dbh->prepare("replace into people (id, nom, prenom, licence, dob, nation1) values (?,?,?,?,?,?)") or die $DBI::errstr;
+	
+	$item->{cle} = undef if $item->{cle} eq "-1";
+	$sth->execute($item->{cle}, $item->{nom}, $item->{prenom}, $item->{licence}, $item->{dob}, $item->{nation1});
+	
+	my $fid = $sth->{mysql_insertid};
+	
+	Engarde::debug(1,"Engarde::DB::tireur_add_edit: fencer $fid added");
+	
+	$sth->finish;
+	
+	if ($fid)
+	{
+		$sth = $dbh->prepare("replace into entries (id, event_id, person_id, club1, presence, ranking, paiement, comment values (?,?,?,?,?,?,?)");
+		$sth->execute($item->{entry_id}, $item->{event_id}, $fid, $item->{club1}, $item->{presence}, $item->{ranking}, $item->{comment});
+		
+		my $eid = $sth->{mysql_insertid};
+	
+		Engarde::debug(1,"Engarde::DB::tireur_add_edit: entry $eid added");
+	}
+}
+
+sub club_add
+{
+	my $item = shift;
+	
+	my $sth = $dbh->prepare("insert into clubs (nom, short_name, nation1) values (?,?,?)");
+	$sth->execute($item->{nom}, $item->{nom}, $item->{nation1});
+	
+	Engarde::debug(1,"Engarde::DB::club_add failed " . $dbh->errstr . " " . $DBI::errstr) if $sth->err; 
+	# Engarde::debug(1,"Engarde::DB::club_add returned " . $dbh->last_insert_id); 
+	
+	return $sth->{mysql_insertid};
 }
 
 sub weapon_delete
