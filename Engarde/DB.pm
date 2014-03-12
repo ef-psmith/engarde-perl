@@ -105,7 +105,7 @@ sub nation
 	
 	if ($name)
 	{
-		$sth = $dbh->prepare("select id from nations where nom = ?");
+		$sth = $dbh->prepare("select cle from nations where nom = ?");
 		$sth->execute($name);
 	}
 	else
@@ -114,7 +114,7 @@ sub nation
 		$sth->execute();
 	}
 	
-	my $data = $sth->fetchall_hashref('id');
+	my $data = $sth->fetchall_hashref('cle');
 	
 	$sth->finish;
 	
