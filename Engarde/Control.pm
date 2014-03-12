@@ -111,7 +111,7 @@ sub weapon_add
 	{
 		my $t = $c->tireur;
 		
-		foreach my $fid (keys %$t)
+		foreach my $fid (grep /\d+/, keys %$t)
 		{
 			my $f = $t->{$fid};
 			$f->{newclub} = $f->{club};
