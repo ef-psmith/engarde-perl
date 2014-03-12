@@ -109,7 +109,8 @@ sub weapon_add
 	
 	if (defined $Engarde::DB::VERSION)
 	{
-		my $t = $c->tireurs;
+		# force use of the Engarde files to prime the DB
+		my $t = $c->tireurs(undef,1);
 		
 		Engarde::debug(1,"weapon_add: tireurs = " . Dumper(\$t));
 		
