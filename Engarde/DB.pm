@@ -414,10 +414,10 @@ sub tireur_add_edit
 	
 	# if cid is null, just add to people otherwise add to people and add an entry to the comp
 	
-	my $sth = $dbh->prepare("replace into people (id, nom, prenom, licence, dob, nation1, gender, expires) values (?,?,?,?,?,?,?,?)");
+	my $sth = $dbh->prepare("replace into people (id, nom, prenom, licence, dob, nation1, sexe, expires) values (?,?,?,?,?,?,?,?)");
 	
 	$item->{cle} = undef if $item->{cle} eq "-1";
-	$sth->execute($item->{cle}, $item->{nom}, $item->{prenom}, $item->{licence}, $item->{dob}, $item->{nation1}, $item->sex, $item->{expires});
+	$sth->execute($item->{cle}, $item->{nom}, $item->{prenom}, $item->{licence}, $item->{dob}, $item->{nation1}, substr($item->{sexe},0,1), $item->{expires});
 	
 	my $fid = $sth->{mysql_insertid};
 	
