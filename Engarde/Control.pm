@@ -106,6 +106,17 @@ sub weapon_add
 	$comps->{$nextid}->{state} = 'active';
 	
 	config_write($config);
+	
+	if (defined $Engarde::DB::VERSION)
+	{
+		my $t = $c->tireur;
+		
+		foreach my $fid (keys %$t)
+		{
+			Engarde::DB::tireur_add_edit($t->{$fid}, $nextid);
+		}
+	}
+	
 	print redirect(url());
 }
 
@@ -339,6 +350,8 @@ sub fencer_scratch
 	
 }
 
+
+# should remove this
 sub fencer_absent
 {
 	my $cid = shift;
@@ -400,6 +413,8 @@ sub fencer_edit
 
 	print redirect(-uri=>"check-in.cgi?wp=$wp&Action=list");
 }
+
+
 
 #########################################################
 #
@@ -1179,7 +1194,7 @@ sub frm_checkin_list {
 		$f = Engarde::DB::tireur($cid);
 		$clubs = Engarde::DB::club();
 		# $nations = Engarde::DB::nation();
-		Engarde::debug(1,"Engarde::Control::frm_checkin_list: clubs = " . Dumper(\$clubs));
+		Engarde::debug(2,"Engarde::Control::frm_checkin_list: clubs = " . Dumper(\$clubs));
 		$titre_ligne = $config->{competition}->{$cid}->{titre_ligne};
 	}
 	else
@@ -1207,6 +1222,7 @@ sub frm_checkin_list {
 	print br, br, "<div class=\"absent\">";
 	print h2("Fencers to be checked in");
 	
+	print "<input id=\"lic\"></input>&nbsp;<button id=\"AddByLicButton\" onclick=\"AddByLic()\">Add by Licence</button>";
 	print "<table id=\"Absent\" class=\"table1\"><thead>";
 	print "<th>&nbsp;</th><th class=\"name\">Name</th><th class=\"club\">Club</th><th class=\"nation\">Nation</th>";
 	print "<th class=\"ranking\">Ranking</th><th class=\"memnum\">Mem Num</th><th class=\"paid\">Owing</th><th>&nbsp;</th><th>&nbsp;</th></thead>";

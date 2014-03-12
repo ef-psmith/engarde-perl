@@ -10,7 +10,7 @@ use JSON;
 
 my $dbh;
 
-$VERSION=0.04;
+$VERSION=0.05;
 
 BEGIN 
 {
@@ -58,6 +58,30 @@ sub tireur
 	return $data;
 }
 
+sub people
+{
+	my $lic = shift || "";
+	
+	my $sth;
+	
+	if ($lic)
+	{
+		$sth = $dbh->prepare("select * from people where licence = ?");
+		$sth->execute($lic);
+	}
+	else
+	{
+		$sth = $dbh->prepare("select * from people where licence = ?");
+		$sth->execute();
+	}
+	
+	my $data = $sth->fetchall_hashref('licence');		
+	
+	$sth->finish;
+	
+	return $data->{$lic} if $lic;
+	return $data;
+}
 
 sub club
 {
@@ -65,6 +89,9 @@ sub club
 	$sth->execute();
 	
 	my $data = $sth->fetchall_hashref('id');
+	
+	$sth->finish;
+	
 	return $data;
 	
 	# return selectall_hashref("select * from clubs");
@@ -75,8 +102,11 @@ sub nation
 	my $sth = $dbh->prepare("select * from nations");
 	$sth->execute();
 	
-	# my $data = $sth->fetchall_hashref('cle');
-	# return $data;
+	my $data = $sth->fetchall_hashref('id');
+	
+	$sth->finish;
+	
+	return $data;
 }
 
 sub config_write
@@ -298,9 +328,21 @@ sub _fencer_presence
 	my $sth = $dbh->prepare("update entries set presence = ?, comment = ? where event_id = ? and person_id = ?");
 	$sth->execute($presence, $comment, $cid, $fid);
 	
-	Engarde::debug(1,"Engarde::DB::fencer_checkin(): check in for fencer $fid status: " . $sth->errstr;
+	Engarde::debug(1,"Engarde::DB::fencer_checkin(): presence update for for fencer $fid status: " . $sth->err);
 	
 	fencer_checkin_list($cid);
+}
+
+sub fencer_add_by_lic
+{
+	my $cid = shift;
+	my $lic = shift;
+	
+	my $fid = people($lic);
+	
+	return undef unless $fid;
+	
+	tireur_add_edit($fid, $cid);
 }
 
 sub tireur_add_edit
@@ -393,6 +435,7 @@ sub weapon_delete
 	$sth->execute($cid);
 	$sth2->execute($cid);
 }
+
 
 sub weapon_config_update
 {
