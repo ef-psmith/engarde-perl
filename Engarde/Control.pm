@@ -113,6 +113,9 @@ sub weapon_add
 		
 		foreach my $fid (keys %$t)
 		{
+			my $f = $t->{$fid};
+			$f->{newclub} = $f->{club};
+			$f->{club} = -1;
 			Engarde::DB::tireur_add_edit($t->{$fid}, $nextid);
 		}
 	}
@@ -1252,7 +1255,8 @@ sub frm_checkin_list {
   	_std_footer();
 }
 
-sub frm_checkin_list_old {
+sub frm_checkin_list_old 
+{
 	my $cid = shift;
 	my $config = config_read();
 
