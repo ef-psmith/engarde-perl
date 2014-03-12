@@ -298,6 +298,8 @@ sub _fencer_presence
 	my $sth = $dbh->prepare("update entries set presence = ?, comment = ? where event_id = ? and person_id = ?");
 	$sth->execute($presence, $comment, $cid, $fid);
 	
+	Engarde::debug(1,"Engarde::DB::fencer_checkin(): check in for fencer item " . Dumper($item)) . "\nStatus: " . $sth->errstr;
+	
 	fencer_checkin_list($cid);
 }
 
