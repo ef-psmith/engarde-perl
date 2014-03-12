@@ -1208,8 +1208,8 @@ sub frm_checkin_list {
 	print h2("Fencers to be checked in");
 	
 	print "<table id=\"Absent\" class=\"table1\"><thead>";
-	print "<th>&nbsp;</th><th class=\"name\">Name</th><th class=\"club\">Club</th><th class=\"nation\">Nation</th><th>&nbsp;</th><th>&nbsp;</th>";
-	print "</thead>";
+	print "<th>&nbsp;</th><th class=\"name\">Name</th><th class=\"club\">Club</th><th class=\"nation\">Nation</th>";
+	print "<th class=\"ranking\">Ranking</th><th class=\"memnum\">Mem Num</th><th class=\"paid\">Owing</th><th>&nbsp;</th><th>&nbsp;</th></thead>";
 	print "</table>";
 	print "</div>";
 	print "<div class=\"present\">";
