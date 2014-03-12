@@ -402,7 +402,7 @@ sub tireur_add_edit
 	
 	if ($fid)
 	{
-		$sth = $dbh->prepare("replace into entries (id, event_id, person_id, club1, presence, ranking, paiement, comment values (?,?,?,?,?,?,?,?)");
+		$sth = $dbh->prepare("replace into entries (id, event_id, person_id, club1, presence, ranking, paiement, comment) values (?,?,?,?,?,?,?,?)");
 		$sth->execute($item->{entry_id}, $cid, $fid, $item->{club1}, $item->{presence}, $item->{ranking}, $item->{paiement}, $item->{comment});
 		
 		my $eid = $sth->{mysql_insertid};
