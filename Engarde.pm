@@ -1258,11 +1258,13 @@ sub tireurs
 {
 	my $c = shift;
 	my $present = shift || 0;
+	my $nodb = shift;
+	
 	my $output = {};
 
 	my $t;
 	
-	if (defined $Engarde::DB::VERSION)
+	if (defined $Engarde::DB::VERSION and !defined $nodb)
 	{
 		$t = Engarde::DB::tireur();
 	}
