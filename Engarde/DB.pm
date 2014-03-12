@@ -71,7 +71,7 @@ sub people
 	}
 	else
 	{
-		$sth = $dbh->prepare("select * from people where licence = ?");
+		$sth = $dbh->prepare("select * from people");
 		$sth->execute();
 	}
 	
@@ -99,8 +99,20 @@ sub club
 
 sub nation
 {
-	my $sth = $dbh->prepare("select * from nations");
-	$sth->execute();
+	my $name = shift || "";
+	
+	my $sth;
+	
+	if ($name)
+	{
+		$sth = $dbh->prepare("select id from nations where nom = ?");
+		$sth->execute($name);
+	}
+	else
+	{
+		$sth = $dbh->prepare("select * from nations");
+		$sth->execute();
+	}
 	
 	my $data = $sth->fetchall_hashref('id');
 	
@@ -340,9 +352,10 @@ sub fencer_add_by_lic
 	
 	my $fid = people($lic);
 	
-	return undef unless $fid;
+	# return undef unless $fid;
+	tireur_add_edit($fid, $cid) if $fid;
 	
-	tireur_add_edit($fid, $cid);
+	fencer_checkin_list($cid);
 }
 
 sub tireur_add_edit
@@ -354,9 +367,21 @@ sub tireur_add_edit
 	# my $t = tireur();
 	Engarde::debug(1,"Engarde::DB::tireur_add_edit(): starting item " . Dumper($item));
 	
-	if ($item->{nation} > 0)
+	if ($item->{nation})
 	{
-		$item->{nation1} = $item->{nation};
+		# if nation was numeric already, it must be an existing entry
+		if ($item->{nation} =~ m/\d+/)
+		{
+			$item->{nation1} = $item->{nation};
+		}
+		else
+		{
+			# lookup id for given name
+			my $n = nation($item->{nation});
+			
+			my @nid = keys %$n;
+			$item->{nation1} = $nid[0] if scalar @nid;
+		}
 	}
 	delete $item->{nation};
 	
@@ -389,18 +414,18 @@ sub tireur_add_edit
 	
 	# if cid is null, just add to people otherwise add to people and add an entry to the comp
 	
-	my $sth = $dbh->prepare("replace into people (id, nom, prenom, licence, dob, nation1) values (?,?,?,?,?,?)") or die $DBI::errstr;
+	my $sth = $dbh->prepare("replace into people (id, nom, prenom, licence, dob, nation1, gender, expires) values (?,?,?,?,?,?,?,?)");
 	
 	$item->{cle} = undef if $item->{cle} eq "-1";
-	$sth->execute($item->{cle}, $item->{nom}, $item->{prenom}, $item->{licence}, $item->{dob}, $item->{nation1});
+	$sth->execute($item->{cle}, $item->{nom}, $item->{prenom}, $item->{licence}, $item->{dob}, $item->{nation1}, $item->{gender}, $item->{expires});
 	
 	my $fid = $sth->{mysql_insertid};
 	
-	Engarde::debug(1,"Engarde::DB::tireur_add_edit: fencer $fid added");
+	Engarde::debug(1,"Engarde::DB::tireur_add_edit: fencer $fid updated");
 	
 	$sth->finish;
 	
-	if ($fid)
+	if ($fid && $cid)
 	{
 		$sth = $dbh->prepare("replace into entries (id, event_id, person_id, club1, presence, ranking, paiement, comment) values (?,?,?,?,?,?,?,?)");
 		$sth->execute($item->{entry_id}, $cid, $fid, $item->{club1}, $item->{presence}, $item->{ranking}, $item->{paiement}, $item->{comment});
