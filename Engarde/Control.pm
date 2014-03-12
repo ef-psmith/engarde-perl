@@ -116,6 +116,7 @@ sub weapon_add
 			my $f = $t->{$fid};
 			$f->{newclub} = $f->{club};
 			$f->{club} = -1;
+			Engarde::debug(1,"weapon_add: adding fencer " . $t->{$fid} . "as $nextid");
 			Engarde::DB::tireur_add_edit($t->{$fid}, $nextid);
 		}
 	}
@@ -620,7 +621,7 @@ sub frm_control {
 		@w = split (/\s+/,$where);
 		$etat = $c->etat;
 		
-		Engarde::debug(1, "frm_control: cid = $cid, etat = $etat, w = @w");
+		Engarde::debug(2, "frm_control: cid = $cid, etat = $etat, w = @w");
 		
 		if (defined $Engarde::DB::VERSION)
 		{
@@ -787,7 +788,7 @@ sub frm_control {
 						
 						next unless $ll->{unfinished_matches};
 						
-						Engarde::debug(1,"frm_control: piste = $piste");
+						Engarde::debug(2,"frm_control: piste = $piste");
 						
 						# HTMLdie("piste = $piste: " . Dumper(\$ll));
 						
@@ -815,7 +816,7 @@ sub frm_control {
 						{
 							my $lll = $ll->{$_};
 						
-							Engarde::debug(1,"frm_control: tableau = $_");
+							Engarde::debug(2,"frm_control: tableau = $_");
 						
 						
 							# HTMLdie(Dumper($ll));
@@ -824,7 +825,7 @@ sub frm_control {
 							{
 								next unless ($lll->{$m}->{idA} && $lll->{$m}->{idB} && not $lll->{$m}->{winnerid});
 						
-								Engarde::debug(1,"frm_control: match = $m");
+								Engarde::debug(2,"frm_control: match = $m");
 						
 								# $data->{$m}->{$ll->{$m}->{piste}} = 
 								print "<td class='hint--bottom hint--rounded hint--info' data-hint=\"$lll->{$m}->{fencerA_court} -v- $lll->{$m}->{fencerB_court}\">$lll->{$m}->{num}</td>";

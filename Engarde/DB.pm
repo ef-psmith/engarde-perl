@@ -195,7 +195,7 @@ sub _config_write_series
 		}
 	}
 	
-	Engarde::debug(1, Dumper(\$new_comps));
+	Engarde::debug(2, "confg_write_series: new comps = " . Dumper(\$new_comps));
 	
 	foreach (keys %$new_comps)
 	{
