@@ -417,7 +417,7 @@ sub tireur_add_edit
 	my $sth = $dbh->prepare("replace into people (id, nom, prenom, licence, dob, nation1, gender, expires) values (?,?,?,?,?,?,?,?)");
 	
 	$item->{cle} = undef if $item->{cle} eq "-1";
-	$sth->execute($item->{cle}, $item->{nom}, $item->{prenom}, $item->{licence}, $item->{dob}, $item->{nation1}, $item->{gender}, $item->{expires});
+	$sth->execute($item->{cle}, $item->{nom}, $item->{prenom}, $item->{licence}, $item->{dob}, $item->{nation1}, $item->sex, $item->{expires});
 	
 	my $fid = $sth->{mysql_insertid};
 	
