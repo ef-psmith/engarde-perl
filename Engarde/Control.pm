@@ -111,6 +111,8 @@ sub weapon_add
 	{
 		my $t = $c->tireurs;
 		
+		Engarde::debug(1,"weapon_add: tireurs = " . Dumper(\$t));
+		
 		foreach my $fid (grep /\d+/, keys %$t)
 		{
 			my $f = $t->{$fid};
