@@ -109,7 +109,7 @@ sub weapon_add
 	
 	if (defined $Engarde::DB::VERSION)
 	{
-		my $t = $c->tireur;
+		my $t = $c->tireurs;
 		
 		foreach my $fid (grep /\d+/, keys %$t)
 		{
