@@ -1230,27 +1230,27 @@ sub frm_checkin_list {
 	print h2("Fencers to be checked in");
 	
 	print "<input id=\"lic\"></input>&nbsp;<button id=\"AddByLicButton\" onclick=\"AddByLic()\">Add by Licence</button>";
-	print "<table id=\"Absent\" class=\"table1\"><thead>";
+	print "<table id=\"Absent\" class=\"chktable\"><thead>";
 	print "<th>&nbsp;</th><th class=\"name\">Name</th><th class=\"club\">Club</th><th class=\"nation\">Nation</th>";
 	print "<th class=\"ranking\">Ranking</th><th class=\"memnum\">Mem Num</th><th class=\"paid\">Owing</th><th>&nbsp;</th><th>&nbsp;</th></thead>";
 	print "</table>";
 	print "</div>";
 	print "<div class=\"present\">";
 	print "<h2>Recent Check-ins &amp; Scratches</h2>";
-	print "<table id=\"Recent\" class=\"table1\">";
+	print "<table id=\"Recent\" class=\"chktable\">";
 	print "<thead>";
 	print "<th>&nbsp;</th><th class=\"name\">Name</th><th class=\"club\">Club</th><th class=\"nation\">Nation</th><th>&nbsp;</th><th>&nbsp;</th>";
 	print "</thead>";
 	print "</table>";
 	print "<h2>Scratched</h2>";
 
-	print "<table id=\"Scratched\" class=\"table1\"><thead>";
+	print "<table id=\"Scratched\" class=\"chktable\"><thead>";
 	print "<th>&nbsp;</th><th class=\"name\">Name</th><th class=\"club\">Club</th><th class=\"nation\">Nation</th><th>&nbsp;</th><th>&nbsp;</th>";
 	print "</thead>";	
 	print "</table>";
 
 	print h2("Present");
-	print "<table id=\"Present\" class=\"table1\"><thead>";
+	print "<table id=\"Present\" class=\"chktable\"><thead>";
 	print "<th>&nbsp;</th><th class=\"name\">Name</th><th class=\"club\">Club</th><th class=\"nation\">Nation</th><th>&nbsp;</th><th>&nbsp;</th>";
 	print "</thead>";
 	print "</table>";
