@@ -22,12 +22,25 @@ BEGIN
     #  $dbh = DBI->connect($dsn, "engarde", "engarde");
 
 	# $dbh = DBI->connect_cached("DBI:mysql:engarde:127.0.0.1",
+	
+	_connect();
+	
+	# print Dumper($dbh);
+}
+
+
+sub _connect 
+{
 	$dbh = DBI->connect("DBI:mysql:engarde:127.0.0.1",
 				"engarde", "engarde", 
 				{'RaiseError' => 1, AutoCommit => 1}
 			) or die $DBI::errstr;
-	
-	# print Dumper($dbh);
+}
+
+sub reconnect 
+{
+	$dbh->destroy;
+	_connect();
 }
 
 sub tireur
