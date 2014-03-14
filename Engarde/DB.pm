@@ -23,7 +23,10 @@ BEGIN
 
 	# $dbh = DBI->connect_cached("DBI:mysql:engarde:127.0.0.1",
 	
-	_connect();
+	$dbh = DBI->connect("DBI:mysql:engarde:127.0.0.1",
+				"engarde", "engarde", 
+				{'RaiseError' => 1, AutoCommit => 1}
+			) or die $DBI::errstr;
 	
 	# print Dumper($dbh);
 }
@@ -39,7 +42,7 @@ sub _connect
 
 sub reconnect 
 {
-	$dbh->destroy;
+	$dbh->disconnect;
 	_connect();
 }
 
