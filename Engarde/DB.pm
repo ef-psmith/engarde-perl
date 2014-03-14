@@ -10,7 +10,7 @@ use JSON;
 
 my $dbh;
 
-$VERSION=0.05;
+$VERSION=0.06;
 
 BEGIN 
 {
@@ -363,10 +363,10 @@ sub fencer_add_by_lic
 	my $cid = shift;
 	my $lic = shift;
 	
-	my $fid = people($lic);
+	my $f = people($lic);
 	
 	# return undef unless $fid;
-	tireur_add_edit($fid, $cid) if $fid;
+	tireur_add_edit($f, $cid) if $f;
 	
 	fencer_checkin_list($cid);
 }
@@ -444,6 +444,8 @@ sub tireur_add_edit
 		$sth->execute($item->{entry_id}, $cid, $fid, $item->{club1}, $item->{presence}, $item->{ranking}, $item->{paiement}, $item->{comment});
 		
 		my $eid = $sth->{mysql_insertid};
+		
+		$sth->finish;
 	
 		Engarde::debug(1,"Engarde::DB::tireur_add_edit: entry $eid added");
 	}
