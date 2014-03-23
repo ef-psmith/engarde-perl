@@ -302,7 +302,7 @@ sub checkin_list_json
 	
 	my @out;
 	
-	for my $k (keys %$config)
+	for my $k (sort keys %$config)
 	{
 		push @out, $config->{$k};
 	}
