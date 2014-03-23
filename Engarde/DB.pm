@@ -295,11 +295,6 @@ sub _config_read_series
 	# print Dumper(\$data);
 }
 
-sub checkin_list
-{
-	my $out = {};
-	
-}
 
 sub fencer_checkin_list
 {
