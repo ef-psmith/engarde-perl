@@ -220,6 +220,7 @@ sub _config_write_series
 	
 }
 
+
 sub config_read
 {
 	my $data = {};
@@ -231,6 +232,12 @@ sub config_read
 	return $data;
 }
 
+sub config_read_json
+{
+	my $out = config_read();
+	print "Content-Type: application/json\r\n\r\n";	
+	print encode_json $out;
+}
 
 sub _config_read_core
 {
@@ -288,6 +295,12 @@ sub _config_read_series
 	# print Dumper(\$data);
 }
 
+sub checkin_list
+{
+	my $out = {};
+	
+}
+
 sub fencer_checkin_list
 {
 	my $cid = shift;
@@ -302,7 +315,7 @@ sub fencer_checkin_list
 	# $present->{count} = $t->{present} || 0;
 	# $scratched->{count} = $t->{scratched} || 0;
 
-	foreach my $k (sort { $t->{$a}->{nom} <=> $t->{$b}->{nom} } grep /\d+/, keys %$t)
+	foreach my $k (sort { $t->{$a}->{nom} . " " . $t->{$a}->{prenom} cmp $t->{$b}->{nom} . " " . $t->{$b}->{prenom}} grep /\d+/, keys %$t)
 	{
 		# print "$k $t->{$k}->{presence}\n";
 		my $p = $t->{$k}->{presence};
@@ -321,6 +334,7 @@ sub fencer_checkin_list
 	print "Content-Type: application/json\r\n\r\n";	
 	print encode_json $out;
 }
+
 
 sub fencer_checkin
 {
