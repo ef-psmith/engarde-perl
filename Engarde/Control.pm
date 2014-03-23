@@ -12,6 +12,7 @@ package Engarde::Control;
 #				2012-2013, BIFTOC (for inspiration and the original code)
 
 use Engarde;
+use Engarde::DB;
 require Exporter;
 use strict;
 no warnings 'io';
