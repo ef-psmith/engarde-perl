@@ -302,7 +302,7 @@ sub fencer_checkin_list
 	# $present->{count} = $t->{present} || 0;
 	# $scratched->{count} = $t->{scratched} || 0;
 
-	foreach my $k (grep /\d+/, keys %$t)
+	foreach my $k (sort { $t->{$a}->{nom} <=> $t->{$b}->{nom} } grep /\d+/, keys %$t)
 	{
 		# print "$k $t->{$k}->{presence}\n";
 		my $p = $t->{$k}->{presence};
