@@ -296,6 +296,14 @@ sub _config_read_series
 }
 
 
+sub checkin_list_json
+{
+	my $out = _config_read_events();
+	print "Content-Type: application/json\r\n\r\n";	
+	print encode_json $out;
+	
+}
+
 sub fencer_checkin_list
 {
 	my $cid = shift;
