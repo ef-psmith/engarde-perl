@@ -298,9 +298,17 @@ sub _config_read_series
 
 sub checkin_list_json
 {
-	my $out = _config_read_events();
+	my $config = _config_read_events();
+	
+	my @out;
+	
+	for my $k (keys %$config)
+	{
+		push @out, $config->{$k};
+	}
+	
 	print "Content-Type: application/json\r\n\r\n";	
-	print encode_json $out;
+	print encode_json \@out;
 	
 }
 
