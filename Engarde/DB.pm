@@ -300,15 +300,18 @@ sub checkin_list_json
 {
 	my $config = _config_read_events();
 	
-	my @out;
+	my $out = {};
+	my @events;
 	
 	for my $k (sort keys %$config)
 	{
-		push @out, $config->{$k};
+		push @events, $config->{$k} if $config-:{$k}->{state} eq "check-in";
 	}
 	
+	$out->{events} = \@out;
+	
 	print "Content-Type: application/json\r\n\r\n";	
-	print encode_json \@out;
+	print encode_json $out;
 	
 }
 
