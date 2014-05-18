@@ -110,17 +110,35 @@ sub weapon_add
 	
 	if (defined $Engarde::DB::VERSION)
 	{
-		# force use of the Engarde files to prime the DB
-		my $t = $c->tireur;
 		
-		Engarde::debug(1,"weapon_add: tireurs = " . Dumper(\$t));
+		# force use of the Engarde files to prime the DB
+
+		my $n = $c->nation;
+		# Engarde::debug(1,"weapon_add: nations = " . Dumper(\$n));
+		
+		
+		foreach my $nid (grep /\d+/, keys %$n)
+		{
+			Engarde::DB::nation_add_edit($n->{$nid}, $nextid);
+		}
+		
+		my $cl = $c->club;
+		
+		foreach my $clid (grep /\d+/, keys %$cl)
+		{
+			Engarde::DB::club_add_edit($cl->{$clid}, $nextid);
+		}
+				
+
+		my $t = $c->tireur;		
+		# Engarde::debug(1,"weapon_add: tireurs = " . Dumper(\$t));
 		
 		foreach my $fid (grep /\d+/, keys %$t)
 		{
 			my $f = $t->{$fid};
-			$f->{newclub} = $f->{club};
-			$f->{club} = -1;
-			Engarde::debug(1,"weapon_add: adding fencer " . $t->{$fid} . "as $nextid");
+			# $f->{newclub} = $f->{club};
+			# $f->{club} = -1;
+			# Engarde::debug(1,"weapon_add: adding fencer " . $t->{$fid} . "as $nextid");
 			Engarde::DB::tireur_add_edit($t->{$fid}, $nextid);
 		}
 	}

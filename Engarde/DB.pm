@@ -10,7 +10,7 @@ use JSON;
 
 my $dbh;
 
-$VERSION=0.06;
+$VERSION=0.10;
 
 BEGIN 
 {
@@ -46,6 +46,7 @@ sub reconnect
 	_connect();
 }
 
+
 sub tireur
 {
 	my $cid = shift;
@@ -74,6 +75,7 @@ sub tireur
 	return $data;
 }
 
+
 sub people
 {
 	my $lic = shift || "";
@@ -99,18 +101,29 @@ sub people
 	return $data;
 }
 
+
 sub club
 {
-	my $sth = $dbh->prepare("select * from clubs");
-	$sth->execute();
+	my $name = shift || "";
+	my $sth;
 	
-	my $data = $sth->fetchall_hashref('id');
+	if ($name)
+	{
+		$sth = $dbh->prepare("select cle from clubs where nom = ?");
+		$sth->execute($name);
+	}
+	else
+	{
+		$sth = $dbh->prepare("select cle, nom, short_name, nation1 from clubs");
+		$sth->execute();
+	}
+	
+	my $data = $sth->fetchall_hashref('cle');
 	
 	$sth->finish;
 	
 	return $data;
-	
-	# return selectall_hashref("select * from clubs");
+
 }
 
 sub nation
@@ -217,7 +230,6 @@ sub _config_write_series
 	{
 		$sth->execute($_, $new_comps->{$_});
 	}
-	
 }
 
 
@@ -305,10 +317,10 @@ sub checkin_list_json
 	
 	for my $k (sort keys %$config)
 	{
-		push @events, $config->{$k} if $config-:{$k}->{state} eq "check-in";
+		push @events, $config->{$k} if $config->{$k}->{state} eq "check-in";
 	}
 	
-	$out->{events} = \@out;
+	$out->{events} = \@events;
 	
 	print "Content-Type: application/json\r\n\r\n";	
 	print encode_json $out;
@@ -402,6 +414,37 @@ sub fencer_add_by_lic
 	fencer_checkin_list($cid);
 }
 
+
+sub nation_add_edit
+{
+	my $item = shift;
+	my $cid = shift;
+	
+	Engarde::debug(1,"Engarde::DB::nation_add_edit(): adding item to cid $cid :" . Dumper($item));
+	
+	# $item = { cle=> x, nom=>y }
+	
+	my $sth = $dbh->prepare("replace into nations (event_id, cle, nom, nom_etendu) values (?,?,?,?)");
+	
+	$sth->execute($cid, $item->cle, $item->nom, $item->nom_etendu);
+
+	$sth->finish();
+}
+
+sub club_add_edit
+{
+	my $item = shift;
+	my $cid = shift;
+	
+	Engarde::debug(1,"Engarde::DB::club_add_edit(): adding item to cid $cid :" . Dumper($item));
+	
+	my $sth = $dbh->prepare("replace into clubs (event_id, cle, nom, nation1) values (?,?,?,?)");
+	
+	$sth->execute($cid, $item->cle, $item->nom, $item->nation1);
+
+	$sth->finish();
+}
+
 sub tireur_add_edit
 {
 	# my $cid = shift;
@@ -411,48 +454,50 @@ sub tireur_add_edit
 	# my $t = tireur();
 	Engarde::debug(1,"Engarde::DB::tireur_add_edit(): starting item " . Dumper($item));
 	
-	if ($item->{nation})
-	{
-		# if nation was numeric already, it must be an existing entry
-		if ($item->{nation} =~ m/\d+/)
-		{
-			$item->{nation1} = $item->{nation};
-		}
-		else
-		{
-			# lookup id for given name
-			my $n = nation($item->{nation});
-			
-			my @nid = keys %$n;
-			$item->{nation1} = $nid[0] if scalar @nid;
-		}
-	}
-	delete $item->{nation};
+	#if ($item->{nation})
+	#{
+	#	# import from Engarde file will have nation1 as a numeric value.
+	#	
+	#	# if nation was numeric already, it must be an existing entry
+	#	if ($item->{nation} =~ m/\d+/)
+	#	{
+	#		$item->{nation1} = $item->{nation};
+	#	}
+	#	else
+	#	{
+	#		# lookup id for given name
+	#		my $n = nation($item->{nation});
+	#		
+	#		my @nid = keys %$n;
+	#		$item->{nation1} = $nid[0] if scalar @nid;
+	#	}
+	#}
+	#delete $item->{nation};
+	#
+	## this will allow U/A implicitly
+	## not sure if that's correct really but it's consistent with Engarde
 	
-	# this will allow U/A implicitly
-	# not sure if that's correct really but it's consistent with Engarde
+	#if ($item->{club} == -1)
+	#{
+	#	if ($item->{newclub})
+	#	{
+	#		my $c = {};
+	#		$c->{nom} = uc($item->{newclub});
+	#		$c->{nation1} = $item->{nation1} || undef;
+	#		
+	#		Engarde::debug(1,"Engarde::DB::tireur_add_edit(): adding club " . Dumper($c));
+	#		my $club = club_add($c);
+	#		Engarde::debug(1,"Engarde::DB::tireur_add_edit(): added club $club");
+	#		$item->{club1} = $club;
+	#	}
+	#	delete $item->{newclub};
+	#}
+	#else
+	#{
+	#	$item->{club1} = $item->{club};
+	#}
 	
-	if ($item->{club} == -1)
-	{
-		if ($item->{newclub})
-		{
-			my $c = {};
-			$c->{nom} = uc($item->{newclub});
-			$c->{nation1} = $item->{nation1} || undef;
-			
-			# Engarde::debug(1,"Engarde::DB::tireur_add_edit(): adding club " . Dumper($c));
-			my $club = club_add($c);
-			Engarde::debug(1,"Engarde::DB::tireur_add_edit(): added club $club");
-			$item->{club1} = $club;
-		}
-		delete $item->{newclub};
-	}
-	else
-	{
-		$item->{club1} = $item->{club};
-	}
-	
-	delete $item->{club};
+	# delete $item->{club};
 	
 	Engarde::debug(1,"Engarde::DB::tireur_add_edit(): processing item = " . Dumper($item));
 	
@@ -461,6 +506,7 @@ sub tireur_add_edit
 	my $sth = $dbh->prepare("replace into people (id, nom, prenom, licence, dob, nation1, sexe, expires) values (?,?,?,?,?,?,?,?)");
 	
 	$item->{cle} = undef if $item->{cle} eq "-1";
+	
 	$sth->execute($item->{cle}, $item->{nom}, $item->{prenom}, $item->{licence}, $item->{dob}, $item->{nation1}, substr($item->{sexe},0,1), $item->{expires});
 	
 	my $fid = $sth->{mysql_insertid};
@@ -472,7 +518,7 @@ sub tireur_add_edit
 	if ($fid && $cid)
 	{
 		$sth = $dbh->prepare("replace into entries (id, event_id, person_id, club1, presence, ranking, paiement, comment) values (?,?,?,?,?,?,?,?)");
-		$sth->execute($item->{entry_id}, $cid, $fid, $item->{club1}, $item->{presence}, $item->{ranking}, $item->{paiement}, $item->{comment});
+		$sth->execute($item->{entry_id}, $cid, $fid, $item->{club1}, $item->{presence}, $item->{serie}, $item->{paiement}, $item->{comment});
 		
 		my $eid = $sth->{mysql_insertid};
 		
@@ -485,6 +531,7 @@ sub tireur_add_edit
 sub club_add
 {
 	my $item = shift;
+	Engarde::debug(1,"Engarde::DB::club_add(): starting item " . Dumper($item));
 	
 	my $sth = $dbh->prepare("insert into clubs (nom, short_name, nation1) values (?,?,?)");
 	$sth->execute($item->{nom}, $item->{nom}, $item->{nation1});

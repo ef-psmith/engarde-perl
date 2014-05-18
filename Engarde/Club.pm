@@ -38,6 +38,7 @@ sub decode
 		# print STDERR "DEBUG: Club::decode: item = " . Dumper(\$item);
 	}
 
+	$item->{cle} = $cle;
 	$max = $cle if $cle > $max;
 
 	bless $item, "Engarde::Club";

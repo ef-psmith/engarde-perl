@@ -43,6 +43,7 @@ sub decode
 			s/\]\}$//;
 
 			$cle = $_;
+			$item->{cle} = $cle;
 		}
 	}
 
