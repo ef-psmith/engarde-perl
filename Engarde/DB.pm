@@ -114,7 +114,7 @@ sub club
 	}
 	else
 	{
-		$sth = $dbh->prepare("select cle, nom, short_name, nation1 from clubs");
+		$sth = $dbh->prepare("select cle, nom, nom_court, nation1 from clubs");
 		$sth->execute();
 	}
 	
