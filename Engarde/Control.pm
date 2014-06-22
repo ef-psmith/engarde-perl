@@ -531,7 +531,8 @@ sub config_trash
 
 sub _config_location
 {
-	return "DB" if defined $Engarde::DB::VERSION;
+	my $nodb = shift;
+	return "DB" if (defined $Engarde::DB::VERSION && !defined $nodb);
 	
 	my $dir = cwd();
 
@@ -585,20 +586,19 @@ sub config_write
 	if ($cf eq "DB")
 	{
 		Engarde::DB::config_write($data);
+		$cf = _config_location(1);
 	}
-	else
-	{
-		open my $FH, ">$cf" . ".tmp" or HTMLdie ("Could not open $cf.tmp for writing: $!");
-		flock($FH, LOCK_EX) || HTMLdie ("Couldn't obtain exclusive lock on $cf");
 
-		my $out = "<?xml version=\"1.0\"?>\n";
-		$out .= XMLout($data, KeyAttr=>'id', AttrIndent=>1, SuppressEmpty => undef, RootName=>'config');
+	open my $FH, ">$cf" . ".tmp" or HTMLdie ("Could not open $cf.tmp for writing: $!");
+	flock($FH, LOCK_EX) || HTMLdie ("Couldn't obtain exclusive lock on $cf");
 
-		print $FH "$out";
-		close $FH;
-	
-		rename "$cf.tmp", $cf or HTMLDie("rename failed: $!");
-	}
+	my $out = "<?xml version=\"1.0\"?>\n";
+	$out .= XMLout($data, KeyAttr=>'id', AttrIndent=>1, SuppressEmpty => undef, RootName=>'config');
+
+	print $FH "$out";
+	close $FH;
+
+	rename "$cf.tmp", $cf or HTMLDie("rename failed: $!");
 }
 
 #########################################################
@@ -896,7 +896,10 @@ sub frm_control {
 			print "<td><a href=\"".url()."?wp=".$cid."&Action=pause\"><img src='./graphics/pause.png' /></a></td>";
 		}
 		
-		print "<td><img src='./graphics/twitter.png' /></td>";
+		print "<td><a href=\"/competitions/$cid.xml\" target=\"_new\"><img src='./graphics/xml.png' /></a></td>";
+		# print "<td><img src='./graphics/twitter.png' /></td>";
+
+
 	 	print "</tr>";
 	}
 
@@ -923,8 +926,15 @@ sub frm_screen
 	print "<br><table border=1 cellspacing=0 cellpadding=4 width=1080\n";
 	print "<tr><th align=left rowspan=2 colspan=2>Competition</th></th><th colspan=12 align=left>Screens</th><th rowspan=2>Message</th><th rowspan=2>Save</th><th rowspan=2>Enabled?</th></tr>\n" ;
 
-	print "<tr><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th><th>9</th><th>10</th><th>11</th><th>12</th></tr>";
-	
+	print "<tr>";
+
+	for my $i (1..12)
+	{
+		print "<th><a href=\"/series$i\" target=\"_new\">$i</a></th>";
+	}
+
+	print "</tr>";
+
 	my $comps = $config->{competition};
 
 	$comps = {} unless ref $comps eq "HASH";
@@ -1001,6 +1011,7 @@ sub frm_screen
 		{
 			print "<td align='center'><a href=\"".url()."?wp=".$cid."&Action=enable\"><img src='./graphics/blue-document-cross-icon.png' /></a></td>";
 		}
+
 		
 		print "</tr>";
 	}	
@@ -1052,7 +1063,7 @@ sub frm_config
 					"How often the status screen will auto-refresh in seconds",
 					"The level of debug output - WARNING 2 may crash the web server!",
 					"Restrict access to the check in and status pages?",
-					"For the QNAP this should be /share/Qweb",
+					"For the EF Server, this should be /home/engarde/live/web",
 					"Output from the writexml.pl script",
 					"Allow Check-in for fencers who owe entry fees?",
 					"The Name of the Tournament e.g. \"The Little Whinging 6 Weapon Bun Fight\"",

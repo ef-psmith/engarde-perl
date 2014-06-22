@@ -255,15 +255,17 @@ sub grid
 
 		next unless $fencer;
 
-		my $affiliation;
+		my $affiliation = "U/A";
 	  
 		if ($domain eq "international")
 		{
 			$affiliation = $c->nation($fencer->nation) if $fencer->nation;
 			$affiliation = "$affiliation " . $c->club($fencer->club) if $fencer->club;
 		}
-		
-		$affiliation = $c->club($fencer->club) if $domain eq "national";
+		else
+		{
+			$affiliation = $c->club($fencer->club) if $fencer->club;
+		}
 
 		# print "GRID: f = $f, fencer = " . Dumper(\$fencer);
 		# print "GRID: affiliation = $affiliation\n\n";

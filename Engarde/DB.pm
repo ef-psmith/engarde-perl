@@ -10,7 +10,7 @@ use JSON;
 
 my $dbh;
 
-$VERSION=0.10;
+$VERSION=0.20;
 
 BEGIN 
 {
@@ -51,7 +51,7 @@ sub tireur
 {
 	my $cid = shift;
 	my $fid = shift;
-	
+
 	my $sth = $dbh->prepare("select * from v_event_entries where event_id = ?");
 	
 	$sth->execute($cid);
@@ -64,6 +64,7 @@ sub tireur
 	{
 		$present +=1 if $data->{$id}->{presence} eq "present";
 		$absent +=1 if $data->{$id}->{presence} eq "absent";
+		$scratched +=1 if $data->{$id}->{presence} eq "scratched";
 	}
 	
 	$data->{entries} = scalar keys %$data;
@@ -152,7 +153,7 @@ sub nation
 
 sub config_write
 {
-	Engarde::debug(1,"DB::config_write starting");
+	#Engarde::debug(1,"DB::config_write starting");
 	my $data = shift;
 
 	_config_write_core($data);	
@@ -343,6 +344,7 @@ sub fencer_checkin_list
 
 	foreach my $k (sort { $t->{$a}->{nom} . " " . $t->{$a}->{prenom} cmp $t->{$b}->{nom} . " " . $t->{$b}->{prenom}} grep /\d+/, keys %$t)
 	{
+		$t->{$k}->{licence} = "TBD" unless $t->{$k}->{licence};
 		# print "$k $t->{$k}->{presence}\n";
 		my $p = $t->{$k}->{presence};
 		my $v = $t->{$k};

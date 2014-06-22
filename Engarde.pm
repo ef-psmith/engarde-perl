@@ -1266,37 +1266,40 @@ sub tireurs
 	
 	if (defined $Engarde::DB::VERSION and !defined $nodb)
 	{
-		$t = Engarde::DB::tireur();
+		# print STDERR "cid = $c->{cid}\n";
+		# debug(1, "Engarde::tireurs: ftching from DB for cid = $c->{cid}");
+		$output = Engarde::DB::tireur($c->{cid});
 	}
 	else
 	{	
 		$t = $c->tireur;
-	}
 	
-	# print "tireurs: t = " . Dumper(\$t);
+		foreach my $id (keys %$t)
+		{
+			next unless $id =~ /\d+/;
+	
+			my $f = $c->tireur($id);
+			
+			next if $present && $f->presence ne "present";
+	
+			# print "tireurs: f = " . Dumper(\$f);
+	
+			my $club = $f->club ? $c->club($f->club) : "";
+			my $nom = $f->nom;
+			my $serie = $f->serie;
+			my $nation = $f->nation ? $c->nation($f->nation) : "";
+			my $presence = $f->presence;
 
-	foreach my $id (keys %$t)
-	{
-		next unless $id =~ /\d+/;
+			$output->{$id} = { nom=>$nom, club=>$club, serie=>$serie, nation=>$nation, presence=>$presence };
+		}
 
-		my $f = $c->tireur($id);
-		
-		next if $present && $f->presence ne "present";
-
-		# print "tireurs: f = " . Dumper(\$f);
-
-		my $club = $f->club ? $c->club($f->club) : "";
-		my $nom = $f->nom;
-		my $serie = $f->serie;
-		my $nation = $f->nation ? $c->nation($f->nation) : "";
-
-		$output->{$id} = { nom=>$nom, club=>$club, serie=>$serie, nation=>$nation };
+		$output->{scratch} = $t->{scratch};
+		$output->{present} = $t->{present};
+		$output->{absent} = $t->{absent};
+		$output->{entries} = $t->{entries};
 	}
 
-	$output->{scratch} = $t->{scratch};
-	$output->{present} = $t->{present};
-	$output->{absent} = $t->{absent};
-	$output->{entries} = $t->{entries};
+	# debug(1,"tireurs: output = " . Dumper(\$output));
 
 	return $output;
 }
