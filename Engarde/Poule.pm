@@ -73,18 +73,18 @@ sub load
 
 		my @g = Engarde::_unbracket($self->{grille});
 
-		# print "POULE: split grille = " . Dumper(\@g);
+		# print STDERR "POULE: split grille = " . Dumper(\@g);
 
 		# looks messy but this stips the extra brackets, etc 
 		# off and makes it a consistent text grid
-		foreach (@g)
-		{
+		#foreach (@g)
+		#{
 			#s/\(\((\()/$1/g;
 			#s/(\))\)\)/$1/g;
 			#s/\(\*\*\* (\(\))\)/$1/g;
 			#s/^([a-z])/\($1/;
 			#s/([0-5])$/$1\)/;
-		}
+		#}
 
 		$self->{grille} = \@g;
 
@@ -95,6 +95,8 @@ sub load
 			my $line = $self->{grille}[$i];
 
 			my @res = Engarde::_unbracket($line);
+
+			# print STDERR Dumper(\@res);
 			
 			my $v = 0;
 
@@ -119,13 +121,14 @@ sub load
 
 			$i++;
 		}
+		# print STDERR Dumper(\$self->{results});
 	}
 
 	if ($self->{scores})
 	{
 		$self->{scores} =~ s/^\((\(.*\))\)$/$1/;
 		my @scores = Engarde::_unbracket($self->{scores});
-		print STDERR "DEBUG: poule::scores = " . Dumper(\@scores) if $Engarde::DEBUGGING > 1;
+		# print STDERR "DEBUG: poule::scores = " . Dumper(\@scores) if $Engarde::DEBUGGING; # > 1;
 
 		# scores can be any of these
 		#  'e 4 691 3 0 8 15',
@@ -147,6 +150,8 @@ sub load
 
 			my @ss = split / /, $score;
 
+			# print STDERR "SSS: " . Dumper(\@ss);
+
 			my $status = "normal";
 
 			$status = "abandon" if $ss[0] eq "a";
@@ -155,6 +160,7 @@ sub load
 
 			$s->{$ss[2]}->{status} = $status;
 			$s->{$ss[2]}->{position} = $ss[1];
+			$s->{$ss[2]}->{position} = "" if $s->{$ss[2]}->{position} eq "()"; 
 			$s->{$ss[2]}->{m} = $ss[3];
 			$s->{$ss[2]}->{v} = $ss[4];
 			$s->{$ss[2]}->{hs} = $ss[5];
@@ -162,6 +168,8 @@ sub load
 		}
 
 		$self->{scores} = $s;
+
+		# print STDERR Dumper($s);
 	}
 }
 
@@ -221,7 +229,6 @@ sub grid
 	$domain = "international" unless $domain;
 
 	$domain = "international" if $domain eq "championnat";
-
 
 	my $poulesize =  scalar @$tir;
 
@@ -288,6 +295,7 @@ sub grid
 			my $st = $res->{$f}[$i]->{status};
 			my $r = $res->{$f}[$i]->{result} || "";
 			my $s = $res->{$f}[$i]->{score} || "0";
+			# $s = "" if $s eq "()";
 
 			$r = "X" if $r eq "xx";
 			$r = "V" if $r eq "v" && $s == 5;
@@ -297,10 +305,12 @@ sub grid
 			$r = "E" if $r eq "z";
 			$r = $s if $r eq "d";
 
+			$r = '' if $r eq '()';
+
 			push @line, $r;
 		
 			push @xmlr, {score => $r, id => $i+1};
-			# print "DEBUG: grid: result = [$r]\n";
+			# print STDERR "DEBUG: grid: result = [$r]\n";
 		}
 		
 		$xml_results{$rownum} = [@xmlr];
@@ -370,13 +380,13 @@ sub start_time
 	my $ctime = $self->ctime;
 	my $heure = $self->heure;
 
-	print STDERR "DEBUG: poule->start_time(): heure = $heure, ctime = " . localtime($ctime) . "\n" if $Engarde::DEBUGGING > 1;
+	# print STDERR "DEBUG: poule->start_time(): heure = $heure, ctime = " . localtime($ctime) . "\n" if $Engarde::DEBUGGING > 1;
 
 	my $start;
 
 	if ($heure)
 	{
-		print STDERR "DEBUG: poule->start_time(): returning heure = $heure\n" if $Engarde::DEBUGGING > 1;
+		# print STDERR "DEBUG: poule->start_time(): returning heure = $heure\n" if $Engarde::DEBUGGING > 1;
 		return (Engarde::_heure_to_time($heure));
 	}
 	else
@@ -390,12 +400,12 @@ sub start_time
 
 		if (defined $close)
 		{
-			print STDERR "DEBUG: poule->start_time(): close = $close\n" if $Engarde::DEBUGGING > 1;
+			# print STDERR "DEBUG: poule->start_time(): close = $close\n" if $Engarde::DEBUGGING > 1;
 			return (Engarde::_heure_to_time($close) + 1800);
 		}
 		else
 		{
-			print STDERR "DEBUG: poule->start_time(): returning ctime = $ctime + 1800\n" if $Engarde::DEBUGGING > 1;
+			# print STDERR "DEBUG: poule->start_time(): returning ctime = $ctime + 1800\n" if $Engarde::DEBUGGING > 1;
 			return $ctime + 1800;
 		}
 	}
