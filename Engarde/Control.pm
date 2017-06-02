@@ -12,7 +12,7 @@ package Engarde::Control;
 #				2012-2013, BIFTOC (for inspiration and the original code)
 
 use Engarde;
-use Engarde::DB;
+# use Engarde::DB;
 require Exporter;
 use strict;
 no warnings 'io';
@@ -531,8 +531,8 @@ sub config_trash
 
 sub _config_location
 {
-	my $nodb = shift;
-	return "DB" if (defined $Engarde::DB::VERSION && !defined $nodb);
+	#my $nodb = shift;
+	#return "DB" if (defined $Engarde::DB::VERSION && !defined $nodb);
 	
 	my $dir = cwd();
 
@@ -1471,7 +1471,8 @@ sub frm_fencer_edit
 	{
 		if (defined $Engarde::DB::VERSION)
 		{
-			$f = Engarde::DB::tireur($weaponPath, $item)
+			$f = Engarde::DB::tireur($weaponPath, $item);
+			# HTMLdie(Dumper($f));
 		}
 		else
 		{
@@ -1483,7 +1484,7 @@ sub frm_fencer_edit
 		$item = {};
 	}
 	
-	_std_header( "Edit Item");
+	_std_header( "Edit Item", "", "", "script/check-in.js");
 
 	print start_form(
           -method=>'POST',
@@ -1514,10 +1515,10 @@ sub frm_fencer_edit
 	print table({border => 0, cellspacing=>2, cellpadding=>0},
 		Tr({},
 		[
-			td(["Surname :",textfield(-name=>'nom',-value=>$f->{nom},-size=>32,-maxlength=>32)]),
+			td(["Surname :",textfield(-name=>'nom',-value=>$f->{surname},-size=>32,-maxlength=>32)]),
 			td(["Forename :",textfield(-name=>'prenom',-value=>$f->{prenom},-size=>32,-maxlength=>32)]),
 			td(["Licence No :",textfield(-name=>'licence',-value=>$f->{licence},-size=>32,-maxlength=>32)]),
-			td(["Notes :",textfield(-name=>'comment',-value=>$f->{comment},-size=>32,-maxlength=>32)]),
+			td(["Notes :",textfield(-name=>'comment',-value=>$f->{mode},-size=>32,-maxlength=>32)]),
 		])
 	);
 
@@ -1598,7 +1599,7 @@ sub frm_fencer_edit
   
 	print submit(-label=>'Update Record');
 	
-	print "<button onclick=\"javascript:window.history.back();\">Cancel</button>";
+	print "<button onClick=\"javascript:CancelEdit()\">Cancel</button>";
   
 	print end_form();
 

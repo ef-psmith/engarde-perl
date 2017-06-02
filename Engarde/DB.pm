@@ -7,10 +7,11 @@ use vars qw($VERSION @ISA);
 use Data::Dumper;
 use DBI;
 use JSON;
+use Fcntl qw(:flock :DEFAULT);
 
 my $dbh;
 
-$VERSION=0.20;
+$VERSION=0.21;
 
 BEGIN 
 {
@@ -56,7 +57,7 @@ sub tireur
 	
 	$sth->execute($cid);
 	
-	my $data = $sth->fetchall_hashref('entry_id');
+	my $data = $sth->fetchall_hashref('cle');
 	
 	my ($present, $absent, $scratched);
 	
@@ -129,19 +130,20 @@ sub club
 
 sub nation
 {
+	my $cid = shift;
 	my $name = shift || "";
 	
 	my $sth;
 	
 	if ($name)
 	{
-		$sth = $dbh->prepare("select cle from nations where nom = ?");
-		$sth->execute($name);
+		$sth = $dbh->prepare("select cle from nations where event_id = ? and nom = ?");
+		$sth->execute($cid, $name);
 	}
 	else
 	{
-		$sth = $dbh->prepare("select * from nations");
-		$sth->execute();
+		$sth = $dbh->prepare("select * from nations where event_id = ?");
+		$sth->execute($cid);
 	}
 	
 	my $data = $sth->fetchall_hashref('cle');
@@ -394,13 +396,26 @@ sub _fencer_presence
 	my $fid = shift;
 	my $presence = shift;
 	my $comment = shift || undef;
+
+	if (_is_open($cid))	
+	{
+		my $sth = $dbh->prepare("update entries set presence = ?, comment = ? where event_id = ? and person_id = ?");
+		$sth->execute($presence, $comment, $cid, $fid);
 	
-	my $sth = $dbh->prepare("update entries set presence = ?, comment = ? where event_id = ? and person_id = ?");
-	$sth->execute($presence, $comment, $cid, $fid);
+		Engarde::debug(1,"Engarde::DB::fencer_checkin(): presence update for for fencer $fid status: " . $sth->err);
 	
-	Engarde::debug(1,"Engarde::DB::fencer_checkin(): presence update for for fencer $fid status: " . $sth->err);
-	
-	fencer_checkin_list($cid);
+		fencer_checkin_list($cid);
+	}
+	else
+	{
+		my $out = {};
+		$out->{present} = 0;
+		$out->{absent} = 0;
+		$out->{scratched} = 0;
+		
+		print "Content-Type: application/json\r\n\r\n";	
+		print encode_json $out;
+	}
 }
 
 sub fencer_add_by_lic
@@ -505,7 +520,11 @@ sub tireur_add_edit
 	
 	# if cid is null, just add to people otherwise add to people and add an entry to the comp
 	
-	my $sth = $dbh->prepare("replace into people (id, nom, prenom, licence, dob, nation1, sexe, expires) values (?,?,?,?,?,?,?,?)");
+	################## REPLACE THIS LINE #######################################################################################
+
+	my $sth = $dbh->prepare("insert into people (engarde_id, nom, prenom, licence, dob, nation1, sexe, expires) values (?,?,?,?,?,?,?,?)");
+
+	################## REPLACE THIS LINE #######################################################################################
 	
 	$item->{cle} = undef if $item->{cle} eq "-1";
 	
@@ -513,14 +532,14 @@ sub tireur_add_edit
 	
 	my $fid = $sth->{mysql_insertid};
 	
-	Engarde::debug(1,"Engarde::DB::tireur_add_edit: fencer $fid updated");
+	Engarde::debug(1,"Engarde::DB::tireur_add_edit: fencer $fid added");
 	
 	$sth->finish;
 	
 	if ($fid && $cid)
 	{
-		$sth = $dbh->prepare("replace into entries (id, event_id, person_id, club1, presence, ranking, paiement, comment) values (?,?,?,?,?,?,?,?)");
-		$sth->execute($item->{entry_id}, $cid, $fid, $item->{club1}, $item->{presence}, $item->{serie}, $item->{paiement}, $item->{comment});
+		$sth = $dbh->prepare("replace into entries (id, event_id, person_id, cle, club1, presence, ranking, paiement, comment) values (?,?,?,?,?,?,?,?,?)");
+		$sth->execute($item->{entry_id}, $cid, $fid, $item->{cle}, $item->{club1}, $item->{presence}, $item->{serie}, $item->{paiement}, $item->{comment});
 		
 		my $eid = $sth->{mysql_insertid};
 		
@@ -549,10 +568,14 @@ sub weapon_delete
 	# should really make sure to_text has been called before we do this so there is a backup
 	my $cid = shift;
 	
-	my $sth = $dbh->prepare("delete from entries where event_id = ?");
+
+	# Only need to delete the event now
+	# DB triggers will do the rest
+
+	# my $sth = $dbh->prepare("delete from entries where event_id = ?");
 	my $sth2 = $dbh->prepare("delete from events where id = ?");
 	
-	$sth->execute($cid);
+	# $sth->execute($cid);
 	$sth2->execute($cid);
 }
 
@@ -580,6 +603,223 @@ sub weapon_config_update
 	}
 	
 	$sth->execute($value, $cid);
+
+	if ($key eq "state" && $value eq "active")
+	{
+		# update files
+		_weapon_update_files($cid);
+	}
+}
+
+sub _weapon_update_files
+{
+	my $cid = shift;
+	my $config = config_read();
+
+	my $source = $config->{competition}->{$cid}->{source};
+
+	# print "source = $source\n";
+
+	my $c = Engarde->new($source . "/competition.egw");
+
+	return undef unless $c;
+
+	_nation_to_text($c, $cid);
+	_club_to_text($c, $cid);
+	_tireur_to_text($c, $cid);
+}
+
+
+sub _tireur_to_text
+{
+	my $c = shift;
+	my $cid = shift;
+	my $t = $c->tireur;
+	# print Dumper(\$t);
+
+	my $sth = $dbh->prepare("select * from v_tireur where event_id = ?");
+
+	$sth->execute($cid);
+
+	my $data = $sth->fetchall_hashref('cle');
+	print Dumper(\$data);
+
+    my $file = $t->{file};
+    my $dir = $t->{dir};
+
+	$t = $data;
+
+    # the caller must ensure that engarde is not running since we don't
+    # want a multiple writer conflict and linux doesn't like multiple locks on the
+    # same file
+
+    # open ETAT, "+< $dir/etat.txt";
+    # flock(ETAT, LOCK_EX) || return undef;
+
+    open (my $FH, ">",  "$file.tmp") or do
+    {
+        Engarde::debug(1,"open failed on $file.tmp $!");
+        return undef;
+    };
+
+    # {[classe tireur] [presence present] [sexe masculin] [status normal] [nom "MINIMAL"]
+    # [prenom "Minimal"] [cle 56]}
+    #
+    # {[classe tireur] [presence present] [sexe masculin] [status normal] [nom "MONTY"]
+    # [prenom "Full"] [serie 123] [club1 29] [nation1 1] [date_nais "~27/12/1962"] [licence
+    # "100123"] [licence_fie "1995120501"] [mobile "07802 312401"] [points 4.00] [dossard
+    # 888] [paiement 9.99] [mode "mode string"] [cle 57]}
+
+    my @keywords1 = qw/nom prenom licence mobile licence_fie mode date_nais/;
+    my @keywords2 = qw/club1 nation1 presence serie cle sexe paiement/;
+
+    foreach my $id (sort {$t->{$a}->{nom} cmp $t->{$b}->{nom}} grep /\d+/,keys %$t)
+    {
+        # Engarde::debug(3,"tireur: to_text(): processing id $id");
+
+        if (defined $t->{$id}->{comment})
+        {
+
+        	$t->{$id}->{mode} = $t->{$id}->{comment} || "";
+
+        }
+
+		if ($t->{$id}->{presence} eq "scratched")
+		{
+			$t->{$id}->{presence} = "absent";
+			$t->{$id}->{mode} = "scratched at check in";
+		}	
+
+        my $out;
+        $out = "{[classe tireur] [status normal] [points 0.00]";
+
+        foreach my $key (@keywords1)
+        {
+            $out .= " [$key \"" . $t->{$id}->{$key} . "\"]" if $t->{$id}->{$key};
+
+            if (length($out) > 80)
+            {
+                print $FH $out . "\r";
+                $out = "";
+            }
+        }
+
+        foreach my $key (@keywords2)
+        {
+            $out .= " [$key $t->{$id}->{$key}]" if $t->{$id}->{$key};
+
+            if (length($out) > 80)
+            {
+                print $FH $out . "\r";
+                $out = "";
+            }
+        }
+
+        $out .= "}\r";
+
+        #Engarde::debug(3,"tireur: to_text(): id $id = $out");
+
+        print $FH $out;
+    }
+
+   	close $FH;
+
+    rename "$file.tmp", $file or die("rename failed: $!");
+
+	$sth->finish();
+}
+
+
+sub _nation_to_text
+{
+	my $c = shift;
+	my $cid = shift;
+	my $n = $c->nation;
+	my $sth = $dbh->prepare("select * from nations where event_id = ?");
+	
+	$sth->execute($cid);
+	my $data = $sth->fetchall_hashref('cle');
+
+    my $file = $n->{file};
+    my $dir = $n->{dir};
+
+    open my $FH, "> $file" . ".tmp";
+    flock($FH, LOCK_EX) || return undef;
+
+    my $out;
+
+    foreach my $id (sort {$a <=> $b} grep /\d+/,keys %$data)
+    {
+        $out .= "{[classe nation] [nom \"$data->{$id}->{nom}\"] [nom_etendu \"$data->{$id}->{nom_etendu}\"] [cle $id]}\r\n";
+    }
+
+    print $FH $out;
+    close $FH;
+
+    rename "$file.tmp", $file or die("rename failed: $!");
+}
+
+sub _club_to_text
+{
+	my $c = shift;
+	my $cid = shift;
+	my $club = $c->club;
+	my $sth = $dbh->prepare("select * from clubs where event_id = ?");
+	
+	$sth->execute($cid);
+	my $data = $sth->fetchall_hashref('cle');
+
+    my $file = $club->{file};
+    my $dir = $club->{dir};
+
+    open (my $FH, ">",  "$file.tmp") or do
+    {
+        Engarde::debug(1,"club_to_text(): open failed on $file.tmp $!");
+        return undef;
+    };
+
+    flock($FH, LOCK_EX) or do
+    {
+        Engarde::debug(1,"club_to_text(): lock failed on $file.tmp $!");
+        return undef;
+    };
+
+
+    my $seq = 1;
+
+    # {[classe club] [nom "126"] [cle 23]}
+    my $out = "";
+
+    # Engarde saves clubs in alpha order rather than id order
+    foreach my $id (sort {$data->{$a}->{nom} cmp $data->{$b}->{nom}} grep /\d+/,keys %$data)
+    {
+        Engarde::debug(3,"club: to_text(): processing id $id");
+        $out .= "{[classe club] [nom \"$data->{$id}->{nom}\"] [cle $id]}\r\n";
+
+        Engarde::debug(3,"club_to_text(): id $id = $out");
+    }
+    print $FH $out;
+    close $FH;
+
+    rename "$file.tmp", $file or die("rename failed: $!");
+}
+
+
+
+sub _is_open()
+{
+	my $cid = shift;
+
+	my $sth = $dbh->prepare("select state from events where id = ?");
+
+	$sth->execute($cid);
+
+	my $value;
+	$sth->bind_columns(\$value);
+	$sth->fetch();
+
+	return 1 if $value eq "check-in";
+	return 0;
 }
 
 1;

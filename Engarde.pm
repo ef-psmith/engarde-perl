@@ -1117,6 +1117,8 @@ sub fpp
 		# print "fpp: round = $round, i = $i\n";
 		my $p = $c->poule($round, $i);
 
+		next unless defined $p;
+
 		my $tir = $p->les_tir_cons;
 
 		my $dom = $c->domaine_compe;
@@ -1258,7 +1260,7 @@ sub tireurs
 {
 	my $c = shift;
 	my $present = shift || 0;
-	my $nodb = shift;
+	my $nodb = 1;
 	
 	my $output = {};
 
