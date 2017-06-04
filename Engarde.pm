@@ -1188,7 +1188,7 @@ sub matchlist
 			
 			my $match = $c->match($t, $id);
 			
-			next unless $match->{'idA'} && $match->{'idB'};
+			# next unless $match->{'idA'} && $match->{'idB'};
 				
 			my $p = $match->{piste} || -1;
 			
@@ -1224,15 +1224,36 @@ sub matchlist
 
 			unless ($raw)
 			{
-				next unless $match->{'idA'} && $match->{'idB'};
-				next if $match->{'idA'} eq 'nobody' || $match->{'idB'} eq 'nobody';
+				next unless ($match->{'idA'} || $match->{'idB'});
+				# next if $match->{'idA'} eq 'nobody' || $match->{'idB'} eq 'nobody';
 
 				debug(3, "matchlist(): waiting for match = " . Dumper($match));
 
 				#$t =~ s/[A-Z]*//;
 
-				$output->{$match->{'fencerA_court'}} = { round=>$t, piste=> $p, time=>$match->{time} };
-				$output->{$match->{'fencerB_court'}} = { round=>$t, piste=> $p, time=>$match->{time} };
+				if (defined $match->{'fencerA'})
+				{
+					if (!defined $match->{'fencerB'})
+					{
+						$output->{$match->{'fencerA_court'}} = { round=> 'BYE', piste=> 'BYE', time=>'BYE' };
+					}
+					else
+					{
+						$output->{$match->{'fencerA_court'}} = { round=>$t, piste=> $p, time=>$match->{time} };
+					}
+				}
+
+				if (defined $match->{'fencerB'}) 
+				{
+					if (!defined $match->{'fencerA'})
+					{
+						$output->{$match->{'fencerB_court'}} = { round=> 'BYE', piste=> 'BYE', time=>'BYE' };
+					}
+					else
+					{
+						$output->{$match->{'fencerB_court'}} = { round=>$t, piste=> $p, time=>$match->{time} };
+					}
+				}
 
 				debug(2, "matchlist(): output = " . Dumper(\$output));
 			}

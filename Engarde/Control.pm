@@ -16,6 +16,7 @@ use Engarde;
 require Exporter;
 use strict;
 no warnings 'io';
+use JSON;
 
 use vars qw($VERSION @ISA);
 @ISA = qw(Engarde Exporter);
@@ -24,7 +25,7 @@ $VERSION=1.28;
 
 our @EXPORT = qw(	frm_control frm_config frm_screen frm_checkin_desk frm_checkin_list frm_fencer_edit
 					config_read config_update_basic config_update_output config_update_ip config_trash
-					weapon_add weapon_delete weapon_disable weapon_enable weapon_series_update weapon_config_update 
+					weapon_add weapon_delete weapon_disable weapon_enable weapon_series_update weapon_series_update_ajax weapon_config_update 
 					fencer_checkin fencer_scratch fencer_edit
 					HTMLdie );
 
@@ -85,7 +86,9 @@ sub weapon_add
 	my $c = Engarde->new($path . "/competition.egw", 2);
 	my $titre = $c->titre_ligne;
 	
-	my @colours = qw/blue chartreuse coral cyan darkgreen deeppink dodgerblue gold hotpink magenta orange red seagreen tomato yellow/; 
+	my @colours = qw/	blue chartreuse coral cyan darkgreen deeppink dodgerblue gold hotpink magenta 
+				orange red seagreen tomato yellow darkorchid darksalmon goldenrod peachpuff thistle
+				wheat peru moccasin mediumpurple/; 
 	
 	# initialise the hash if this is the first comp added
 	$config->{competition} = {} unless ref $config->{competition} eq "HASH";
@@ -161,7 +164,7 @@ sub weapon_delete
 	
 		my $seriescomps = _series_by_comp($config);
 	
-		foreach my $s (0..11)
+		foreach my $s (0..13)
 		{
 			# skip non-existant series
 			next unless ${$seriescomps->{$cid}}[$s];
@@ -205,18 +208,45 @@ sub weapon_enable
 	print redirect(url());
 }
 
-
 sub weapon_series_update
 {
 	my $cid = shift;
+	_weapon_series_update($cid);
+	print redirect(url());
+}
+
+sub weapon_series_update_ajax
+{
+	my $cid = shift;
+
+	my $config = _weapon_series_update($cid);
+
+	my $series = _series_by_comp($config);
+
+	print header('application/json');
+
+	print encode_json($series->{$cid});
+}
+
+sub _weapon_series_update
+{
+	my $cid = shift;
+
 	my @screens = param("screens");
+	my $s = param("s");
 	my $message = param("message");
-	
+
+	if ($s)
+	{
+		# ajax rather than post
+		@screens = split(/&*screens=/, $s);
+	}
+
 	my %screens = map {$_ => 1 } @screens;
-	
+
 	my $config=config_read();
-	
-	foreach my $s (0..11)
+
+	foreach my $s (0..13)
 	{	
 		# remove the comp from the list - leave everything else intact
 		my @result = grep { $_ ne $cid } @{$config->{series}->{$s+1}->{competition}};
@@ -229,11 +259,6 @@ sub weapon_series_update
 	
 	if ($message)
 	{
-		# this is clunky, but forces the message to be an element
-		# my @msg;
-		# push @msg, $message;
-		# $config->{competition}->{$cid}->{message} = \@msg;
-		
 		$config->{competition}->{$cid}->{message} = $message;
 	}
 	else
@@ -242,7 +267,8 @@ sub weapon_series_update
 	}
 	
 	config_write($config);	
-	print redirect(url());
+
+	return $config;
 }
 
 sub weapon_config_update
@@ -494,7 +520,7 @@ sub config_update_ip
 	
 	my @ips;
 	
-	for (0..11)
+	for (0..13)
 	{
 		push @ips, param("ip_" . $_) if param("ip_" . $_);
 	}
@@ -522,7 +548,7 @@ sub config_trash
 	$config->{targetlocation} = "/home/engarde/live/web";
 	$config->{log} = "./out.txt";
 	
-	foreach my $s (1..12)
+	foreach my $s (1..14)
 	{
 		$config->{series}->{$s}->{enabled} = "true";
 	}
@@ -583,11 +609,11 @@ sub config_write
 
 	return undef unless $cf;
 
-	if ($cf eq "DB")
-	{
-		Engarde::DB::config_write($data);
-		$cf = _config_location(1);
-	}
+	#if ($cf eq "DB")
+	#{
+	#	Engarde::DB::config_write($data);
+	#	$cf = _config_location(1);
+	#}
 
 	open my $FH, ">$cf" . ".tmp" or HTMLdie ("Could not open $cf.tmp for writing: $!");
 	flock($FH, LOCK_EX) || HTMLdie ("Couldn't obtain exclusive lock on $cf");
@@ -914,21 +940,57 @@ sub frm_screen
 	my $config = config_read();
 	
 	HTMLdie("no config file found: " . cwd()) unless $config;
-	_std_header("Screen Configuration");
+
+
+	my $ajax = '$(document).ready(function(){
+		$(".go").click(function(e) {
+    		e.preventDefault();
+
+			var row = $(this).closest("tr");
+			var checked = row.find("input[name=screens]").serialize();
+			var wp = row.find("input[name=wp]").val();
+			var message = row.find("input[name=message]").val();
+
+    		$.ajax({
+       			type: "POST",
+        		url: "/screens.cgi",
+        		data: { 
+					Action: "ajax",
+					s: checked,
+            		wp: wp, 
+					message: message,
+        		},
+        		success: function(result) {
+            		// alert(result);
+					$(row).fadeTo(200, 0.3, function() { $(this).fadeTo(500, 1.0); });
+        		},
+        		error: function(a, b, c) {
+            	 	// alert(\'error\');
+					// alert(a);
+					// alert(b);
+					alert(c);
+        		}
+    		});
+		});
+	});';
+
+	_std_header("Screen Configuration",undef,undef,"script/jquery-3.2.1.min.js");
 
 	###########################################
 	#
 	#	Screen config
 	#
 	###########################################
+	print "<script>$ajax</script>\n";
+
 	print "<br><fieldset><legend>Screen Configuration</legend>\n";
 	
 	print "<br><table border=1 cellspacing=0 cellpadding=4 width=1080\n";
-	print "<tr><th align=left rowspan=2 colspan=2>Competition</th></th><th colspan=12 align=left>Screens</th><th rowspan=2>Message</th><th rowspan=2>Save</th><th rowspan=2>Enabled?</th></tr>\n" ;
+	print "<tr><th align=left rowspan=2 colspan=2>Competition</th></th><th colspan=14 align=left>Screens</th><th rowspan=2>Message</th><th rowspan=2>Save</th><th rowspan=2>Enabled?</th></tr>\n" ;
 
 	print "<tr>";
 
-	for my $i (1..12)
+	for my $i (1..14)
 	{
 		print "<th><a href=\"/series$i\" target=\"_new\">$i</a></th>";
 	}
@@ -962,7 +1024,7 @@ sub frm_screen
 		print "<tr><th align='left'>$cid - $name<br><font size=1>$src</font></th>";
 		print "<td><a href=\"".url()."?wp=".$cid."&Action=delete\"><img src='./graphics/red-cross-icon.png' /></a></td>";		
 		
-		my @values = (1..12);
+		my @values = (1..14);
 		my @default;
 		
 		# my %labels = (
@@ -984,7 +1046,7 @@ sub frm_screen
 		print hidden(-name=>"wp", -value=>"$cid");
 		print hidden(-name=>"Action", -value=>"update");
 		
-		for my $i (0..11)
+		for my $i (0..13)
 		{
 			# push @default,$i if ${$seriescomps->{$cid}}[$i];
 			print "<td>" . checkbox(-name=>"screens", -value=>$i, -checked=>${$seriescomps->{$cid}}[$i], -label=>"") . "</td>";
@@ -992,13 +1054,16 @@ sub frm_screen
 		
 		# my $msg = ${$comps->{$cid}->{message}}[0]; 
 		my $msg = $comps->{$cid}->{message}; 
+
+		# print Dumper(\$msg);
 		
 		# cope with an empty message element
 		$msg = "" if ref $msg eq "HASH";
 		
 		print "<td>" . textfield(-name=>"message", -value=>$msg) . "</td>";
 		# print "<td colspan=12>" . checkbox_group(-name => "screens", -values=> \@values, -default => \@default) . "</td>";
-		print "<td align='center'><a href=\"javascript: document.screens_$cid.submit();\"><img src='./graphics/green-disk-icon.png' /></a></td>";
+		#print "<td align='center'><a href=\"javascript: document.screens_$cid.submit();\"><img src='./graphics/green-disk-icon.png' /></a></td>";
+		print "<td align='center'><img id='$cid' class='go' src='./graphics/green-disk-icon.png' /></td>";
 		print end_form();
 
 		my $enabled = $comps->{$cid}->{enabled} || "false";
@@ -1668,12 +1733,12 @@ sub _series_by_comp
 	# build an empty array
 	foreach my $cid (keys %$comps)
 	{
-		my @row = (0,0,0,0,0,0,0,0,0,0,0,0);
+		my @row = (0,0,0,0,0,0,0,0,0,0,0,0,0,0);
 		$out->{$cid} = \@row;
 	}
 	
 	# now populate by iterating onver the series
-	foreach my $sid (1..12)
+	foreach my $sid (1..14)
 	{
 		my $c = $series->{$sid}; #->{competition};
 		
