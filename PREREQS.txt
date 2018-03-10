@@ -1,0 +1,8 @@
+Perl modules:
+
+Moo
+MooX::Singleton
+Types::Standard
+Types::XSD
+Template
+Log::Dispatch::FileRotate

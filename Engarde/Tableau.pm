@@ -8,6 +8,7 @@ use vars qw($VERSION @ISA);
 @ISA = qw(Engarde);
 
 use Data::Dumper;
+use DT::Log;
 
 # Tableaux need a custom load method
 sub load
@@ -63,7 +64,7 @@ sub load
 
 	my @matches = split /[\]\} ]*\{\[match /, $unparsed;
 
-	Engarde::debug(3, "tableau::decode(): matches = " . Dumper(\@matches));
+	#TRACE( sub { "matches = " . Dumper(\@matches) });
 
 	my $i;
 	my @eliminated;
@@ -83,7 +84,7 @@ sub load
 		
 		$matches[$i] =~ s/\R//g;
 		
-		Engarde::debug(3, "tableau::decode(): match $i = " . Dumper(\$matches[$i]));
+		# Engarde::debug(3, "tableau::decode(): match $i = " . Dumper(\$matches[$i]));
 		
 		($item->{'idA'},$item->{'idB'},$item->{'scoreA'},$item->{'scoreB'},$item->{'winnerid'},$item->{'seedA'},$item->{'seedB'})
 			= $matches[$i] =~ m/^\((.*) (.*) (.*) (.*) (.*) ([0-9]*) ([0-9]*)\)/;
@@ -95,7 +96,7 @@ sub load
 		{
 			#($item->{'piste'}, $item->{'time'}) = $matches[$i] =~ m/.*\[piste_no (.*)\]*.*\[heure \"~(.*)\"/;
 			($item->{'time'}) = $matches[$i] =~ m/.*\[heure \"~(.*)\".*/;
-			Engarde::debug(3, "tableau::load: $i time $item->{time} set from heure");
+			# Engarde::debug(3, "tableau::load: $i time $item->{time} set from heure");
 			
 		}
 		
@@ -104,7 +105,7 @@ sub load
 			($item->{'piste'}) = $matches[$i] =~ m/.*\[piste_no (.*).*/;
 		}
 
-		Engarde::debug(3,"tableau::decode(): item $i = " . Dumper(\$item));
+		# Engarde::debug(3,"tableau::decode(): item $i = " . Dumper(\$item));
 		
 		# remove [imprime vrai
 		$item->{'piste'} =~ s/\].*$// if $item->{'piste'};
@@ -204,8 +205,56 @@ sub next_in_suite
 }
 
 
-1;
 
+############################################################################
+# Process a tableau into a match structure
+############################################################################
+
+sub matches
+{
+	my $t = shift;
+	my $aff = shift;
+	
+	my @list;
+	
+	my $numbouts = $t->{taille} / 2;
+
+	DEBUG("Number of bouts: $numbouts");
+
+	foreach my $m (1..$numbouts)
+	{	
+		# print "do_tableau: calling match\n";
+		my $match = $t->match($m);
+
+		# push @winners, ($match->{winnerid} || undef ) if $col eq 1;
+
+		my $fa = { id => $match->{idA} || "", name => $match->{fencerA} || "", seed => $match->{seedA} || "", affiliation => $match->{$aff . 'A'} || "", category => $match->{categoryA} || ""};
+		my $fb = { id => $match->{idB} || "", name => $match->{fencerB} || "", seed => $match->{seedB} || "", affiliation => $match->{$aff . 'B'} || "", category => $match->{categoryB} || ""};
+
+		#$fa->{name} = $winners[($m * 2) - 1] unless $fa->{name};
+		#$fb->{name} = $winners[$m * 2] unless $fb->{name};
+
+		my $score = "$match->{scoreA} / $match->{scoreB}";
+
+		$score = "by exclusion" if $score =~ /exclusion/;
+		$score = "by abandonment" if $score =~ /abandon/;
+		$score = "by penalty" if $score =~ /forfait/;
+		$score = "" if $score eq " / ";
+
+		push @list, { 	number => $m, 
+						time => $match->{time} || "",  
+						piste => $match->{piste} || "",
+						fencerA => $fa,
+						fencerB => $fb,
+						winnername => $match->{winnername} || "",
+						winnerid => $match->{winnerid} || "",
+						score => $score
+					};
+	};
+
+	return @list;
+}
+	
 
 __END__
 

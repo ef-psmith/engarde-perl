@@ -5,6 +5,7 @@ use vars qw($VERSION @ISA);
 
 use Data::Dumper;
 use Fcntl qw(:flock);
+use DT::Log;
 #use HTML::Entities;
 
 $VERSION=2.01;
@@ -72,8 +73,6 @@ sub decode
 	
 	$item->{category} = _age_cat($item->{date_nais});
 
-	Engarde::debug(3,"Tiruer::decode: item = " . Dumper(\$item));
-	
 	# print "TIREUR 6: cle = " . $item->{cle} . "\n\n\n";
 
 	$cle = $item->{cle};
@@ -214,25 +213,25 @@ sub to_text
 	
 	open (my $FH, ">",  "$file.tmp") or do
 	{	
-		Engarde::debug(1,"open failed on $file.tmp $!");
+		DEBUG("open failed on $file.tmp $!");
 		return undef;
 	};
 	
 	flock($FH, LOCK_EX) or do
 	{
-		Engarde::debug(1,"lock failed on $file.tmp $!");
+		DEBUG("lock failed on $file.tmp $!");
 		return undef;
 	};
 	
 	open (my $FH2, "+<", $file) or do
 	{	
-		Engarde::debug(1,"open failed on $file $!");
+		DEBUG("open failed on $file $!");
 		return undef;
 	};
 	
 	flock($FH2, LOCK_EX) or do
 	{
-		Engarde::debug(1,"lock failed on $file $!");
+		DEBUG("lock failed on $file $!");
 		return undef;
 	};
 
@@ -251,7 +250,7 @@ sub to_text
 	
 	foreach my $id (sort {$self->{$a}->{nom} cmp $self->{$b}->{nom}} grep /\d+/,keys %$self)
 	{
-		Engarde::debug(3,"tireur: to_text(): processing id $id");
+		DEBUG("tireur: to_text(): processing id $id");
 
 		# if (defined $self->{$id}->{comment})
 		#{
@@ -290,7 +289,7 @@ sub to_text
 		
 		$out .= "}\r";
 		
-		Engarde::debug(3,"tireur: to_text(): id $id = $out");
+		DEBUG("tireur: to_text(): id $id = $out");
 		
 		print $FH $out;
 	}
@@ -314,7 +313,7 @@ sub add_edit
 	my $self = shift;
 	my $new = shift;
 	
-	Engarde::debug(2,"add_edit(): new (start) = " . Dumper($new));
+	DEBUG("add_edit(): new (start) = " . Dumper($new));
 	
 	my @required = qw/nom prenom/;
 	
@@ -326,8 +325,8 @@ sub add_edit
 	$new->{cle} = $self->{max} + 1 unless $new->{cle} > 0;
 	$self->{$new->{cle}} = $new;
 	
-	Engarde::debug(2,"add_edit(): new (end) = " . Dumper($new));
-	Engarde::debug(3,"add_edit(): self = " . Dumper($self));
+	DEBUG("add_edit(): new (end) = " . Dumper($new));
+	DEBUG("add_edit(): self = " . Dumper($self));
 	
 	$self->to_text;
 	

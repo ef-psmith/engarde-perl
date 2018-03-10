@@ -56,9 +56,7 @@ sub decode
 	$self->{$item->{cle}} = $item;
 }
 
-
 1;
-
 
 __END__
 

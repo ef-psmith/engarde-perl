@@ -1,41 +1,46 @@
 # vim: ts=4 sw=4 noet:
-package Engarde::Control;
+package DT::Control;
 
 ###############################################################################
 #
 # 	Control.pm
 #
-# 	Engarde::Control - Provides the functions needed for DT, check-in, etc
+# 	DT::Control - Provides the functions needed for DT, check-in, etc
 #
-# 	Copyright	2012-2013, Peter Smith, peter.smith@englandfencing.org.uk
+# 	Copyright	2012-2018, Peter Smith, peter.smith@englandfencing.org.uk
 #				2012-2013, England Fencing 
 #				2012-2013, BIFTOC (for inspiration and the original code)
+#
+#	V2 - 2018	Move all form generation to Template::Toolkit
+#				Support FencingTime
 
+use 5.018;
 use Engarde;
-# use Engarde::DB;
+use FencingTime;
 require Exporter;
-use strict;
+use warnings;
 no warnings 'io';
 use JSON;
+use Template;
+use DT::Log;
 
 use vars qw($VERSION @ISA);
 @ISA = qw(Engarde Exporter);
 
-$VERSION=1.28;
+$VERSION=2.00;
 
 our @EXPORT = qw(	frm_control frm_config frm_screen frm_checkin_desk frm_checkin_list frm_fencer_edit
 					config_read config_update_basic config_update_output config_update_ip config_trash
-					weapon_add weapon_delete weapon_disable weapon_enable weapon_series_update weapon_series_update_ajax weapon_config_update 
-					fencer_checkin fencer_scratch fencer_edit
+					weapon_add weapon_delete weapon_disable weapon_enable weapon_series_update weapon_series_update_ajax 
+					weapon_config_update fencer_checkin fencer_scratch fencer_edit
 					HTMLdie );
 
-use Data::Dumper;
+use Data::Dumper::Concise;
 use Cwd qw/abs_path cwd/;
-#use DBI;
 use File::Find;
 use File::Basename;
 
-use CGI::Carp qw(fatalsToBrowser warningsToBrowser);
+# use CGI::Carp qw(fatalsToBrowser warningsToBrowser);
 use CGI::Pretty qw(:standard *table -no_xhtml);
 use CGI::Cookie;
     
@@ -47,6 +52,7 @@ use XML::Simple;
 
 # use XML::Dumper;
 my @available_comps;
+my $tt = Template->new({ INCLUDE_PATH => '/home/engarde/live/templates', ENCODING => 'utf8' });
 
 
 ########################################################
@@ -55,7 +61,8 @@ my @available_comps;
 #
 #########################################################
 
-sub HTMLdie {
+sub HTMLdie 
+{
   
 	my ($msg,$title) = @_;
   
@@ -111,41 +118,6 @@ sub weapon_add
 	
 	config_write($config);
 	
-	if (defined $Engarde::DB::VERSION)
-	{
-		
-		# force use of the Engarde files to prime the DB
-
-		my $n = $c->nation;
-		# Engarde::debug(1,"weapon_add: nations = " . Dumper(\$n));
-		
-		
-		foreach my $nid (grep /\d+/, keys %$n)
-		{
-			Engarde::DB::nation_add_edit($n->{$nid}, $nextid);
-		}
-		
-		my $cl = $c->club;
-		
-		foreach my $clid (grep /\d+/, keys %$cl)
-		{
-			Engarde::DB::club_add_edit($cl->{$clid}, $nextid);
-		}
-				
-
-		my $t = $c->tireur;		
-		# Engarde::debug(1,"weapon_add: tireurs = " . Dumper(\$t));
-		
-		foreach my $fid (grep /\d+/, keys %$t)
-		{
-			my $f = $t->{$fid};
-			# $f->{newclub} = $f->{club};
-			# $f->{club} = -1;
-			# Engarde::debug(1,"weapon_add: adding fencer " . $t->{$fid} . "as $nextid");
-			Engarde::DB::tireur_add_edit($t->{$fid}, $nextid);
-		}
-	}
-	
 	print redirect(url());
 }
 
@@ -154,30 +126,23 @@ sub weapon_delete
 {
 	my $cid = shift;
 	
-	if (defined $Engarde::DB::VERSION)
+	my $config = config_read();
+	
+	my $seriescomps = _series_by_comp($config);
+	
+	foreach my $s (0..13)
 	{
-		Engarde::DB::weapon_delete($cid);
+		# skip non-existant series
+		next unless ${$seriescomps->{$cid}}[$s];
+			
+		my @result = grep { $_ ne $cid } @{$config->{series}->{$s+1}->{competition}};
+	
+		$config->{series}->{$s+1}->{competition} = \@result;
 	}
-	else
-	{
-		my $config = config_read();
-	
-		my $seriescomps = _series_by_comp($config);
-	
-		foreach my $s (0..13)
-		{
-			# skip non-existant series
-			next unless ${$seriescomps->{$cid}}[$s];
-				
-			my @result = grep { $_ ne $cid } @{$config->{series}->{$s+1}->{competition}};
-		
-			$config->{series}->{$s+1}->{competition} = \@result;
-		}
-	
-		delete $config->{competition}->{$cid};
-	
-		config_write($config);
-	}
+
+	delete $config->{competition}->{$cid};
+
+	config_write($config);
 	
 	print redirect(url());
 }
@@ -277,19 +242,11 @@ sub weapon_config_update
 	my $key = shift;
 	my $value = shift;
 	
-	if (defined $Engarde::DB::VERSION)
-	{
-		Engarde::debug(1,"weapon_config_update: cid = $id, key = $key, value = $value");
-		Engarde::DB::weapon_config_update($id, $key, $value);
-	}
-	else
-	{
-		# return unless ($id && $key && $value);
+	# return unless ($id && $key && $value);
 	
-		my $config = config_read();
-		$config->{competition}->{$id}->{$key} = $value;
-		config_write($config);
-	}
+	my $config = config_read();
+	$config->{competition}->{$id}->{$key} = $value;
+	config_write($config);
 	
 	print redirect(url());
 }
@@ -316,39 +273,32 @@ sub fencer_checkin
 	
 	Engarde::debug(2,"fencer_checkin(): starting new() at " . localtime());
 	
-	if (defined $Engarde::DB::VERSION)
-	{
-		Engarde::DB::fencer_checkin($cid, $fid);
-	}
-	else
-	{
-		my $c = Engarde->new($config->{competition}->{$cid}->{source} . "/competition.egw", 2);
+	my $c = Engarde->new($config->{competition}->{$cid}->{source} . "/competition.egw", 2);
 	
-		HTMLdie("invald compeition $cid") unless $c;
+	HTMLdie("invald compeition $cid") unless $c;
 	
-		# my $ETAT;
-		open(ETAT, "+< " . $c->{dir} . "/etat.txt"); 
+	# my $ETAT;
+	open(ETAT, "+< " . $c->{dir} . "/etat.txt"); 
 	
-		# HTMLdie("lock error: $!") unless ETAT;
+	# HTMLdie("lock error: $!") unless ETAT;
 	
-		my $lockstat = flock(ETAT,LOCK_EX);
+	my $lockstat = flock(ETAT,LOCK_EX);
 
-		#HTMLdie("calling _running");
+	#HTMLdie("calling _running");
 	
-		HTMLdie("Competition Locked: $^E") unless $lockstat;
+	HTMLdie("Competition Locked: $^E") unless $lockstat;
 	
-		my $f = $c->tireur;
+	my $f = $c->tireur;
 	
-		$f->{$fid}->{presence} = "present";
+	$f->{$fid}->{presence} = "present";
 	
-		flock(ETAT,LOCK_UN);
-		close ETAT;
-		# _release($ETAT);
+	flock(ETAT,LOCK_UN);
+	close ETAT;
+	# _release($ETAT);
 	
-		Engarde::debug(2,"fencer_checkin(): starting to_text() at " . localtime());
+	Engarde::debug(2,"fencer_checkin(): starting to_text() at " . localtime());
 		
-		$f->to_text;
-	}
+	$f->to_text;
 	
 	Engarde::debug(2,"fencer_checkin(): redirecting at " . localtime());
 	
@@ -403,16 +353,6 @@ sub fencer_scratch
 }
 
 
-# should remove this
-sub fencer_absent
-{
-	my $cid = shift;
-	my $fid = shift;
-	
-	Engarde::DB::fencer_absent(shift, shift);
-	print redirect(-uri=>"check-in.cgi?wp=$cid&Action=list");
-}
-
 sub fencer_edit
 {
 	my $config=config_read();
@@ -450,18 +390,10 @@ sub fencer_edit
 		delete $item->{paiement};
 	}
 
-	if (defined $Engarde::DB::VERSION)
-	{
-		# arguments are reversed here to allow for fencer add without entry to an event
-		Engarde::DB::tireur_add_edit($item, $wp);
-	}
-	else
-	{
-		my $c=Engarde->new($config->{competition}->{$wp}->{source}, 2);
+	my $c=Engarde->new($config->{competition}->{$wp}->{source}, 2);
 
-		HTMLdie("invalid competition") unless $c;
-		my $id = $c->tireur_add_edit($item);
-	}
+	HTMLdie("invalid competition") unless $c;
+	my $id = $c->tireur_add_edit($item);
 
 	print redirect(-uri=>"check-in.cgi?wp=$wp&Action=list");
 }
@@ -557,14 +489,10 @@ sub config_trash
 
 sub _config_location
 {
-	#my $nodb = shift;
-	#return "DB" if (defined $Engarde::DB::VERSION && !defined $nodb);
-	
 	my $dir = cwd();
 
 	my @locations = (	"/home/engarde/live/web/live.xml",
-						"/home/engarde/eng-live/web/live.xml",
-						"c:/users/psmith/Documents/prs2712\@gmail.com/escrime/eng-live/web/live.xml",
+						"/home/engarde/live/live.xml",
 						"$dir/web/live.xml",
 						"$dir/live.xml",
 						"$dir/../live.xml",
@@ -582,18 +510,7 @@ sub config_read
 		
 		return undef unless $cf;
 		
-		# need to initialise this as $data = {} possibly
-		my $data;
-		
-		if ($cf eq "DB")
-		{
-			$data = Engarde::DB::config_read();
-		}
-		else
-		{
-			#my $data = XMLin($cf, KeyAttr=>'id', ForceArray=>qr/competition message/); 
-			$data = XMLin($cf, KeyAttr=>'id', ForceArray=>1); 
-		}
+		my $data = XMLin($cf, KeyAttr=>'id', ForceArray=>1); 
 		
 		my $debug = $data->{debug};
 		
@@ -608,12 +525,6 @@ sub config_write
 	my $cf = shift || _config_location();
 
 	return undef unless $cf;
-
-	#if ($cf eq "DB")
-	#{
-	#	Engarde::DB::config_write($data);
-	#	$cf = _config_location(1);
-	#}
 
 	open my $FH, ">$cf" . ".tmp" or HTMLdie ("Could not open $cf.tmp for writing: $!");
 	flock($FH, LOCK_EX) || HTMLdie ("Couldn't obtain exclusive lock on $cf");
@@ -633,7 +544,85 @@ sub config_write
 #
 #########################################################
 
-sub frm_control {
+# TODO: Move all of the form generation to templates
+
+sub frm_control
+{
+	my $data = config_read();
+
+	my $ft = FencingTime->instance({host => $data->{ftserver}});
+
+	my $comps = $data->{competition};
+
+	$comps = {} unless ref $comps eq "HASH";
+	
+	foreach my $cid (sort { $a <=> $b } keys(%$comps)) 
+	{
+		my ($c, $name, $path, $etat, @w);
+
+		if ($comps->{$cid}->{type} eq "ft")
+		{
+			$c = $ft->tournament($data->{tournamentname})->event($comps->{$cid}->{source});
+		}
+		else
+		{
+			$c = Engarde->new($comps->{$cid}->{source});
+		}
+
+		next unless $c;
+
+		$data->{competition}->{$cid}->{etat} = $c->etat;
+
+		my $lockstat = 0;
+
+		if ($comps->{$cid}->{type} eq "engarde")
+		{
+			# test to see if Engarde is running
+			if ($^O =~ /Win32/)
+			{
+				open(ETAT, "+< $path/etat.txt"); 
+				$lockstat = flock(ETAT,LOCK_EX);
+		
+				# immediately release the lock just in case
+				flock(ETAT,LOCK_UN);
+				close ETAT;
+			}
+			else
+			{
+				my $file = "$path/etat.txt";
+				$file =~ s/ /\\ /g;
+				$lockstat = 1 unless `lsof $file`;
+			}
+
+		}
+
+		$data->{competition}->{$cid}->{lockstat} = $lockstat;
+
+		my $where = $c->whereami;
+		@w = split (/\s+/,$where);
+		$etat = $c->etat;
+
+		TRACE($etat);
+		TRACE($where);
+
+		$data->{competition}->{$cid}->{where} = $where;
+
+		SWITCH:
+		{
+			if ($etat eq "tableaux")
+			{
+				$data->{competition}->{$cid}->{matchlist} = $c->matchlist(2);
+			}
+		}
+		#####
+
+		
+	}
+
+	$tt->process('control.tt', { title => 'Event Status', data => $data, });
+}
+
+sub frm_control_old {
 	my $config = config_read();
 
 	#my $JSCRIPT="function doLoad() {\n  setTimeout('window.location.reload()',".$config->{statusTimeout}.");\n}";
@@ -671,35 +660,25 @@ sub frm_control {
 		
 		Engarde::debug(2, "frm_control: cid = $cid, etat = $etat, w = @w");
 		
-		if (defined $Engarde::DB::VERSION)
+		$name = $c->titre_ligne;
+		$path = $c->dir();	
+			
+		# test to see if Engarde is running
+		
+		if ($^O =~ /Win32/)
 		{
-			$name = $w->{'titre_ligne'};
-			$path = $w->{'source'};
-			# $etat = $w->{'state'};
-			$lockstat = 1;
+			open(ETAT, "+< $path/etat.txt"); 
+			$lockstat = flock(ETAT,LOCK_EX);
+		
+			# immediately release the lock just in case
+			flock(ETAT,LOCK_UN);
+			close ETAT;
 		}
 		else
 		{
-			$name = $c->titre_ligne;
-			$path = $c->dir();	
-			
-			# test to see if Engarde is running
-		
-			if ($^O =~ /Win32/)
-			{
-				open(ETAT, "+< $path/etat.txt"); 
-				$lockstat = flock(ETAT,LOCK_EX);
-		
-				# immediately release the lock just in case
-				flock(ETAT,LOCK_UN);
-				close ETAT;
-			}
-			else
-			{
-				my $file = "$path/etat.txt";
-				$file =~ s/ /\\ /g;
-				$lockstat = 1 unless `lsof $file`;
-			}
+			my $file = "$path/etat.txt";
+			$file =~ s/ /\\ /g;
+			$lockstat = 1 unless `lsof $file`;
 		}
 		
 		print "<tr><th align=left>$cid - $name<br><font color='grey' size=1>$path</font></th>" ;
@@ -725,14 +704,7 @@ sub frm_control {
 			{
 				my $f;
 				
-				if (defined $Engarde::DB::VERSION)
-				{
-					$f = Engarde::DB::tireur($cid);
-				}
-				else
-				{
-					$f = $c->tireur;
-				}
+				$f = $c->tireur;
 				
 				my $present = $f->{present};
 				my $total = $f->{entries};
@@ -1259,19 +1231,11 @@ sub frm_checkin_desk {
 
 		my ($name, $path);
 		
-		if (defined $Engarde::DB::VERSION)
-		{
-			$name = $w->{'titre_ligne'};
-			$path = $w->{'source'};
-		}
-		else
-		{
-			my $c = Engarde->new($w->{source} . "/competition.egw", 2);
-			next unless defined $c;
+		my $c = Engarde->new($w->{source} . "/competition.egw", 2);
+		next unless defined $c;
 
-			$name = $c->titre_ligne;
-			$path = $c->dir();
-		}
+		$name = $c->titre_ligne;
+		$path = $c->dir();
 		
 		print "<tr><td><a href=".url()."?wp=$cid&Action=list>$cid - $name<br><font color='grey' size=1>$path</font></a></td></tr>" ;
   	}
@@ -1291,25 +1255,14 @@ sub frm_checkin_list {
 	
 	my ($f, $clubs, $nations, $titre_ligne);
 	
-	if (defined $Engarde::DB::VERSION)
-	{
-		$f = Engarde::DB::tireur($cid);
-		$clubs = Engarde::DB::club();
-		# $nations = Engarde::DB::nation();
-		Engarde::debug(2,"Engarde::Control::frm_checkin_list: clubs = " . Dumper(\$clubs));
-		$titre_ligne = $config->{competition}->{$cid}->{titre_ligne};
-	}
-	else
-	{
-		my $c = Engarde->new($config->{competition}->{$cid}->{source} . "/competition.egw");
-		HTMLdie("invalid competition") unless $c;
-		HTMLdie("Check-in no longer actvive") unless $config->{competition}->{$cid}->{state} eq "check-in";
+	my $c = Engarde->new($config->{competition}->{$cid}->{source} . "/competition.egw");
+	HTMLdie("invalid competition") unless $c;
+	HTMLdie("Check-in no longer actvive") unless $config->{competition}->{$cid}->{state} eq "check-in";
 	
-		$f = $c->tireur;
-		$clubs = $c->club;
-		$nations = $c->nation;
-		$titre_ligne = $c->titre_ligne;
-	}
+	$f = $c->tireur;
+	$clubs = $c->club;
+	$nations = $c->nation;
+	$titre_ligne = $c->titre_ligne;
 	
 	my $JSCRIPT="var compid = $cid;";
 	
@@ -1363,25 +1316,14 @@ sub frm_checkin_list_old
 	
 	my ($f, $clubs, $nations, $titre_ligne);
 	
-	if (defined $Engarde::DB::VERSION)
-	{
-		$f = Engarde::DB::tireur($cid);
-		$clubs = Engarde::DB::club();
-		# $nations = Engarde::DB::nation();
-		Engarde::debug(1,"Engarde::Control::frm_checkin_list: clubs = " . Dumper(\$clubs));
-		$titre_ligne = $config->{competition}->{$cid}->{titre_ligne};
-	}
-	else
-	{
-		my $c = Engarde->new($config->{competition}->{$cid}->{source} . "/competition.egw");
-		HTMLdie("invalid competition") unless $c;
-		HTMLdie("Check-in no longer actvive") unless $config->{competition}->{$cid}->{state} eq "check-in";
+	my $c = Engarde->new($config->{competition}->{$cid}->{source} . "/competition.egw");
+	HTMLdie("invalid competition") unless $c;
+	HTMLdie("Check-in no longer actvive") unless $config->{competition}->{$cid}->{state} eq "check-in";
 	
-		$f = $c->tireur;
-		$clubs = $c->club;
-		$nations = $c->nation;
-		$titre_ligne = $c->titre_ligne;
-	}
+	$f = $c->tireur;
+	$clubs = $c->club;
+	$nations = $c->nation;
+	$titre_ligne = $c->titre_ligne;
 	
 	my $JSCRIPT="function edit(item) {\n  window.location.href=\"".url()."?wp=".$cid."&Action=Edit&Item=\" + item;\n}\n";
 	$JSCRIPT=$JSCRIPT."function check(item,row) {\n  var m=document.getElementById('openModal'); m.style.opacity=1; m.style.pointerEvents='auto'; row.style.backgroundColor = 'green'; window.location.href = \"".url()."?wp=$cid&Action=Check&Item=\" + item\n}\n";
@@ -1534,15 +1476,7 @@ sub frm_fencer_edit
 	
 	if ($item != -1)
 	{
-		if (defined $Engarde::DB::VERSION)
-		{
-			$f = Engarde::DB::tireur($weaponPath, $item);
-			# HTMLdie(Dumper($f));
-		}
-		else
-		{
-			$f = $c->tireur($item);
-		}
+		$f = $c->tireur($item);
 	}
 	else
 	{
@@ -1683,7 +1617,7 @@ sub _find_comps
 {
 	undef @available_comps;
 	
-	my @possibledirs = ("../../data/examples", "/home/engarde/public/data/current", "c:/users/psmith/Documents/prs2712\@gmail.com/escrime/DATA/examples");
+	my @possibledirs = ("../../data/examples", "/home/engarde/public/data/current", "c:/users/psmit/Documents/prs2712\@gmail.com/escrime/DATA/examples");
 
 	my @dirs;
 	
@@ -1860,14 +1794,7 @@ sub _club_list
 
 	my $clublist;
 	
-	if (defined $Engarde::DB::VERSION)
-	{
-		$clublist = Engarde::DB::club();
-	}
-	else
-	{
-		$clublist = $c->club;
-	}
+	$clublist = $c->club;
 	
 	# Generate Club List
 	

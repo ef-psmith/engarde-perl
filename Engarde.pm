@@ -13,7 +13,7 @@ package Engarde;
 # use Exporter;
 
 use strict;
-use Data::Dumper;
+use Data::Dumper::Concise;
 use Carp qw(croak cluck);
 use Scalar::Util qw(weaken);
 use Fcntl qw(:flock);
@@ -26,8 +26,9 @@ use Engarde::Tableau;
 use Engarde::Poule;
 use Engarde::Arbitre;
 use Time::Local;
+use DT::Log;
 # use HTML::Entities;
-our $DEBUGGING = 0;
+# our $DEBUGGING = 0;
 # get rid of the STDERR reopened... warning
 no warnings 'io';
 
@@ -35,7 +36,7 @@ no warnings 'io';
 use vars qw($VERSION @ISA $ta);
 @ISA = qw(Exporter);
 
-our @EXPORT = qw(debug);
+# our @EXPORT = qw(debug);
 
 $VERSION = '1.22'; 
 
@@ -107,21 +108,31 @@ sub parent
 sub new {
 
 	my $class = shift;
-	my $file = shift;
-	my $quick = shift || 0;
-
-	# print "NEW: class = $class\n";
-	debug(1,"new(): processing file $file");
+	my $args = shift;
+	my $file;
+	my $quick;
+	if (ref $args eq "HASH")
+	{
+		$file = $args->{file};
+		$quick = $args->{quick} || 0;
+	}
+	else
+	{
+		$file = $args;
+		$quick = shift || 0;
+	}
 
 	my $self  = {};
 
 	$file .= "/competition.egw" if (-d $file);
-	
+
 	unless (-r $file)
 	{
-		debug(1, "new(): Cannot read file $file");
+		WARN("cannot read file $file");
 		return undef;
 	}
+	
+	INFO("processing file $file");
 
 	$self->{mtime} = (stat($file))[9];
 	$self->{ctime} = (stat($file))[10];
@@ -191,6 +202,7 @@ sub new {
 sub _init_poules
 {
 	my $self = shift;
+	DEBUG("start");
 
 	my $dir = $self->dir;
 	#
@@ -238,6 +250,8 @@ sub _init_poules
 
 		close IN;
 	}
+
+	DEBUG("end");
 }
 
 
@@ -267,15 +281,13 @@ sub _init_tableaux
 
 			s/\R//g;
 
-			debug(3,"_init_tableaux(): _ = $_");
-
 			if (/\[classe description_tableau/ && $unparsed)
 			{
 				my $item = _decode_tableau($unparsed);
 
 				if ($item->{nom})
 				{
-					debug(3,"_init_tableaux(): adding " . $item->{nom} . " to tableauxactifs");
+					TRACE("adding " . $item->{nom} . " to tableauxactifs");
 					$self->{tableauxactifs}->{$item->{nom}} = $item unless $item->{inactif};
 				}
 
@@ -286,7 +298,7 @@ sub _init_tableaux
 			{
 				s/.*classe description_tableau\] //;
 				$unparsed .= $_;
-				debug(3,"_init_tableaux(): fall through: unparsed = $_");
+				#TRACE("fall through: unparsed = $_");
 			}
 		}
 
@@ -296,7 +308,7 @@ sub _init_tableaux
 
 			if ($item->{nom})
 			{
-				debug(3,"_init_tableaux(): adding " . $item->{nom} . " to tableauxactifs");
+				TRACE("adding " . $item->{nom} . " to tableauxactifs");
 				$self->{tableauxactifs}->{$item->{nom}} = $item unless $item->{inactif};
 			}
 		}
@@ -304,7 +316,7 @@ sub _init_tableaux
 		close IN;
 	}
 
-	debug(3,"_init_tableau(): tableauxactifs = " . Dumper($self->{tableauxactifs}));
+	TRACE( sub { "tableauxactifs = " . Dumper($self->{tableauxactifs}) });
 }
 
 
@@ -325,8 +337,6 @@ sub _decode_tableau
 		my @keywords = qw/suite nom nom_etendu rang_premier_battu inactif taille destination_vainqueurs destination_battus/;
 
 		s/\]//;
-
-		debug(3,"_decode_tableau(): element = $_");
 
 		foreach my $key (@keywords)
 		{
@@ -359,15 +369,17 @@ sub _decode_tableau
 
 sub initialise
 {
-	my $c = shift;
+	my $self = shift;
+	TRACE("start");
 
 	# $c->_init_poules;
 	# $c->_init_tableaux;	
 
-	$c->tireur;
-	$c->nation;
-	$c->club;
+	$self->tireur;
+	$self->nation;
+	$self->club;
 
+	TRACE("end");
 	# my $tab = $c->tableauxactifs;
 
 	# print Dumper(\$tab);
@@ -448,24 +460,26 @@ sub match
 	$out->{idA} = $match->{idA} if $match->{idA};
 	$out->{idB} = $match->{idB} if $match->{idB};
 	
-	$out->{categoryA} = $fa->{category};
-	$out->{categoryB} = $fb->{category};
+	#$out->{categoryA} = $fa->{category};
+	#$out->{categoryB} = $fb->{category};
 	
 	if (defined $match->{time})
 	{
-		debug(3, "match: $t $m start_time calculated from $match->{time}");
+		TRACE("match: $t $m start_time calculated from $match->{time}");
 		
-		$out->{start_time} = _heure_to_time($match->{time});
+		$out->{start_time2} = _heure_to_time($match->{time});
+		$out->{start_time} = sprintf "%02d:%02d", reverse((localtime($match->{time}))[1-2]);
 		
-		debug(3, "match: start_time = " . localtime($out->{start_time}));
+		TRACE("start_time = " . localtime($out->{start_time2}));
 	}
 	else
 	{
-		debug(3, "match: $t $m start_time calculated from ctime");
-		$out->{start_time} = $tab->ctime + 900;		# 15 minutes after tableau creation
+		TRACE("match: $t $m start_time calculated from ctime");
+		$out->{start_time2} = $tab->ctime + 900;		# 15 minutes after tableau creation
+		$out->{start_time} = localtime($out->{start_time2});		# 15 minutes after tableau creation
 	}
 
-	$out->{end_time} = $out->{start_time} + 1200;	# 20 minutes after start
+	$out->{end_time} = sprintf "%02d:%02d", reverse((localtime($out->{start_time} + 1200))[1-2]);	# 20 minutes after start
 
 	my $size = $tab->taille;
 
@@ -505,12 +519,12 @@ sub tireur
 	my $c = shift;	
 	my $id = shift;
 
+	TRACE("start: id = $id");
+
 	# print "TIREUR 1: c = " . Dumper($c);
 	# print "TIREUR: id = $id\n" if $id;
 
 	my $dir = $c->dir();
-
-	# print "tireur: dir = $dir\n";
 
 	my $self;
 	my $old_mtime = 0;
@@ -537,8 +551,8 @@ sub tireur
 	if ($self->{mtime} && $self->{mtime} > $old_mtime)
 	{
 		# print "Loading tireur data...\n";
-
 		$self->load();
+
 		# print Dumper (\$self);
 		$c->{tireur} = $self;
 	}
@@ -567,6 +581,8 @@ sub tireur
 	{
 		return $self;
 	}
+
+	TRACE("end (should be unreachable)");
 }
 
 
@@ -675,25 +691,28 @@ sub tableau
 	my $level = uc(shift);
 	my $decode = shift;
 
+	TRACE( sub { "level = $level" } );
+
 	my $suite = substr($level,0,1);
 	my $num = substr($level,1) || cluck();
 
-	my $dir = $c->dir();
+
+	my $dir = ref $c eq "Engarde" ? $c->dir() : $c->parent->dir;
 
 	my $self;
 	my $old_mtime = 0;
 
-	debug(2,"tableau(): procesing $level");
+	TRACE("procesing $level");
 
 	if ($c->{tableau}->{$level})
 	{
-		debug(2,"tableau(): level $level exists");
+		TRACE("level $level exists");
 		$self = $c->{tableau}->{$level};
 		$old_mtime = $self->mtime();
 	}
 	else
 	{
-		debug(2,"tableau(): level $level does not exist yet");
+		TRACE("level $level does not exist yet");
 		$self = {};
 		$self->{file} = "$dir/tableau$level.txt";
 		$self->{nom} = $level;
@@ -704,7 +723,7 @@ sub tableau
 
 		if ( $c->{tableauxactifs}->{$level}->{destination_battus})
 		{
-			debug(2, "tableau(): destination_battus = " . $c->{tableauxactifs}->{$level}->{destination_battus});
+			TRACE("destination_battus = " . $c->{tableauxactifs}->{$level}->{destination_battus});
 			$self->{destination_battus} = $c->{tableauxactifs}->{$level}->{destination_battus};
 			$c->{tableauxactifs}->{$self->{destination_battus}}->{is_rep} = 1;
 		}
@@ -725,25 +744,23 @@ sub tableau
 
 	unless (-r $self->{file})
 	{
-		debug(1,"tableau() cannot read " . $self->{file});
+		DEBUG("cannot read " . $self->{file});
 		return undef;
 	}
 
 	$self->{mtime} = (stat("$self->{file}"))[9];
 	$self->{ctime} = (stat("$self->{file}"))[10];
 
-	debug(2,"tableau(): mtime = $self->{mtime}");
-
 	if ($self->{mtime} && $self->{mtime} > $old_mtime)
 	{
-		debug(2,"tableau(): re-loading level $level");
+		TRACE("re-loading level $level");
 		# print "Loading $level data...\n";
 		$self->load($level);
 		$c->{tableau}->{$level} = $self;
 	}
 	else
 	{
-		debug(2,"tableau(): not re-loading level $level");
+		TRACE("not re-loading level $level");
 		# print "Not loading $level data...\n";
 	}
 
@@ -751,15 +768,16 @@ sub tableau
 
 	return $self unless $decode;
 
-	debug(2,"tableau(): decoding level $level");
-	debug(2,"tableau(): level $level = " , Dumper(\$self));
+	DEBUG("decoding level $level");
+	TRACE( sub { "level $level = " , Dumper(\$self) } );
 
 	foreach my $m (keys %$self)
 	{
 		if ($m =~ /\d+/)
 		{
-			debug(2,"tableau(): decoding $level match $m");
+			TRACE("decoding $level match $m");
 			my $match = $c->match($level, $m);
+			TRACE( sub { "level $level match $m = " . Dumper(\$match) });
 
 			$self->{$m} = $match;
 		}
@@ -1010,7 +1028,7 @@ sub ranking
 			
 			my $etat = $round->etat;
 
-			debug(2,"ranking(): round $t, etat = $etat");
+			DEBUG("round $t, etat = $etat");
 
 			next unless $etat eq "termine";
 
@@ -1020,7 +1038,7 @@ sub ranking
 
 			my $eliminated = $round->eliminated;
 
-			debug(2, "ranking(): eliminated = " . Dumper(\$eliminated));
+			# TRACE( sub { "ranking(): eliminated = " . Dumper(\$eliminated) });
 
 			my $next_rang = $round->rang_premier_battu;
 
@@ -1031,7 +1049,6 @@ sub ranking
 			foreach my $e (@$eliminated)
 			{
 				my $t = $c->tireur($e);
-				# debug(2, "ranking(): eliminated $e = " . Dumper(\$t));
 
 				my $rang = $t->rangpou;
 				my $nom = $t->nom;
@@ -1052,8 +1069,6 @@ sub ranking
 
 			foreach my $e (sort { $elim->{$a}->{rangpou} <=> $elim->{$b}->{rangpou}} keys(%$elim))
 			{
-				# debug(2,"ranking(): e = " . Dumper(\$e));
-
 				my $rangpou = $elim->{$e}->{rangpou};
 
 				$current_rang = $next_rang if $rangpou > $last_rang;
@@ -1065,7 +1080,7 @@ sub ranking
 				$seeds->{$e}->{seed} = 3 if $current_rang == 4;
 			}
 			
-			debug(2, "ranking(): seeds = " . Dumper(\$seeds));
+			# TRACE( sub { "seeds = " . Dumper(\$seeds) });
 
 			if ($taille == 2)
 			{
@@ -1084,13 +1099,14 @@ sub ranking
 				my $category = $nom eq $m->{fencerA} ? $m->{categoryA} : $m->{categoryB};
 				
 				# TODO - Add category - probably needs to come from the match object
+				# why is this key winnerid when the rest of them appear to be ranking???
 				$seeds->{$m->{winnerid}} = {nom=>$nom, nation=>$nation, club=>$club, seed=>1, group=>"elim_0", category=>$category}; 
 
 			}
 		}
 	}
 
-	# debug(2,"ranking(): seeds = " . Dumper(\$seeds));
+	TRACE ( sub { Dumper(\$seeds) } );
 	return $seeds;
 }
 
@@ -1163,111 +1179,121 @@ sub matchlist
 {
 	my $c = shift;
 
-	my $raw = shift || 0;
+	TRACE("start - c isa " . ref $c) ;
 
 	my $output = {};
-	my $by_piste = {};
 
 	my $now = time;
 	
-	my @ta = split / /,uc($c->tableaux_en_cours);
+	my @ta;
 
-	debug(2,"matchlist(): tableaux = " . Dumper(\@ta));
-
-	foreach my $t (@ta)
+	if (ref $c eq "Engarde::Tableau")
 	{
-		my $tab = $c->tableau($t, 1);
-
-		debug(3, "matchlist(): tab = " . Dumper(\$tab));
-
-		foreach my $id (sort keys %$tab)
-		{
-			next unless $id =~ /\d+/;
-
-			# my $match = $tab->match($id);
-			
-			my $match = $c->match($t, $id);
-			
-			# next unless $match->{'idA'} && $match->{'idB'};
-				
-			my $p = $match->{piste} || -1;
-			
-			debug(2,"matchlist(): match ($id on piste $p) = " . Dumper(\$match));
-			# $match->{piste} = -1 unless defined $match->{piste};
-			
-			if ($p)
-			{
-				$by_piste->{$p}->{total_matches} += 1;
-				$match->{sequence} = $by_piste->{$p}->{total_matches};
-
-				$by_piste->{$p}->{start_time} = $match->{start_time} unless $by_piste->{$p}->{start_time};
-				$by_piste->{$p}->{start_time} = $match->{start_time} if $match->{start_time} < $by_piste->{$p}->{start_time};
-			}
-			
-			next if $match->{winnerid};
-			
-			$match->{end_time} = $by_piste->{$p}->{start_time} + (1200 * ($match->{sequence} || 1));	# 20 minutes after start per match
-			$match->{status} = $match->{end_time} < $now ? "late" : "ok";
-	
-			$by_piste->{$p}->{end_time} = $match->{end_time} unless $by_piste->{$p}->{end_time};
-			$by_piste->{$p}->{end_time} = $match->{end_time} if $match->{end_time} > $by_piste->{$p}->{end_time};
-	
-			$by_piste->{$p}->{unfinished_matches} += 1;
-			
-			debug(2,"matchlist(): adding match " . $tab->{prefix} . "$id to unfinished for piste $p");
-			
-			$by_piste->{$p}->{status} = "late" if $match->{status} eq "late";
-				
-			debug(2, "matchlist(): *****************************************************");
-			debug(2, "matchlist(): processing id $id");
-			debug(3, "matchlist(): match = " . Dumper(\$match));
-
-			unless ($raw)
-			{
-				next unless ($match->{'idA'} || $match->{'idB'});
-				# next if $match->{'idA'} eq 'nobody' || $match->{'idB'} eq 'nobody';
-
-				debug(3, "matchlist(): waiting for match = " . Dumper($match));
-
-				#$t =~ s/[A-Z]*//;
-
-				if (defined $match->{'fencerA'})
-				{
-					if (!defined $match->{'fencerB'})
-					{
-						$output->{$match->{'fencerA_court'}} = { round=> 'BYE', piste=> 'BYE', time=>'BYE' };
-					}
-					else
-					{
-						$output->{$match->{'fencerA_court'}} = { round=>$t, piste=> $p, time=>$match->{time} };
-					}
-				}
-
-				if (defined $match->{'fencerB'}) 
-				{
-					if (!defined $match->{'fencerA'})
-					{
-						$output->{$match->{'fencerB_court'}} = { round=> 'BYE', piste=> 'BYE', time=>'BYE' };
-					}
-					else
-					{
-						$output->{$match->{'fencerB_court'}} = { round=>$t, piste=> $p, time=>$match->{time} };
-					}
-				}
-
-				debug(2, "matchlist(): output = " . Dumper(\$output));
-			}
-			else
-			{
-				$output->{$t}->{$id} = $match ;
-				
-				$by_piste->{$p}->{$t}->{$id} = $match;
-			}
-		}
+		@ta = $c->nom;
+	}
+	else
+	{
+		@ta = split / /,uc($c->tableaux_en_cours);
 	}
 
-	return $by_piste if $raw > 1;
-	return $output;
+	# TRACE( sub {"ta = " . Dumper(\@ta) });
+
+#	this needs to create an array of matches like:
+#		'tab' => {match} => [
+#			{
+#				number => n,
+#				time => xx,
+#				score => 'xx',
+#				piste => '11',
+#				winnername => '',
+#				winnerid => ''.
+#				fencerA => {
+#					name => '',
+#					affiliation => '',
+#					id => 123,
+#					seed => 999,
+#							},
+#				fencerB => {
+#							},
+#			},
+#		],
+
+# match before transform looks like:
+#{
+#    clubA => "BRISTOL GRAMMAR",
+#    end_time => "00:00",
+#    fencerA => "SUMMERBELL Daniel",
+#    fencerA_court => "SUMMERBELL D",
+#    idA => 42,
+#    idB => "nobody",
+#    num => "G1",
+#    piste => 20,
+#    scoreA => "",
+#    scoreB => "",
+#    seedA => 1,
+#    seedB => 128,
+#    start_time => "Sat Jun  3 14:44:19 2017",
+#    start_time2 => "1496501059",
+#    time => undef,
+#    winnerid => 42,
+#    winnername => "SUMMERBELL Daniel"
+#  }
+
+
+	# loop will only run once if we're passed a tableau object
+	foreach my $t (@ta)
+	{
+		my $sequence = 1;
+		my $tab = ref $c eq "Engarde::Tableau" ? $c : $c->tableau($t, 1);
+
+		foreach my $id (sort { $a <=> $b } grep /\d+/, keys %$tab)
+		{
+			DEBUG("id = $id");
+
+			# id is a match id
+			my $match = $tab->match($id);
+
+			my $score = "$match->{scoreA} / $match->{scoreB}";
+
+			$score = "by exclusion" if $score =~ /exclusion/;
+			$score = "by abandonment" if $score =~ /abandon/;
+			$score = "by penalty" if $score =~ /forfait/;
+			$score = "" if $score eq " / ";
+
+			my $m =	{ 
+						number => $id,
+						time => $match->{time},
+						score => $score,
+						piste => $match->{piste} || "-1",
+						winnerid => $match->{winnerid},
+						winnername => $match->{winnername},
+						round => $t,
+						# sequence => $sequence++,
+						fencerA	=> { name => $match->{fencerA_court}, affiliation => $match->{clubA}, id => $match->{idA}, seed => $match->{seedA} },
+						fencerB	=> { name => $match->{fencerB_court}, affiliation => $match->{clubB}, id => $match->{idB}, seed => $match->{seedB} },
+					};
+			
+			TRACE( sub { "match $id = " . Dumper(\$m) });
+
+			push @{$output->{$t}->{match}}, $m;
+
+		}
+
+		my @list = $output->{$t}->{match};
+ 		my $matchcount = @list;
+		$output->{$t}->{count} = $matchcount;
+		$output->{$t}->{title} = $tab->{nom_etendu};
+	}
+
+	DEBUG( sub {"output = " . Dumper(\$output) });
+
+
+	return ref $c eq "Engarde::Tableau" ? @{$output->{$ta[0]}->{match}} : $output;
+}
+
+sub matchlist_by_piste
+{
+	shift->matchlist(2);
 }
 
 
@@ -1281,48 +1307,36 @@ sub tireurs
 {
 	my $c = shift;
 	my $present = shift || 0;
-	my $nodb = 1;
 	
 	my $output = {};
 
 	my $t;
 	
-	if (defined $Engarde::DB::VERSION and !defined $nodb)
+	$t = $c->tireur;
+	
+	foreach my $id (keys %$t)
 	{
-		# print STDERR "cid = $c->{cid}\n";
-		# debug(1, "Engarde::tireurs: ftching from DB for cid = $c->{cid}");
-		$output = Engarde::DB::tireur($c->{cid});
-	}
-	else
-	{	
-		$t = $c->tireur;
+		next unless $id =~ /\d+/;
 	
-		foreach my $id (keys %$t)
-		{
-			next unless $id =~ /\d+/;
-	
-			my $f = $c->tireur($id);
+		my $f = $c->tireur($id);
 			
-			next if $present && $f->presence ne "present";
+		next if $present && $f->presence ne "present";
 	
-			# print "tireurs: f = " . Dumper(\$f);
+		# print "tireurs: f = " . Dumper(\$f);
 	
-			my $club = $f->club ? $c->club($f->club) : "";
-			my $nom = $f->nom;
-			my $serie = $f->serie;
-			my $nation = $f->nation ? $c->nation($f->nation) : "";
-			my $presence = $f->presence;
+		my $club = $f->club ? $c->club($f->club) : "";
+		my $nom = $f->nom;
+		my $serie = $f->serie;
+		my $nation = $f->nation ? $c->nation($f->nation) : "";
+		my $presence = $f->presence;
 
-			$output->{$id} = { nom=>$nom, club=>$club, serie=>$serie, nation=>$nation, presence=>$presence };
-		}
-
-		$output->{scratch} = $t->{scratch};
-		$output->{present} = $t->{present};
-		$output->{absent} = $t->{absent};
-		$output->{entries} = $t->{entries};
+		$output->{$id} = { nom=>$nom, club=>$club, serie=>$serie, nation=>$nation, presence=>$presence };
 	}
 
-	# debug(1,"tireurs: output = " . Dumper(\$output));
+	$output->{scratch} = $t->{scratch};
+	$output->{present} = $t->{present};
+	$output->{absent} = $t->{absent};
+	$output->{entries} = $t->{entries};
 
 	return $output;
 }
@@ -1362,7 +1376,6 @@ sub load
 		s/\R//g;
 		$self->decode($_) if $_;
 	}
-	
 }
 
 
@@ -1394,7 +1407,7 @@ sub tableaux
 
 	local $ta = $self->tableauxactifs;
 
-	debug(2,"tableaux(): tableauxactifs = " . Dumper(\$ta));
+	DEBUG( sub { "tableauxactifs = " . Dumper(\$ta) });
 
 	my $initial;
 	my @tableaux;
@@ -1438,13 +1451,8 @@ sub tableaux_sort
 	my $dest_a = $ta->{$a}->{destination_battus};
 	my $dest_b = $ta->{$b}->{destination_battus};
 
-	#debug(3,"tableaux_sort(): BEFORE: \n\ta = $a, \n\tb = $b, \n\trang_a = $rang_a, \n\trang_b = $rang_b, \n\tdest_a = $dest_a, \n\tdest_b = $dest_b");
-
 	$rang_a = $ta->{$dest_a}->{rang_premier_battu} + 1 unless $rang_a;
 	$rang_b = $ta->{$dest_b}->{rang_premier_battu} + 1 unless $rang_b;
-
-	# debug(3,"tableaux_sort(): AFTER: rang_a = $rang_a, rang_b = $rang_b, dest_a = $dest_a, dest_b = $dest_b");
-	# debug(3,"tableaux_sort(): $a $b $dest_a $dest_b");
 
 	return $rang_b <=> $rang_a;
 }
@@ -1469,7 +1477,7 @@ sub next_tableau_in_suite
 
 	my @tab = $self->tableaux();
 
-	debug(2,"next_tableau_in_suite(): tab = [@tab]");
+	DEBUG("next_tableau_in_suite(): tab = [@tab]");
 
 	while ($tab[0] ne $level)
 	{
@@ -1550,8 +1558,6 @@ sub whereami
 				}	
 			}
 	
-			# debug(2,"whereami: tab = @tab");
-
 			$result = "tableau " . join(" ", @tab);
 
 			# $result = "tableau $initial $tab[0]";
@@ -1580,7 +1586,7 @@ sub whereami
 		$result = "poules $nutour $waiting";
 	}
 
-	debug(2,"whereami: result = $result");
+	DEBUG("whereami: result = $result");
 	return $result; 
 }
 
@@ -1635,7 +1641,7 @@ sub _heure_to_time
 	my $in = shift;
 	my ($hr, $min) = ($in =~ m/(\d*):(\d*)/);
 
-	debug(3,"_heure_to_time(): in = $in, hr = $hr, min = $min");
+	TRACE("_heure_to_time(): in = $in, hr = $hr, min = $min");
 
 	# since we only have a hh:mm string we need to convert this to a time value
 	# assuming the other values are "today"
@@ -1649,7 +1655,7 @@ sub _heure_to_time
 	$tm[2] = $hr;
 
 	my $out = timelocal(@tm);
-	debug(3,"_heure_to_time(): returning " . localtime($out));
+	TRACE("_heure_to_time(): returning " . localtime($out));
 	return $out;
 }
 
@@ -1666,7 +1672,7 @@ sub tireur_add_edit
 	my $item = shift;
 	my $t = $self->tireur;
 	
-	debug(1,"tireur_add_edit(): starting item " . Dumper($item));
+	TRACE( sub { "tireur_add_edit(): starting item " . Dumper($item) });
 	
 	# this will allow U/A implicitly
 	# not sure if that's correct really but it's consistent with Engarde
@@ -1678,9 +1684,9 @@ sub tireur_add_edit
 			my $c = {};
 			$c->{nom} = uc($item->{newclub});
 		
-			debug(1,"tireur_add_edit(): adding club " . Dumper($c));
+			TRACE( sub { "tireur_add_edit(): adding club " . Dumper($c) });
 			my $cid = $self->club_add($c);
-			debug(1,"tireur_add_edit(): got club $cid");
+			TRACE("tireur_add_edit(): got club $cid");
 			$item->{club1} = $cid;
 		}
 		delete $item->{newclub};
@@ -1699,7 +1705,7 @@ sub tireur_add_edit
 	
 	delete $item->{nation};
 	
-	debug(1,"tireur_add_edit(): processing item = " . Dumper($item));
+	DEBUG( sub { "tireur_add_edit(): processing item = " . Dumper($item) });
 	
 	return $t->add_edit($item);
 }
@@ -1710,12 +1716,10 @@ sub club_add
 	my $self = shift;
 	my $item = shift;
 	
-	# debug(1,"club_add: item (start) = " . Dumper($item));
-	
 	delete $item->{nation1} if $item->{nation1} == -1;
 	my $cl = $self->club;
 	
-	debug(1,"club_add: item (end) = " . Dumper($item));
+	DEBUG( sub { "club_add: item (end) = " . Dumper($item) });
 	
 	return $cl->add_edit($item);
 }
@@ -1742,7 +1746,7 @@ sub piste_status
 
 			unless ($p) 
 			{
-				debug(2,"piste_status(): poule object for round $round poule no $pn not found");
+				WARN("poule object for round $round poule no $pn not found");
 				next;
 			}
 
@@ -1769,11 +1773,11 @@ sub piste_status
 			next unless $m =~ /^\d+$/;
 			next unless ($round->{$m}->{idA} && $round->{$m}->{idB});
 
-			debug(3,"piste_status(): match = " . Dumper(\$round->{$m}));
+			TRACE( sub { "match = " . Dumper(\$round->{$m}) });
 
 			my $pn = $round->{$m}->{'piste'} || "unknown";
 
-			debug(3,"piste_status(): pn = [$pn]");
+			TRACE("pn = [$pn]");
 
 			$out->{$pn}->{'count'} += 1;
 			$out->{$pn}->{'what'} = "tableau " . $round->nom;
@@ -1800,23 +1804,165 @@ sub piste_status
 }
 
 
-############################################################################
-# Debug output
-############################################################################
-
-sub debug
+sub tableau_with_matches
 {
-	my $level = shift;
-	my $text = shift || "";
+	my $c = shift;
+	my $where = shift;
+
+	DEBUG("where = $where");
+
+	my $out = {};
 	
-	if ($level le $Engarde::DEBUGGING)
+#		'tableau name' => { 
+#							count => nnn,
+#							title => 'title',
+#							match => [ {}, {}, {}, ],
+
+	my $dom = $c->domaine_compe;
+	my $aff = $dom eq "national" ? "club" : "nation";
+	
+	my @possible_tableaux = $c->tableaux;
+	my @alltab;
+	
+	my @en_cours = split / /,uc($c->tableaux_en_cours);
+	my %en_cours = map { $_ => 1 } @en_cours;
+	
+	my $found = 0;
+	
+	foreach my $i (@possible_tableaux)
 	{
-		my @t = localtime();
-		printf STDERR "%02d:%02d:%02d DEBUG(%d): %s\n" ,$t[2],$t[1],$t[0],$level,$text;
+		if ( exists $en_cours{$i} && !$found)
+		{
+			@alltab = (@alltab, @en_cours);
+			$found = 1;
+		}
+		elsif ( !$found)
+		{
+			push @alltab, $i;
+		}	
 	}
 	
+	# @alltab = ("A4", "A2") if ($alltab[0] eq "A2");
+	
+	TRACE("alltab = @alltab");
+	
+	foreach my $atab (@alltab)
+	{
+		my $t = $c->tableau($atab,1);
+		$out->{$atab}->{title} = $t->nom_etendu;
+
+		my @list = $t->matchlist;
+
+		WARN( sub { Dumper(\@list) });
+
+		$out->{$atab}->{match} = [@list];
+		my $matchcount = @list;
+		$out->{$atab}->{count} = $matchcount;
+		ERROR( sub { Dumper(\$out) });
+	}
+	
+	TRACE( sub { Dumper(\$out) });
+
+	$out;
 }
 
+sub entry_list
+{
+	my $c = shift;
+	my $aff = shift;
+	my $list = shift;
+	my $where = shift;
+	
+	my $fencers = $c->tireurs;
+	my @lout;
+	
+	my $sequence = 1;
+
+	foreach my $fid (sort {($fencers->{$a}->{nom} || "") cmp ($fencers->{$b}->{nom} || "")} grep /\d+/, keys %$fencers)
+	{
+		my $aff_value;
+		if ($aff eq "nation")
+		{
+			$aff_value = "$fencers->{$fid}->{nation} " . $fencers->{$fid}->{club} || 'U/A';
+		}
+		else
+		{
+			$aff_value = $fencers->{$fid}->{club} || 'U/A';
+		}
+
+		#print "************************\n";
+		#print Dumper(\$fencers->{$fid});
+		#print Dumper(\$fencers->{$fid}->{presence});
+		#print "************************\n";
+
+		push @lout, {	name => $fencers->{$fid}->{nom}, 
+						affiliation => $aff_value,
+						seed => $fencers->{$fid}->{serie} || '',
+						id => $fid || '',
+						# category => $fencers->{$fid}->{category} || '',
+						presence => $fencers->{$fid}->{presence},
+						sequence => $sequence};
+		$sequence++;
+	}
+
+	$list->{entry}->{fencer} = [@lout];
+	$list->{entry}->{count} = @lout;
+	$list->{entry}->{present} = $fencers->{present};
+	$list->{entry}->{absent} = $fencers->{absent};
+	$list->{entry}->{scratch} = $fencers->{scratch};
+	$list->{entry}->{entries} = $fencers->{entries};
+
+}
+
+sub poules_list
+{
+	my $c = shift;
+	my @hp = @_;
+	my $round;
+		
+	if ($hp[1])
+	{
+		if ($hp[2] eq "constitution")
+		{
+			$round = $hp[1] - 1;
+		}
+		else
+		{
+			$round = $hp[1];
+		}
+	}
+	
+	return undef unless $round;
+	
+	my $pnum = 0;
+	my $poule;
+
+	my @pout;
+	
+	my $p = {};
+	
+	do {
+		my $out = {};
+
+		$poule = $c->poule($round,$pnum + 1);
+
+		if (defined($poule)) 
+		{
+			$out = {'number' => $pnum+1, 'piste' => $poule->piste_no || 'N/A', 'heure' => $poule->heure || '', 'size' => $poule->size};
+			$out->{fencers} = $poule->grid(1);
+
+			push @pout, $out;
+		}
+		$pnum++;
+	} 
+	while(defined($poule) && defined($poule->{'mtime'}));
+	
+	$p->{pool} = [@pout];
+	$p->{count} = @pout;
+	$p->{round} = $round;
+	
+	return $p;
+}	
 
 1;
 

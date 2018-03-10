@@ -52,7 +52,7 @@ sub add_edit
 	my $self = shift;
 	my $new = shift;
 	
-	Engarde::debug(1,"club: add_edit(): new (start) = " . Dumper($new));
+	DEBUG( sub { "new (start) = " . Dumper($new) });
 	
 	my @required = qw/nom/;
 	
@@ -64,8 +64,8 @@ sub add_edit
 	$new->{cle} = $self->{max} + 1 unless $new->{cle} > 0;
 	$self->{$new->{cle}} = $new;
 	
-	Engarde::debug(1,"club: add_edit(): new (end) = " . Dumper($new));
-	Engarde::debug(3,"club: add_edit(): self = " . Dumper($self));
+	TRACE( sub { "new (end) = " . Dumper($new) });
+	TRACE( sub { "self = " . Dumper($self) });
 	
 	$self->to_text;
 	
@@ -82,13 +82,13 @@ sub to_text
 
 	open (my $FH, ">",  "$file.tmp") or do
 	{	
-		Engarde::debug(1,"club: to_text(): open failed on $file.tmp $!");
+		WARN("open failed on $file.tmp $!");
 		return undef;
 	};
 	
 	flock($FH, LOCK_EX) or do
 	{
-		Engarde::debug(1,"club: to_text(): lock failed on $file.tmp $!");
+		WARN("lock failed on $file.tmp $!");
 		return undef;
 	};
 
@@ -98,13 +98,13 @@ sub to_text
 	{	
 		open (my $FH2, "+<", $file) or do
 		{	
-			Engarde::debug(1,"club: to_text(): open failed on $file $!");
+			WARN("open failed on $file $!");
 			return undef;
 		};
 	
 		flock($FH2, LOCK_EX) or do
 		{
-			Engarde::debug(1,"club: to_text(): lock failed on $file $!");
+			WARN("lock failed on $file $!");
 			return undef;
 		};
 	}
@@ -117,10 +117,10 @@ sub to_text
 	# Engarde saves clubs in alpha order rather than id order
 	foreach my $id (sort {$self->{$a}->{nom} cmp $self->{$b}->{nom}} grep /\d+/,keys %$self)
 	{
-		Engarde::debug(3,"club: to_text(): processing id $id");
+		TRACE("processing id $id");
 		$out .= "{[classe club] [nom \"$self->{$id}->{nom}\"] [cle $id]}\r\n";
 		
-		Engarde::debug(3,"club: to_text(): id $id = $out");
+		TRACE("id $id = $out");
 	}
 	print $FH $out;
 	close $FH;
