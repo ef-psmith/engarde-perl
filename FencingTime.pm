@@ -119,11 +119,11 @@ sub fetch
 	my $data = $self->ua->get($uri);
 
 	# say $data->code;
-	WARN( sub { Dumper($data->decoded_content)} );
+	# TRACE( sub { Dumper($data->decoded_content)} );
 
 	if ($data->content_length)
 	{
-		TRACE(sub { Dumper(decode_json($data->decoded_content)) });
+		# TRACE(sub { Dumper(decode_json($data->decoded_content)) });
 		return decode_json($data->decoded_content);
 	}
 	

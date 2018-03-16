@@ -118,7 +118,7 @@ has AltName => ( is => 'lazy', isa => Str);
 has IsQualifier => ( is => 'lazy', isa => Bool);
 has AgeLimit => ( is => 'rwp', isa => Str );
 has PointList2Abbr => ( is => 'lazy', isa => Str );
-has IsFinished => ( is => 'lazy', isa => Bool );
+has IsFinished => ( is => 'rwp', isa => Bool );
 has GenderMix => ( is => 'rwp', isa => Str );
 has RankType => ( is => 'lazy', isa => Str );
 
@@ -159,6 +159,7 @@ sub etat
 
 	# check 12 and 14 - have they changed in 4.3?
 	my $translate = {
+		0 => 'debut',
 		1 => 'debut',
 		2 => 'debut',
 		3 => 'debut',
@@ -384,7 +385,8 @@ sub ranking
 		}
 	}
 
-	my @elim = @{$self->ResultsSoFar};
+	
+	my @elim = $self->IsFinished ? @{$self->Results} : @{$self->ResultsSoFar};
 
 	# can't determine group here - maybe assume based on position?
 	#my $group = "elim_" . $self->Size;
@@ -616,6 +618,7 @@ sub expand
 	$self->_set_GenderMix($data->{GenderMix});
 	$self->_set_Weapon($data->{Weapon});
 	$self->_set_TournamentID($data->{TournamentID});
+	$self->_set_IsFinished($data->{IsFinished});
 }
 
 
@@ -677,9 +680,11 @@ sub _build_Competitors
 sub _build_Elimination
 {
 	my $self = shift;
-	return {} if ($self->State < 7 || $self->State == 12);
+	my $round = $self->RoundID;
+	$round = $self->LastRoundID if $self->State == 12;
+	#return {} if ($self->State < 7 || $self->State == 12);
 
-	$self->ft->fetch("rounds", $self->RoundID, "elimination");
+	$self->ft->fetch("rounds", $round, "elimination");
 }
 
 sub _build_Rounds

@@ -28,6 +28,7 @@ sub _coerce_tableau
 sub matchlist
 {
 	my $self=shift;
+	DEBUG( sub { Dumper(\$self) });
 	my $t = ${$self->Tableaus}[0];
 	INFO("fetching matchlist for default Tableau");
 	my $out = $t->matchlist(shift);
@@ -63,6 +64,12 @@ sub active
 
 	DEBUG("out = @out");
 	@out;
+}
+
+
+sub _build_Tableaus
+{
+	my $self - shift;
 }
 
 package FencingTime::Tableau;
