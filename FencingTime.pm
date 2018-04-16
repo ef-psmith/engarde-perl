@@ -47,7 +47,7 @@ has host => (	is => 'lazy',
 has Tournaments => ( 
 				is => 'lazy', 
 				isa => $Tournaments,
-				coerce => 1
+				coerce => 1,
 );
 
 
@@ -97,7 +97,7 @@ sub find_comp
 	my $self = shift;
 	my $t = $self->Tournaments;
 
-	say Dumper(\$t);
+	# say Dumper(\$t);
 }
 
 sub fetch

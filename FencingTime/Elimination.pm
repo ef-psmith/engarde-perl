@@ -28,11 +28,11 @@ sub _coerce_tableau
 sub matchlist
 {
 	my $self=shift;
-	DEBUG( sub { Dumper(\$self) });
+	# DEBUG( sub { Dumper(\$self) });
 	my $t = ${$self->Tableaus}[0];
 	INFO("fetching matchlist for default Tableau");
 	my $out = $t->matchlist(shift);
-	TRACE( sub { Dumper(\$out) });
+	# TRACE( sub { Dumper(\$out) });
 	$out;
 }
 
@@ -40,7 +40,7 @@ sub tableau
 {
 	my $self = shift;
 	my $t = $self->Tableaus;
-	TRACE( sub { Dumper(\$t) } );
+	# TRACE( sub { Dumper(\$t) } );
 	${$t}[0]->tableau(shift);
 }
 
@@ -54,7 +54,7 @@ sub active
 
 	foreach my $x (sort { $b->Size <=> $a->Size } @{$t->Tables})
 	{
-		TRACE(sub { Dumper(\$x) });
+		# TRACE(sub { Dumper(\$x) });
 
 		next if $x->isComplete;
 		next unless $x->NumCreated;
@@ -125,11 +125,11 @@ sub matchlist
 		ERROR($_->Size . " has " . $m->{unfinished_matches} . " unfinished");
 		# next unless $m->{unfinished_matches};
 		next if $m->{blank_matches} eq $_->Size /2 ;
-		DEBUG(sub { Dumper(\$m) });
+		# DEBUG(sub { Dumper(\$m) });
 		$out->{$_->suitename} = $m;
 	}
 
-	TRACE( sub { Dumper(\$out) });
+	# TRACE( sub { Dumper(\$out) });
 	$out;	
 }
 
@@ -253,7 +253,7 @@ sub matchlist
 	$out->{match} = [];
 
 	# add sort by bout number
-	foreach my $m (sort { $a->BoutNum cmp $b->BoutNum } @{$self->Bouts})
+	foreach my $m (sort { $a->BoutNum <=> $b->BoutNum } @{$self->Bouts})
 	{
 		# my $p = $m->Strip || -1;
 
@@ -270,7 +270,7 @@ sub matchlist
 			$out->{unfinished_matches} += 1;
 			$out->{blank_matches} += 1 unless ($m->TopCompetitor->Name || $m->BottomCompetitor->Name);
 			TRACE( "unfinished match " . $out->{unfinished_matches});
-			TRACE( sub { Dumper(\$m) } );
+			# TRACE( sub { Dumper(\$m) } );
 		}
 
 		#	'time' => '0:00',
@@ -321,7 +321,7 @@ sub matchlist
 	}
 
 
-	TRACE( sub { Dumper(\$out) });
+	# TRACE( sub { Dumper(\$out) });
 	$out;
 }
 

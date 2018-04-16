@@ -25,6 +25,14 @@ sub BUILD
 	#$t->add_event($self);
 }
 
+sub DEMOLISH 
+{
+	my ($self, $in_global_destruction) = @_;
+	
+	ERROR("in demolish");
+	exit;
+}
+
 #### TYPES ####
 my $Fencer_type = class_type { class => "FencingTime::Fencer" };
 my $Fencer_list = ArrayRef[InstanceOf[$Fencer_type->plus_coercions(Any, \&_coerce_fencer)]];
@@ -67,7 +75,7 @@ has Results => ( 	is => 'lazy',
 
 has Competitors => ( 	is => 'lazy',
 						isa => $Fencer_list,
-						coerce => 1
+						coerce => 1,
 );
 
 has Elimination => (	is => 'lazy',
@@ -170,7 +178,7 @@ sub etat
 		8 => 'tableau',
 		9 => 'tableau',
 		10 => 'tableau',
-		11 => 'termine',
+		11 => 'tableau',
 		12 => 'termine',
 		14 => 'tableau',
 		15 => 'tableau',
@@ -299,7 +307,7 @@ sub nombre_poules
 	
 	my $p = $self->Pools;
 
-	TRACE( sub { Dumper(\$p) } );
+	# TRACE( sub { Dumper(\$p) } );
 	scalar @$p;	
 }
 
@@ -385,31 +393,37 @@ sub ranking
 		}
 	}
 
+	my $out = {};
+
+	my @elim;
 	
-	my @elim = $self->IsFinished ? @{$self->Results} : @{$self->ResultsSoFar};
+	if ($type eq "p")
+	{
+		@elim = values %{$poolres};
+	}
+	else
+	{
+		@elim = $self->IsFinished ? @{$self->Results} : @{$self->ResultsSoFar};
+		# @elim = @{$self->Results};
+	}
 
 	# can't determine group here - maybe assume based on position?
-	#my $group = "elim_" . $self->Size;
+	# my $group = "elim_" . $self->Size;
 
-	my $out = {};
+
+	#DEBUG( sub { Dumper(\$poolres) });
 
 	foreach my $f (@elim)
 	{
-		next unless $f->FinalPlace;
-	
-		my $place = $f->FinalPlace;
+		my $place = $type = "p" ? $f->Seed : $f->FinalPlace;
+
 		$place =~ s/T//g;
 
 		$place = 999 if $place eq "DNF";
 
-		TRACE("place = $place");
+		# TRACE("place = $place");
 
 		my $pf = $poolres->{$f->FencerID};
-
-		if ($type eq "p")
-		{
-			next if $pf->Status eq "Advanced";
-		}
 
 		if ($pf->HasPoolResults)
 		{
@@ -417,8 +431,20 @@ sub ranking
 			$out->{$f->FencerID}->{hs} = $pf->PoolTouchesScored;
 			$out->{$f->FencerID}->{hr} = $pf->PoolTouchesReceived;
 			$out->{$f->FencerID}->{ind} = $pf->PoolIndicator;
-			$out->{$f->FencerID}->{vm} = $pf->PoolWinPercentage;
-			$out->{$f->FencerID}->{group} = "elim_p" unless $pf->Status eq "Advanced";
+			$out->{$f->FencerID}->{vm} = sprintf "%.3f", $pf->PoolWinPercentage;
+
+			if ($pf->Status eq "Advanced")
+			{
+				if ($type eq "p")
+				{
+					$out->{$f->FencerID}->{group} = "elim_none";
+				}
+			}
+			else
+			{
+				$out->{$f->FencerID}->{group} = "elim_p"; 
+			}
+	
 		}
 
 
@@ -429,27 +455,29 @@ sub ranking
 		$out->{$f->FencerID}->{club} = $f->PrimaryClubAbbr;
 		$out->{$f->FencerID}->{affiliation} = $f->CountryAbbr || $f->PrimaryClubAbbr;
 
-		unless ($out->{$f->FencerID}->{group})
-		{
-			my $group = 256;
+		$out->{$f->FencerID}->{group} = "elim_none" unless $place;
 
-			if ($place == 1)
-			{
-				$group = 0;
-			}
-			else
-			{
-				foreach my $g (qw(128 64 32 16 8 4 2))
-				{
-					$group = $g unless $place > $g; 
-				}
-			}
-			
-			$out->{$f->FencerID}->{group} = "elim_$group";
-		}
+		#if ($type == "f" && $place )
+		#{
+			#my $group = 256;
+#
+			#if ($place eq 1)
+			#{
+				#$group = 0;
+			#}
+			#else
+			#{
+				#foreach my $g (qw(128 64 32 16 8 4 2))
+				#{
+					#$group = $g unless $place > $g; 
+				#}
+			#}
+			#
+			#$out->{$f->FencerID}->{group} = "elim_$group";
+		#}
 	}
 
-	TRACE( sub { Dumper(\$out) } );
+	# TRACE( sub { Dumper(\$out) } );
 	$out;
 }
 
@@ -457,7 +485,7 @@ sub tableau
 {
 	my $self=shift;
 	my $t = shift;
-	TRACE($t);
+	# TRACE($t);
 
 	$self->Elimination->tableau($t);
 }
@@ -475,7 +503,7 @@ sub tableaux
 		push @out, $t->Name;
 	}
 
-	TRACE( sub { Dumper(\@out) } );
+	# TRACE( sub { Dumper(\@out) } );
 	@out;
 }
 
@@ -492,7 +520,7 @@ sub tableaux_en_cours
 		push @out, $t->suitename if $t->NumComplete lt $t->Size;
 	}
 
-	TRACE( sub { Dumper(\@out) } );
+	# TRACE( sub { Dumper(\@out) } );
 }
 
 sub tireurs
