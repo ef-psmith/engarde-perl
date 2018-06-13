@@ -115,6 +115,7 @@ sub weapon_add
 	$comps->{$nextid}->{nif} = 0;
 	$comps->{$nextid}->{background} = $colours[$nextid - 1];
 	$comps->{$nextid}->{state} = 'active';
+	$comps->{$nextid}->{type} = 'engarde';
 	
 	config_write($config);
 	
