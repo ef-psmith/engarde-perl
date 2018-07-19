@@ -36,7 +36,7 @@ use File::Find;
 use File::Basename;
 
 use CGI::Carp qw(fatalsToBrowser warningsToBrowser);
-use CGI::Pretty qw(:standard *table -no_xhtml);
+use CGI qw(:standard *table -no_xhtml);
 use CGI::Cookie;
     
 use Fcntl qw(:flock :DEFAULT);

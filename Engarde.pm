@@ -29,6 +29,9 @@ use Time::Local;
 # use HTML::Entities;
 our $DEBUGGING = 0;
 # get rid of the STDERR reopened... warning
+use utf8;
+use WebService::Slack::WebApi;
+ 
 no warnings 'io';
 
 
@@ -1813,10 +1816,45 @@ sub debug
 	{
 		my @t = localtime();
 		printf STDERR "%02d:%02d:%02d DEBUG(%d): %s\n" ,$t[2],$t[1],$t[0],$level,$text;
+		#slack_post($text);
 	}
 	
 }
 
+
+sub slack_post
+{
+
+	my $msg = shift;
+
+	my $slack = WebService::Slack::WebApi->new(token => 'xoxb-197196998002-382722916087-UY9wlz8dKFGaQtkfotqmpr3O');
+	my $posted_message = $slack->chat->post_message(
+		channel     => '#bot_test',
+		text        => $msg,  # not required if attachments exists
+		as_user     => 1,
+    #attachments => [
+    #    {
+    #        fallback    => 'Required plain-text summary of the attachment.',
+    #        color       => '#36a64f',
+    #        pretext     => 'Optional text that appears above the attachment block',
+    #        author_name => 'Bobby Tables',
+    #        author_link => 'http://flickr.com/bobby/',
+    #        author_icon => 'http://flickr.com/icons/bobby.jpg',
+    #        title       => 'Slack API Documentation',
+    #        title_link  => 'https://api.slack.com/',
+    #        text        => 'Optional text that appears within the attachment',
+    #        fields => [
+    #            {
+    #                title => 'Priority',
+    #                value => 'Hight',
+    #                short => 0,
+    #            },
+    #        ],
+    #    },
+    #],
+	);
+}
+ 
 
 1;
 
