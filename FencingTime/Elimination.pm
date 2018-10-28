@@ -301,7 +301,7 @@ sub matchlist
 									seed => $m->BottomSeed 
 								},
 					# check format
-					start_time => $m->StartTime,
+					time => $m->StartTime,
 				#	end_time => time in HH:mm format,
 					#idA => $m->TopCompetitor->ID,
 					#idB => $m->BottomCompetitor->ID,

@@ -92,13 +92,33 @@ sub tournaments
 }
 
 
-sub find_comp
+sub events
 {
 	my $self = shift;
-	my $t = $self->Tournaments;
+	my $tournaments = $self->tournaments;
+	
+	my $out = {};
 
-	# say Dumper(\$t);
+	foreach my $t (values %$tournaments)
+	{
+		$out->{$t} = $self->tournament($t)->events;
+	}
+
+	$out;
 }
+
+sub event
+{
+	my $self = shift;
+	my $in = shift;
+
+	foreach my $t (@{$self->Tournaments})
+	{
+		my $e = $t->event($in); 
+		return $e if $e;
+	}
+}
+
 
 sub fetch
 {

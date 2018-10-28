@@ -282,7 +282,9 @@ sub elim_bouts
 sub matchlist
 {
 	my $self = shift;
-	my $matchlist = $self->Elimination->matchlist;
+	my $e = $self->Elimination;
+	return undef unless $e;
+	my $matchlist = $e->matchlist;
 
 	$matchlist;
 
@@ -380,7 +382,7 @@ sub poules_list
 
 sub ranking
 {
-	my $self=shift;
+	my $self = shift;
 	my $type = shift || "f";
 
 	my $poolres = {};
@@ -388,8 +390,9 @@ sub ranking
 	if ($self->LastRoundID)
 	{
 		foreach (@{$self->Seeding})
-		{
-			$poolres->{$_->{FencerID}} = $_;	
+		{	
+			my $id = $self->IsTeamEvent ? $_->{TeamID} : $_->{FencerID};
+			$poolres->{$id} = $_;	
 		}
 	}
 
@@ -404,8 +407,12 @@ sub ranking
 	else
 	{
 		@elim = $self->IsFinished ? @{$self->Results} : @{$self->ResultsSoFar};
+
+		TRACE( sub { Dumper(\@elim) } );
 		# @elim = @{$self->Results};
 	}
+
+	TRACE( sub { Dumper(\@elim) } );
 
 	# can't determine group here - maybe assume based on position?
 	# my $group = "elim_" . $self->Size;
@@ -415,15 +422,19 @@ sub ranking
 
 	foreach my $f (@elim)
 	{
-		my $place = $type = "p" ? $f->Seed : $f->FinalPlace;
+		my $place = $type eq "p" ? $f->Seed : $f->FinalPlace;
+
+		TRACE("place = $place");
 
 		$place =~ s/T//g;
 
 		$place = 999 if $place eq "DNF";
 
-		# TRACE("place = $place");
+		TRACE ( sub { Dumper(\$f) } );
 
 		my $pf = $poolres->{$f->FencerID};
+
+		next unless $pf;
 
 		if ($pf->HasPoolResults)
 		{
@@ -449,6 +460,7 @@ sub ranking
 
 
 		$out->{$f->FencerID}->{seed} = $place;
+		$out->{$f->FencerID}->{place} = $place;
 		$out->{$f->FencerID}->{nom} = $f->Name;
 		$out->{$f->FencerID}->{nom_court} = $f->Name;
 		$out->{$f->FencerID}->{nation} = $f->CountryAbbr;
@@ -456,6 +468,10 @@ sub ranking
 		$out->{$f->FencerID}->{affiliation} = $f->CountryAbbr || $f->PrimaryClubAbbr;
 
 		$out->{$f->FencerID}->{group} = "elim_none" unless $place;
+
+
+		TRACE ( sub { Dumper ($out->{$f->FencerID}) } )
+
 
 		#if ($type == "f" && $place )
 		#{
@@ -477,7 +493,11 @@ sub ranking
 		#}
 	}
 
-	# TRACE( sub { Dumper(\$out) } );
+
+	TRACE("**********************");
+
+	TRACE( sub { Dumper(\$out) } );
+
 	$out;
 }
 
@@ -566,7 +586,16 @@ sub tireurs
 
 sub titre_ligne
 {
-	shift->name;
+	my $self = shift;
+
+	# my $type = $self->IsTeamEvent ? " Team" : " Individual";
+
+	my $name = $self->name;
+
+	$name =~ s/Saber/Sabre/;
+
+	# $name . $type;
+	$name;
 }
 
 sub whereami

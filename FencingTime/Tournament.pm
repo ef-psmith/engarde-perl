@@ -150,6 +150,8 @@ sub events
     foreach my $x (@{$self->Events})
     {
 		$out->{$x->EventID} = $x->name;
+
+		# $out->{$x->EventID} .= $x->IsTeamEvent ? " Team" : " Individual";
     }
 
 	$out;

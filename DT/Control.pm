@@ -40,7 +40,6 @@ use Cwd qw/abs_path cwd/;
 use File::Find;
 use File::Basename;
 
-# use CGI::Carp qw(fatalsToBrowser warningsToBrowser);
 use CGI qw(:standard *table -no_xhtml);
 use CGI::Cookie;
     
@@ -89,9 +88,26 @@ sub weapon_add
 	my $config = config_read();
 	
 	my $path = shift;
-	
-	my $c = Engarde->new($path . "/competition.egw", 2);
-	my $titre = $c->titre_ligne;
+
+	my $c;
+	my $titre;
+	my $type;
+
+	if ($config->{ftserver})
+	{
+		my $ft = FencingTime->instance({host => $config->{ftserver}});
+		$c = $ft->event($path);
+
+		$titre = $c->titre_ligne;
+
+		$type = "ft";
+	}
+	else
+	{	
+		$c = Engarde->new($path . "/competition.egw", 2);
+		$titre = $c->titre_ligne;
+		$type = "engarde";
+	}
 	
 	my @colours = qw/	blue chartreuse coral cyan darkgreen deeppink dodgerblue gold hotpink magenta 
 				orange red seagreen tomato yellow darkorchid darksalmon goldenrod peachpuff thistle
@@ -115,7 +131,8 @@ sub weapon_add
 	$comps->{$nextid}->{nif} = 0;
 	$comps->{$nextid}->{background} = $colours[$nextid - 1];
 	$comps->{$nextid}->{state} = 'active';
-	$comps->{$nextid}->{type} = 'engarde';
+
+	$comps->{$nextid}->{type} = $type;
 	
 	config_write($config);
 	
@@ -978,11 +995,28 @@ sub frm_screen
 	my $seriescomps = _series_by_comp($config);
 		
 	# print "<tr><td>" . Dumper(\$seriescomps) . "</td></tr>";
+
+	my $ft;
+
+	if ($config->{ftserver})
+	{
+		$ft = FencingTime->instance({host => $config->{ftserver}});
+	}
 		
 	foreach my $cid (sort { $a <=> $b } keys(%$comps)) 
 	{
 		my $src = $comps->{$cid}->{source};
-		my $c = Engarde->new($src,2);
+
+		my $c;
+
+		if ($config->{ftserver})
+		{
+			$c = $ft->event($src); 
+		}
+		else
+		{
+			$c = Engarde->new($src,2);
+		}
 		
 		next unless $c;
 
@@ -1069,9 +1103,25 @@ sub frm_screen
 	print hidden(-name=>"Action", -value=>"newcomp");
 	
 	print start_table({border => 0, cellspacing=>2, cellpadding=>0});
-	_find_comps();
-	print Tr(td( popup_menu(-name=>'newcomp', -values=>\@available_comps)), td("<a href='javascript: document.form_add.submit();'><img src='./graphics/green-plus-icon.png' /></a>"));
-	
+	if ($config->{ftserver})
+	{
+		my $comps = _find_comps($config);
+
+		foreach my $t (keys %$comps)
+		{
+			my @v = keys %{$comps->{$t}};
+			my $l = $comps->{$t};
+			print Tr(td( popup_menu(-name=>'newcomp', -values=>[@v], -labels=> $l)), td("<a href='javascript: document.form_add.submit();'><img src='./graphics/green-plus-icon.png' /></a>"));
+		}
+
+		
+
+	}
+	else
+	{
+		_find_comps();
+		print Tr(td( popup_menu(-name=>'newcomp', -values=>\@available_comps)), td("<a href='javascript: document.form_add.submit();'><img src='./graphics/green-plus-icon.png' /></a>"));
+	}	
 	print end_table();
 	print end_form();
 	print "</fieldset><br>\n";
@@ -1616,20 +1666,31 @@ sub frm_fencer_edit
 
 sub _find_comps
 {
+	my $config = shift;
 	undef @available_comps;
-	
-	my @possibledirs = ("../../data/examples", "/home/engarde/public/data/current", "c:/users/psmit/Documents/prs2712\@gmail.com/escrime/DATA/examples");
 
-	my @dirs;
-	
-	foreach (@possibledirs)
+	if ($config->{ftserver})
 	{
-		push @dirs, $_ if -d;
+		my $ft = FencingTime->instance({host => $config->{ftserver}});
+		
+		my $e = $ft->events;
 	}
+	else
+	{
+		
+		my @possibledirs = ("../../data/examples", "/home/engarde/public/data/current");
+
+		my @dirs;
 	
-	HTMLdir("no top dir") unless @possibledirs;
+		foreach (@possibledirs)
+		{
+			push @dirs, $_ if -d;
+		}
 	
-	find (\&_wanted, @dirs);
+		HTMLdir("no top dir") unless @possibledirs;
+		
+		find (\&_wanted, @dirs);
+	}
 }
 
 sub _wanted
