@@ -25,14 +25,6 @@ sub BUILD
 	#$t->add_event($self);
 }
 
-sub DEMOLISH 
-{
-	my ($self, $in_global_destruction) = @_;
-	
-	ERROR("in demolish");
-	exit;
-}
-
 #### TYPES ####
 my $Fencer_type = class_type { class => "FencingTime::Fencer" };
 my $Fencer_list = ArrayRef[InstanceOf[$Fencer_type->plus_coercions(Any, \&_coerce_fencer)]];

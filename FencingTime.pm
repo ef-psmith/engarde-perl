@@ -59,6 +59,14 @@ has feed => (
 );
 
 
+# default time after which event data will be refetched
+has timeout => (
+		is => 'lazy',
+		isa => Int,
+		default => 30,
+);
+
+
 ## METHODS ##
 
 sub tournament

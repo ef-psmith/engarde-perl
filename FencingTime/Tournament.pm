@@ -52,6 +52,7 @@ has Feeds => ( 	is => 'ro',
 has Events => (
 				is => 'lazy', 
 				isa => $Events,
+				clearer => 1,
 				# coerce => 1,
 );
 
@@ -72,6 +73,8 @@ has AuthorityName => ( is => 'lazy', isa => Str);
 has AuthorityAbbr => ( is => 'lazy', isa => Str);
 has AllFinished => ( is => 'lazy', isa => Bool);
 has AllowRSE => ( is => 'lazy', isa => Bool);
+
+has last_fetch => ( is => 'lazy', isa => Int, default => sub { time }, clearer => 1);
 
 
 #### METHODS ####
@@ -116,6 +119,19 @@ sub _build_refstrips
 	
 	$self->ft->fetch("tournaments",$self->ID,"refstrips");
 }
+
+before qw(event events) => sub {
+	my $self = shift;
+	my $age = time - $self->last_fetch;
+
+	if ($age gt $self->ft->timeout)
+	{
+		$self->clear_Events;
+		$self->clear_last_fetch;
+
+		TRACE ( sub { "events cleared - age = $age" } );
+	}
+};
 
 sub event
 {
