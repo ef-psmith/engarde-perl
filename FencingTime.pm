@@ -29,6 +29,7 @@ has ua => (
 	is	   => 'lazy',
 	default  => sub { 	my $ua = LWP::UserAgent->new(); 
 						$ua->default_header( 'X-ApiKey' => 'f4936b47-37a7-30ba-6dc0-b81640400d4f'); 
+						$ua->timeout(30);
 						$ua; 
 					},
 );
