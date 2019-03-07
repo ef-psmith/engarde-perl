@@ -23,7 +23,7 @@ use Moo;
 ## ATTRIBUTES ##
 
 
-has ft => ( type => 'lazy', default => sub { FencingTime->instance } );
+has ft => ( is => 'lazy', default => sub { FencingTime->instance } );
 
 
 ## METHODS ##

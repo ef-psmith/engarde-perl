@@ -51,7 +51,7 @@ use XML::Simple;
 
 # use XML::Dumper;
 my @available_comps;
-my $tt = Template->new({ INCLUDE_PATH => '/home/engarde/live/templates', ENCODING => 'utf8' });
+my $tt = Template->new({ INCLUDE_PATH => '/home/engarde/live/templates', ENCODING => 'utf8', PRE_CHOMP => 1 });
 
 
 ########################################################
@@ -567,8 +567,12 @@ sub config_write
 sub frm_control
 {
 	my $data = config_read();
+	my $ft;
 
-	my $ft = FencingTime->instance({host => $data->{ftserver}});
+	if ($data->{ftserver})
+	{
+		$ft = FencingTime->instance({host => $data->{ftserver}});
+	}
 
 	my $comps = $data->{competition};
 
@@ -926,6 +930,68 @@ sub frm_control_old {
 }
 
 sub frm_screen
+{
+	my $config = config_read();
+	
+	my $comps = $config->{competition};
+
+	my $data = {};
+
+	$comps = {} unless ref $comps eq "HASH";
+	
+	my $series = $config->{series};
+	my $seriescomps = _series_by_comp($config);
+
+	$data->{series} = $seriescomps;
+		
+	my $ft;
+
+	if ($config->{ftserver})
+	{
+		$ft = FencingTime->instance({host => $config->{ftserver}});
+	}
+		
+	foreach my $cid (sort { $a <=> $b } keys(%$comps)) 
+	{
+		my $src = $comps->{$cid}->{source};
+
+		my $c;
+
+		if ($config->{ftserver})
+		{
+			$c = $ft->event($src); 
+		}
+		else
+		{
+			$c = Engarde->new($src,2);
+		}
+		
+		next unless $c;
+
+		$data->{comps}->{$cid}->{titre_ligne} = $c->titre_ligne;
+		$data->{comps}->{$cid}->{source} = $src;
+		$data->{comps}->{$cid}->{enabled} = 1 if $comps->{$cid}->{enabled} eq "true";
+		
+	}	
+
+	###########################################
+	#
+	#	Add a competition
+	#
+	###########################################
+	
+	$data->{newcomps} = _find_comps($config);
+
+	TRACE ( sub { Dumper(\$data) } );	
+	
+	# Render
+	$tt->process('screen.tt', { title => 'Screen Configuration', data => $data, }) 
+		|| TRACE ( $tt->error() );
+
+	TRACE ( "after render");
+}
+
+sub frm_screen_old
 {
 	my $config = config_read();
 	
@@ -1673,7 +1739,14 @@ sub _find_comps
 	{
 		my $ft = FencingTime->instance({host => $config->{ftserver}});
 		
-		my $e = $ft->events;
+		my $e = $ft->tournament($config->{tournamentname})->events;
+
+		foreach (values %$e)
+		{
+			$_ =~ s/Saber/Sabre/g;
+		}
+
+		return $e;
 	}
 	else
 	{
@@ -1747,15 +1820,6 @@ sub _series_by_comp
 		# print "$sid - " . Dumper($series->{$sid}->{competition}) . "<br>";
 	}
 	return $out;
-}
-
-# lost my way here....  probably delete _open later
-sub _open
-{
-	my $c = shift;
-	
-	open(my $fh, "+< " . $c->{dir} . "/etat.txt");
-	return $fh;
 }
 
 sub _running 
