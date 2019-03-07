@@ -55,11 +55,22 @@ sub active
 	foreach my $x (sort { $b->Size <=> $a->Size } @{$t->Tables})
 	{
 		# TRACE(sub { Dumper(\$x) });
+		TRACE($x->Size);
 
 		next if $x->isComplete;
-		next unless $x->NumCreated;
 
-		push @out, $x->suitename;
+		unless ($x->NumCreated)
+		{
+			if (@out == 1)
+			{
+				push @out, $x->suitename;
+				last;
+			}
+		}
+		else
+		{
+			push @out, $x->suitename;
+		}
 	}
 
 	DEBUG("out = @out");

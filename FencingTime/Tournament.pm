@@ -126,8 +126,18 @@ before qw(event events) => sub {
 
 	if ($age gt $self->ft->timeout)
 	{
+    	foreach my $x (@{$self->Events})
+		{
+			$x->clear_Competitors;
+			$x->clear_Pools;
+			$x->clear_Elimination;
+
+			undef $x;
+		}
 		$self->clear_Events;
 		$self->clear_last_fetch;
+
+		$self->ft->_clear_instance;
 
 		TRACE ( sub { "events cleared - age = $age" } );
 	}
@@ -146,9 +156,14 @@ sub event
         return $x if $x->name eq $name;
     }
 
+	return undef;
+
+	# should never need this - if the event exists it will be 
+	# fetched by the Events builder
+
 	my $data = $self->ft->fetch("events", $name);
 
-	# TRACE( sub { Dumper(\$data) } );
+	TRACE( sub { Dumper(\$data) } );
 	
 	my $e = FencingTime::Event->new($data);
 

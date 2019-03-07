@@ -44,35 +44,41 @@ has ft => (		is => 'lazy',
 # Seeding refers to the current round, whatever that is
 has Seeding => ( 	is => 'lazy',
 					isa => $Fencer_list,
-					coerce => 1
+					coerce => 1,
+					clearer => 1,
 );
 
 # Pools refers to the current round, whatever that is
 has Pools => ( 	is => 'lazy',
 				isa => $Pool_list,
-				coerce => 1
+				coerce => 1,
+				clearer => 1,
 );
 
 # ResultsSoFar will not include the eventual winner
 has ResultsSoFar => ( 	is => 'lazy',
 						isa => $Fencer_list,
-						coerce => 1
+						coerce => 1,
+						clearer => 1,
 );
 
 
 has Results => ( 	is => 'lazy',
 					isa => $Fencer_list,
-					coerce => 1
+					coerce => 1,
+					clearer => 1,
 );
 
 has Competitors => ( 	is => 'lazy',
 						isa => $Fencer_list,
 						coerce => 1,
+						clearer => 1,
 );
 
 has Elimination => (	is => 'lazy',
 						isa => $Elim_list,
-						coerce => 1
+						coerce => 1,
+						clearer => 1,
 );
 
 # is there a  /event/{id}/rounds API
@@ -81,7 +87,7 @@ has Rounds => ( is => 'lazy' );
 
 has MinsSinceRoundStart => (is => 'lazy', isa => Int);
 
-has State => (is => 'lazy', isa => Str);
+has State => (is => 'rw', isa => Str);
 # 1 = check in open
 # 3 = check in closed, event not started
 # 4 = check in closed, event started, first round not published
@@ -129,9 +135,26 @@ has numCompleted => ( is => 'rwp', default => 0 );
 
 has FeedState => ( is => 'rwp', default => 0 );
 
+has last_fetch => ( is => 'lazy', isa => Int, default => sub { time }, clearer => 1);
+
 #has entry_list => ( is => 'lazy', default => 
 
 #### METHODS ####
+
+before qw(entry_list ranking) => sub {
+	my $self = shift;
+	my $age = time - $self->last_fetch;
+
+	if ($age gt $self->ft->timeout)
+	{
+		$self->clear_Competitors;
+		$self->clear_Pools;
+		$self->clear_Elimination;
+		$self->clear_last_fetch;
+	
+		TRACE ( sub { "event data cleared - age = $age" } );
+	}
+};
 
 #### Engarde COMPATIBLE DATA ACCESS METHODS ####
 
@@ -378,8 +401,38 @@ sub ranking
 	my $type = shift || "f";
 
 	my $poolres = {};
+	my $out = {};
+	my @elim;
 
-	if ($self->LastRoundID)
+	if ($self->State == 6)
+	{
+		foreach (@{$self->temppoolres})
+		{
+			my $id = $self->IsTeamEvent ? $_->{TeamID} : $_->{FencerID};
+
+			$out->{$id}->{v} = $_->{Victories};
+			$out->{$id}->{hs} = $_->{TouchesScored};
+			$out->{$id}->{hr} = $_->{TouchesReceived};
+			$out->{$id}->{ind} = $_->{Indicator};
+			$out->{$id}->{vm} = sprintf "%.3f", $_->{WinPercentage};
+
+			my $place = $_->{Place};
+			$place =~ s/T//g;
+
+			$out->{$id}->{seed} = $place;
+			$out->{$id}->{place} = $place;
+			$out->{$id}->{nom} = $_->{Name};
+			$out->{$id}->{nom_court} = $_->{Name};
+			$out->{$id}->{nation} = $_->{CountryAbbr};
+			$out->{$id}->{club} = $_->{PrimaryClubAbbr};
+			$out->{$id}->{affiliation} = $_->{CountryAbbr} || $_->{PrimaryClubAbbr};
+
+			# $out->{$id}->{group} = $_->{} eq "Advanced" ? "elim_none" : "elim_p";
+		}
+
+		return $out;
+	}
+	elsif ($self->LastRoundID)
 	{
 		foreach (@{$self->Seeding})
 		{	
@@ -388,10 +441,6 @@ sub ranking
 		}
 	}
 
-	my $out = {};
-
-	my @elim;
-	
 	if ($type eq "p")
 	{
 		@elim = values %{$poolres};
@@ -400,11 +449,11 @@ sub ranking
 	{
 		@elim = $self->IsFinished ? @{$self->Results} : @{$self->ResultsSoFar};
 
-		TRACE( sub { Dumper(\@elim) } );
+		# TRACE( sub { Dumper(\@elim) } );
 		# @elim = @{$self->Results};
 	}
 
-	TRACE( sub { Dumper(\@elim) } );
+	# TRACE( sub { Dumper(\@elim) } );
 
 	# can't determine group here - maybe assume based on position?
 	# my $group = "elim_" . $self->Size;
@@ -462,33 +511,13 @@ sub ranking
 		$out->{$f->FencerID}->{group} = "elim_none" unless $place;
 
 
-		TRACE ( sub { Dumper ($out->{$f->FencerID}) } )
-
-
-		#if ($type == "f" && $place )
-		#{
-			#my $group = 256;
-#
-			#if ($place eq 1)
-			#{
-				#$group = 0;
-			#}
-			#else
-			#{
-				#foreach my $g (qw(128 64 32 16 8 4 2))
-				#{
-					#$group = $g unless $place > $g; 
-				#}
-			#}
-			#
-			#$out->{$f->FencerID}->{group} = "elim_$group";
-		#}
+		# TRACE ( sub { Dumper ($out->{$f->FencerID}) } )
 	}
 
 
-	TRACE("**********************");
+	# TRACE("**********************");
 
-	TRACE( sub { Dumper(\$out) } );
+	# TRACE( sub { Dumper(\$out) } );
 
 	$out;
 }
@@ -618,6 +647,16 @@ sub whereami
 	elsif ($out eq "tableau")
 	{
 		my @active = $self->Elimination->active;
+
+		TRACE ( sub { Dumper(\@active) } );
+
+		unless (@active)
+		{
+			TRACE ( "Forcing tableau to A4/A2" );
+			@active = qw(A4 A2);
+		}
+
+		
 		$out = "$out @active";
 	}
 	
