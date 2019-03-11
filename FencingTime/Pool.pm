@@ -11,8 +11,8 @@ use Data::Dumper::Concise;
 my $Competitor_type = class_type { class => "FencingTime::PoolCompetitor" };
 my $Competitor_list = ArrayRef[InstanceOf[$Competitor_type->plus_coercions(Any, \&_coerce_competitor)]];
 
+has IsCompleted => ( is => 'lazy', isa => Bool->plus_coercions(Any, q{ !!$_ }), coerce => 1); 
 
-has IsCompleted => ( is => 'lazy', isa => Bool);
 has StripNum => (is => 'lazy', isa => Str);
 has Size => (is => 'lazy', isa => Int);
 has ID => (is => 'lazy', isa => Int);

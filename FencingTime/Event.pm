@@ -105,14 +105,14 @@ has RoundID => (is => 'lazy', isa => Int);
 has EventID => (is => 'lazy', isa => Int);
 has ID => (is => 'lazy', isa => Int, default => sub { shift->EventID });
 has NumCompetitors => (is => 'lazy', isa => Int);
-has IsTeamEvent => (is => 'lazy', isa => Bool);
+has IsTeamEvent => (is => 'lazy', isa => Bool->plus_coercions(Any, q{ !!$_ }), coerce => 1);
 
 # these are returned from the .../events/{eid} end point
 has TournamentID => ( is => 'rwp', isa => Int);
 has EventType => ( is => 'lazy', isa => Str);
 has Wheelchair => ( is => 'lazy', isa => Str);
 has PointList1Abbr => ( is => 'lazy', isa => Str);
-has IsStarted => ( is => 'lazy', isa => Bool);
+has IsStarted => ( is => 'lazy', isa => Bool->plus_coercions(Any, q{ !!$_ }), coerce => 1);
 
 has RegOpenTime => ( is => 'lazy', isa => DateTime );
 has RatingLevel => ( is => 'lazy', isa => Str );
@@ -121,10 +121,10 @@ has EntryFee => ( is => 'lazy', isa => Num );
 has RegCloseTime => ( is => 'lazy', isa => DateTime);
 has Weapon => ( is => 'rwp', isa => Str);
 has AltName => ( is => 'lazy', isa => Str);
-has IsQualifier => ( is => 'lazy', isa => Bool);
+has IsQualifier => ( is => 'lazy', isa => Bool->plus_coercions(Any, q{ !!$_ }), coerce => 1);
 has AgeLimit => ( is => 'rwp', isa => Str );
 has PointList2Abbr => ( is => 'lazy', isa => Str );
-has IsFinished => ( is => 'rwp', isa => Bool );
+has IsFinished => ( is => 'rwp', isa => Bool->plus_coercions(Any, q{ !!$_ }), coerce => 1);
 has GenderMix => ( is => 'rwp', isa => Str );
 has RankType => ( is => 'lazy', isa => Str );
 

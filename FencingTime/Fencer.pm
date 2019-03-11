@@ -15,10 +15,11 @@ has DivisionAbbr => ( is => 'lazy', isa => Str);
 has DivisionID => (is => 'lazy', isa => Int);
 has CountryAbbr => ( is => 'lazy', isa => Str);
 has CountryID => (is => 'lazy', isa => Int);
-has IsExcluded => ( is => 'lazy', isa => Bool);
-has IsNoShow => ( is => 'lazy', isa => Bool);
+has IsExcluded => ( is => 'lazy', isa => Bool->plus_coercions(Any, q{ !!$_ }), coerce => 1);
+has IsNoShow => ( is => 'lazy', isa => Bool->plus_coercions(Any, q{ !!$_ }), coerce => 1);
 has Status => (is => 'lazy', isa => Str);
-has HasPoolResults => ( is => 'lazy', isa => Bool);
+has HasPoolResults => ( is => 'lazy', isa => Bool->plus_coercions(Any, q{ !!$_ }), coerce => 1);
+ 
 has PoolVictories => (is => 'lazy', isa => Int);
 has PoolWinPercentage => (is => 'lazy', isa => Num);
 has PoolTouchesScored => (is => 'lazy', isa => Int);

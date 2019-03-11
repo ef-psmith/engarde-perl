@@ -7,7 +7,8 @@ use Moo;
 
 has TouchesReceived => (is => 'lazy', isa => Int);
 has WDXReason => (is => 'lazy', isa => Str);
-has Victories => (is => 'lazy', isa => Bool);
+has Victories => (is => 'lazy', isa => Bool->plus_coercions(Any, q{ !!$_ }), coerce => 1);
+
 has SecondaryClubAbbr => (is => 'lazy', isa => Str);
 has BoutsFenced => (is => 'lazy', isa => Int);
 has TeamID => (is => 'lazy', isa => => Int);

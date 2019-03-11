@@ -71,8 +71,8 @@ has RegFee => (is => 'lazy', isa => Int);
 has Location => (is => 'lazy', isa => Str);
 has AuthorityName => ( is => 'lazy', isa => Str);
 has AuthorityAbbr => ( is => 'lazy', isa => Str);
-has AllFinished => ( is => 'lazy', isa => Bool);
-has AllowRSE => ( is => 'lazy', isa => Bool);
+has AllFinished => ( is => 'lazy', isa => Bool->plus_coercions(Any, q{ !!$_ }), coerce => 1);
+has AllowRSE => ( is => 'lazy', isa => Bool->plus_coercions(Any, q{ !!$_ }), coerce => 1);
 
 has last_fetch => ( is => 'lazy', isa => Int, default => sub { time }, clearer => 1);
 

@@ -42,8 +42,7 @@ has RoundNum => (is => 'lazy', isa => Int);
 has RoundID => (is => 'lazy', isa => Int);
 has EventID => (is => 'lazy', isa => Int);
 has NumCompetitors => (is => 'lazy', isa => Int);
-has IsTeamEvent => (is => 'lazy', isa => Bool);
-
+has IsTeamEvent => (is => 'lazy', isa => Bool->plus_coercions(Any, q{ !!$_ }), coerce => 1);
 has name => ( is => 'lazy', default => sub { my $self = shift; $self->AgeLimit . " " .  $self->GenderMix . " " . $self->Weapon } );
 
 

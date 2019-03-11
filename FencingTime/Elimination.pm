@@ -368,18 +368,19 @@ has Score => ( is => 'lazy', isa => Str);
 #has NumEncounters => ( is => 'lazy', isa => Int);
 has TopSeed => ( is => 'lazy', isa => Str);
 has BottomSeed => ( is => 'lazy', isa => Str);
-has WinnerBye => ( is => 'lazy', isa => Bool);
+has WinnerBye => ( is => 'lazy', isa => Bool->plus_coercions(Any, q{ !!$_ }), coerce => 1);
 has WinnerSeed => ( is => 'lazy', isa => Str, default => '');
 has TeamMatchID => ( is => 'lazy', isa => Int);
-has TopBye => ( is => 'lazy', isa => Bool);
-has BottomBye => ( is => 'lazy', isa => Bool);
+has TopBye => ( is => 'lazy', isa => Bool->plus_coercions(Any, q{ !!$_ }), coerce => 1);
+has BottomBye => ( is => 'lazy', isa => Bool->plus_coercions(Any, q{ !!$_ }), coerce => 1);
 has StartTime => ( is => 'lazy', isa => Str);
 
 has TopCompetitor => ( is => 'lazy', isa => $Comp, coerce => 1);
 has BottomCompetitor => ( is => 'lazy', isa => $Comp, coerce => 1);
 has Winner => ( is => 'lazy', isa => $Comp, default => sub { {}; }, coerce => 1);
 
-has Finished => ( is => 'lazy', isa => Bool, default => sub { my $self=shift; $self->WinnerSeed ? 1 : 0 } );
+has Finished => ( is => 'lazy', isa => Bool->plus_coercions(Any, q{ !!$_ }), coerce => 1,
+	default => sub { my $self=shift; $self->WinnerSeed ? 1 : 0 } );
 
 sub ScoreA 
 { 
@@ -422,7 +423,8 @@ has ClubAbbr => ( is => 'lazy', isa => Str, default => '');
 has Name => ( is => 'lazy', isa => Str, default => '');
 has Rating => ( is => 'lazy', isa => Str);
 has DivAbbr => ( is => 'lazy', isa => Str);
-has IsLeftHanded => ( is => 'lazy', isa => Bool);
+has IsLeftHanded => ( is => 'lazy', isa => Bool->plus_coercions(Any, q{ !!$_ }), coerce => 1);
+
 
 sub _build_Name
 {
