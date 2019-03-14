@@ -87,7 +87,7 @@ has Rounds => ( is => 'lazy' );
 
 has MinsSinceRoundStart => (is => 'lazy', isa => Int);
 
-has State => (is => 'rw', isa => Str);
+has State => (is => 'rw', isa => Str, clearer => 1);
 # 1 = check in open
 # 3 = check in closed, event not started
 # 4 = check in closed, event started, first round not published
@@ -150,6 +150,8 @@ before qw(entry_list ranking) => sub {
 		$self->clear_Competitors;
 		$self->clear_Pools;
 		$self->clear_Elimination;
+		$self->clear_State;
+		$self->clear_Seeding;
 		$self->clear_last_fetch;
 	
 		TRACE ( sub { "event data cleared - age = $age" } );
@@ -652,12 +654,13 @@ sub whereami
 
 		unless (@active)
 		{
-			TRACE ( "Forcing tableau to A4/A2" );
-			@active = qw(A4 A2);
+			TRACE ( "Forcing stage to termine" );
+			$out = "termine";
 		}
-
-		
-		$out = "$out @active";
+		else
+		{
+			$out = "$out @active";
+		}
 	}
 	
 	$out;

@@ -126,14 +126,17 @@ before qw(event events) => sub {
 
 	if ($age gt $self->ft->timeout)
 	{
-    	foreach my $x (@{$self->Events})
+		foreach my $x (@{$self->Events})
 		{
 			$x->clear_Competitors;
 			$x->clear_Pools;
 			$x->clear_Elimination;
+			$x->clear_Seeding;
+			$x->clear_last_fetch;
 
 			undef $x;
 		}
+
 		$self->clear_Events;
 		$self->clear_last_fetch;
 
