@@ -16,6 +16,16 @@ my $log;
 
 BEGIN 
 {
+	if ($^O =~ /MSWin32/)
+	{
+		eval { require Win32::Console::ANSI };
+	}
+
+	if ($@)
+	{
+		WARN ( "Win32::Console::ANSI not loaded - console output may be garbled");
+	}
+
 	my @files = ( './logging.conf', '/home/engarde/live/logging.conf');
 	foreach (@files)
 	{
