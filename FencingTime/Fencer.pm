@@ -15,10 +15,10 @@ has DivisionAbbr => ( is => 'lazy', isa => Str);
 has DivisionID => (is => 'lazy', isa => Int);
 has CountryAbbr => ( is => 'lazy', isa => Str);
 has CountryID => (is => 'lazy', isa => Int);
-has IsExcluded => ( is => 'lazy', isa => Bool->plus_coercions(Any, q{ !!$_ }), coerce => 1);
-has IsNoShow => ( is => 'lazy', isa => Bool->plus_coercions(Any, q{ !!$_ }), coerce => 1);
+has IsExcluded => ( is => 'lazy', isa => Bool->plus_coercions(Any, q{ $_ eq "false" ? 1 : 0 }), coerce => 1);
+has IsNoShow => ( is => 'lazy', isa => Bool->plus_coercions(Any, q{ $_ eq "false" ? 1 : 0 }), coerce => 1);
 has Status => (is => 'lazy', isa => Str);
-has HasPoolResults => ( is => 'lazy', isa => Bool->plus_coercions(Any, q{ !!$_ }), coerce => 1);
+has HasPoolResults => ( is => 'lazy', isa => Bool->plus_coercions(Any, q{ !$_ eq "false" ? 1 : 0 }), coerce => 1);
  
 has PoolVictories => (is => 'lazy', isa => Int);
 has PoolWinPercentage => (is => 'lazy', isa => Num);
@@ -47,7 +47,7 @@ has TeamData => (is => 'lazy');
 # Engarde attributes
 has affiliation => ( is => 'lazy', default => sub { my $self=shift; $self->PrimaryClubID ? $self->PrimaryClubAbbr : $self->CountryAbbr } );
 
-has presence => ( is => 'lazy', default => sub { my $self=shift; $self->CheckInStatus eq 'Checked-In' ? 'present' : 'absent' });
+has presence => ( is => 'lazy', default => sub { my $self=shift; $self->CheckInStatus eq 'absent' ? 'absent' : 'present' });
 
 has nom => ( is => 'lazy', default => sub { my $self=shift; $self->Name });
 
